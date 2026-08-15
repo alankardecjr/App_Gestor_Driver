@@ -83,10 +83,10 @@ Ao selecionar **Mais detalhes**, a interface apresenta informações adicionais.
 ╭────────────────────────────────────────────────────────────────────────────╮
 │ 🛞 R$/KM 2,38 │ 💰 R$38,00 │ 📍16 km │ ⏱24 min │ ⭐4,98 │
 ├────────────────────────────────────────────────────────────────────────────┤
-│ 📍 Passageiro       → 1,6 km                                                │
-│ 🏁 Destino          → 12,7 km                                               │
-│ ⛽ Combustível      → 1,28 L                                                │
-│ 💸 Gasto estimado   → R$ 8,19                                               │
+│ 📍 Passageiro        → 1,6 km                                              │
+│ 🏁 Destino           → 12,7 km                                             │
+│ ⛽ Combustível       → 1,28 L                                              │
+│ 💸 Gasto estimado    → R$ 8,19                                             │
 ├────────────────────────────────────────────────────────────────────────────┤
 │ ⚙ Configurações │ ✕ Sair interface │ ⏻ Fechar app │ 🕘 Histórico           │
 ╰────────────────────────────────────────────────────────────────────────────╯
@@ -262,11 +262,11 @@ O núcleo utiliza um contrato consolidado de análise da corrida.
 ```text
 Dados da corrida
        ↓
-     Corrida
+    Corrida
        ↓
-    Calculator
+   Calculator
        ↓
-  AnaliseCorrida
+ AnaliseCorrida
        ↓
 ┌──────┴───────────────────────┐
 │                              │
@@ -275,7 +275,7 @@ R$/KM                    Combustível
 Classificação            Custo estimado
 └──────────────┬───────────────┘
                ↓
-          Interface
+           Interface
 ```
 
 O motor já contempla:
@@ -343,7 +343,7 @@ Nos detalhes:
 
 ```text
 📍 Passageiro       1,6 km
-🏁 Destino         12,7 km
+🏁 Destino          12,7 km
 ⛽ Combustível      1,28 L
 💸 Gasto estimado   R$ 8,19
 ```
@@ -399,28 +399,28 @@ A organização poderá evoluir conforme a implementação Android avance.
 ## 🔄 Máquina de Estados
 
 ```text
-                 ┌──────────────────┐
-                 │      IDLE        │
-                 └────────┬─────────┘
-                          ↓
-                 ┌──────────────────┐
-                 │   MONITORANDO    │
-                 └────────┬─────────┘
-                          │
+                ┌──────────────────┐
+                │      IDLE        │
+                └────────┬─────────┘
+                         ↓
+                ┌──────────────────┐
+                │   MONITORANDO    │
+                └────────┬─────────┘
+                         │
                     notificação
-                          ↓
-                 ┌──────────────────┐
-                 │ CORRIDA_COMPACTA │
-                 └────────┬─────────┘
-                          │
+                         ↓
+                ┌──────────────────┐
+                │ CORRIDA_COMPACTA │
+                └────────┬─────────┘
+                         │
                     Mais detalhes
-                          ↓
-                 ┌──────────────────┐
-                 │ CORRIDA_DETALHES │
-                 └────────┬─────────┘
-                          │
+                         ↓
+                ┌──────────────────┐
+                │ CORRIDA_DETALHES │
+                └────────┬─────────┘
+                         │
                     Menos detalhes
-                          ↓
+                         ↓
                  CORRIDA_COMPACTA
 ```
 
@@ -471,9 +471,9 @@ O núcleo de regras também foi portado para Kotlin em `android-app/.../core/`, 
 
 ---
 
-# 🚀 Roadmap Atual
+## 🚀 Roadmap Atual
 
-## Núcleo
+### Núcleo
 
 - [x] Models
 - [x] Calculator
@@ -482,7 +482,7 @@ O núcleo de regras também foi portado para Kotlin em `android-app/.../core/`, 
 - [x] Analysis / AnaliseCorrida
 - [x] Testes automatizados
 
-## Custos
+### Custos
 
 - [x] Combustível
 - [x] Gasolina
@@ -491,7 +491,7 @@ O núcleo de regras também foi portado para Kotlin em `android-app/.../core/`, 
 - [x] Custo estimado
 - [ ] Custo operacional completo
 
-## Comportamento
+### Comportamento
 
 - [x] Máquina de estados definida
 - [x] Ausência de notificações
@@ -500,7 +500,7 @@ O núcleo de regras também foi portado para Kotlin em `android-app/.../core/`, 
 - [x] Fechar app
 - [x] Notificação não reconhecida
 
-## Histórico
+### Histórico
 
 - [x] Definir modelo HistoricoCorrida
 - [x] Definir dados persistidos
@@ -511,7 +511,7 @@ O núcleo de regras também foi portado para Kotlin em `android-app/.../core/`, 
 - [x] Integrar regras Free/Beta/Pro (Python)
 - [ ] Persistência Room no Android
 
-## Android
+### Android
 
 - [x] Projeto Android
 - [x] MVVM
@@ -523,7 +523,7 @@ O núcleo de regras também foi portado para Kotlin em `android-app/.../core/`, 
 - [ ] Overlay real (SYSTEM_ALERT_WINDOW)
 - [x] Selo flutuante (modo ocultar + arrastar)
 
-## Notificações
+### Notificações
 
 - [x] NotificationListenerService
 - [x] Identificação da plataforma
@@ -533,7 +533,7 @@ O núcleo de regras também foi portado para Kotlin em `android-app/.../core/`, 
 - [x] Tratamento de notificações desconhecidas
 - [x] Integração Service → ViewModel (SharedFlow)
 
-## Planos
+### Planos
 
 - [x] Definir Free
 - [x] Definir Beta
@@ -542,7 +542,7 @@ O núcleo de regras também foi portado para Kotlin em `android-app/.../core/`, 
 - [x] Definir histórico disponível na Free
 - [x] Implementar controle de recursos por plano
 
-## Testes
+### Testes
 
 - [ ] Sem login na Uber (instrumentado)
 - [x] Sem notificações (unitário)
@@ -594,30 +594,18 @@ docs/
 
 ## 📌 Status Atual
 
-**Projeto:** Gestor Driver
-
-**Versão:** MVP v1.0
-
-**Status:** 🚧 Em desenvolvimento
-
-**Núcleo:** ✅ Validado
-
-**Classificação:** ✅ Concluída
-
-**Análise:** ✅ Concluída
-
-**Combustível:** ✅ Concluído
-
-**Estado e comportamento:** ✅ Formalizado
-
-**Planos Free/Beta/Pro:** ✅ Implementados (Python + Android)
-
-**Android:** 🚧 UI, núcleo portado, notificações integradas ao ViewModel
-
-**Próxima etapa:** 🔔 Overlay real + persistência Room + testes instrumentados
+**Projeto:** Gestor Driver  
+**Versão:** MVP v1.0  
+**Status:** 🚧 Em desenvolvimento  
+**Núcleo:** ✅ Validado  
+**Classificação:** ✅ Concluída  
+**Análise:** ✅ Concluída  
+**Combustível:** ✅ Concluído  
+**Estado e comportamento:** ✅ Formalizado  
+**Planos Free/Beta/Pro:** ✅ Implementados (Python + Android)  
+**Android:** 🚧 UI, núcleo portado, notificações integradas ao ViewModel  
+**Próxima etapa:** 🔔 Overlay real + persistência Room + testes instrumentados  
 
 ---
 
 > **Gestor Driver — Informação rápida para uma decisão melhor.**
-#   A p p _ G e s t o r _ D r i v e r  
- 
