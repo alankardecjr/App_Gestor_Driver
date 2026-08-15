@@ -1,0 +1,21 @@
+# Python cache and bytecode
+__pycache__/
+*.py[cod]
+
+# Virtual environment
+.venv/
+
+# IDE settings
+.idea/
+android-app/.idea/
+.gradle/
+.gradle-local/
+build/
+**/build/
+*.apk
+*.aab
+.idea/
+.vscode/
+.pytest_cache/
+__pycache__/
+*.pyc
