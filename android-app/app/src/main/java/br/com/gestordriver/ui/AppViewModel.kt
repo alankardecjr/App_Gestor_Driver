@@ -12,6 +12,7 @@ import br.com.gestordriver.model.PlanoAcesso
 import br.com.gestordriver.notification.RideNotificationBus
 import br.com.gestordriver.notification.RideNotificationEvent
 import br.com.gestordriver.presentation.PresentationBuilder
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
@@ -28,6 +29,8 @@ class AppViewModel : ViewModel() {
     )
         private set
 
+    private var notificacaoJob: Job? = null
+
     // =====================================================================
     // EVENTO DE FECHAMENTO
     // =====================================================================
@@ -40,43 +43,34 @@ class AppViewModel : ViewModel() {
         _fecharApp.asSharedFlow()
 
     // =====================================================================
-    // OBSERVAÇÃO DAS NOTIFICAÇÕES
+    // MONITORAMENTO DE NOTIFICAÇÕES
     // =====================================================================
 
-    init {
-        viewModelScope.launch {
+    /**
+     * Inicia a ponte:
+     *
+     * NotificationListenerService
+     *          ↓
+     * RideNotificationBus
+     *          ↓
+     * AppViewModel
+     *
+     * Não é executado no init.
+     *
+     * Isso evita que os testes unitários dependam do Main Dispatcher
+     * do Android durante a simples criação do ViewModel.
+     */
+    fun iniciarMonitoramentoNotificacoes() {
+
+        if (notificacaoJob?.isActive == true) {
+            return
+        }
+
+        notificacaoJob = viewModelScope.launch {
+
             RideNotificationBus.events.collect { evento ->
 
-                when (evento) {
-
-                    // -----------------------------------------------------
-                    // NOVA OFERTA DE CORRIDA
-                    //
-                    // IMPORTANTE:
-                    //
-                    // A nova corrida NÃO entra no histórico.
-                    //
-                    // O usuário ainda precisa interagir com Uber,
-                    // 99 ou inDrive.
-                    //
-                    // A detecção do aceite será implementada
-                    // posteriormente na ETAPA 2.
-                    // -----------------------------------------------------
-
-                    is RideNotificationEvent.CorridaRecebida -> {
-                        aplicarNovaCorrida(
-                            evento.analise
-                        )
-                    }
-
-                    // -----------------------------------------------------
-                    // NOTIFICAÇÃO NÃO RECONHECIDA
-                    // -----------------------------------------------------
-
-                    RideNotificationEvent.NotificacaoNaoReconhecida -> {
-                        // Nenhuma alteração no estado.
-                    }
-                }
+                processarEvento(evento)
             }
         }
     }
@@ -88,30 +82,57 @@ class AppViewModel : ViewModel() {
     fun selecionarPlano(
         plano: PlanoAcesso,
     ) {
-        val analise = state.analiseAtual
-            ?: PresentationBuilder
-                .criarEstadoInicial(plano)
-                .analiseAtual
-            ?: return
+
+        val analise =
+            state.analiseAtual
+                ?: PresentationBuilder
+                    .criarEstadoInicial(plano)
+                    .analiseAtual
+                ?: return
 
         state = PresentationBuilder.criarEstado(
+
             analise = analise,
+
             plano = plano,
 
-            // Histórico atual permanece intacto.
             historico = state.historico,
 
-            modo = state.corrida.modo,
-            historicoVisivel = state.historicoVisivel,
-            configuracoesVisivel = state.configuracoesVisivel,
-            interfaceOculta = state.interfaceOculta,
-            overlayAtivo = state.overlayAtivo,
-            notificacaoDisponivel = true,
-            seloFlutuante = state.seloFlutuante,
-            monitorando = state.monitorando,
-            seloOffsetX = state.seloOffsetX,
-            seloOffsetY = state.seloOffsetY,
-            estadoSalvo = state.estadoSalvo,
+            historicoSelecionado =
+                state.historicoSelecionado,
+
+            modo =
+                state.corrida.modo,
+
+            historicoVisivel =
+                state.historicoVisivel,
+
+            configuracoesVisivel =
+                state.configuracoesVisivel,
+
+            interfaceOculta =
+                state.interfaceOculta,
+
+            overlayAtivo =
+                state.overlayAtivo,
+
+            notificacaoDisponivel =
+                state.notificacaoDisponivel,
+
+            seloFlutuante =
+                state.seloFlutuante,
+
+            monitorando =
+                state.monitorando,
+
+            confirmacaoFecharVisivel =
+                state.confirmacaoFecharVisivel,
+
+            seloOffsetX =
+                state.seloOffsetX,
+
+            seloOffsetY =
+                state.seloOffsetY,
         )
     }
 
@@ -121,7 +142,11 @@ class AppViewModel : ViewModel() {
 
     fun alternarDetalhes() {
 
-        val modo =
+        if (state.interfaceOculta) {
+            return
+        }
+
+        val novoModo =
             if (
                 state.corrida.modo ==
                 ModoApresentacao.COMPACTA
@@ -132,11 +157,14 @@ class AppViewModel : ViewModel() {
             }
 
         state = state.copy(
+
             corrida = state.corrida.copy(
-                modo = modo,
+
+                modo = novoModo,
+
                 acaoDetalhes =
                     if (
-                        modo ==
+                        novoModo ==
                         ModoApresentacao.DETALHES
                     ) {
                         "Menos detalhes"
@@ -144,6 +172,17 @@ class AppViewModel : ViewModel() {
                         "ⓘ"
                     },
             ),
+
+            // Ao retrair, o histórico deixa de ser exibido.
+            historicoVisivel =
+                if (
+                    novoModo ==
+                    ModoApresentacao.COMPACTA
+                ) {
+                    false
+                } else {
+                    state.historicoVisivel
+                },
         )
     }
 
@@ -153,14 +192,29 @@ class AppViewModel : ViewModel() {
 
     fun alternarHistorico() {
 
-        val historicoVisivel =
+        if (state.interfaceOculta) {
+            return
+        }
+
+        // Histórico somente na tela expandida.
+        if (
+            state.corrida.modo !=
+            ModoApresentacao.DETALHES
+        ) {
+            return
+        }
+
+        val novoHistoricoVisivel =
             !state.historicoVisivel
 
         state = state.copy(
-            historicoVisivel = historicoVisivel,
 
+            historicoVisivel =
+                novoHistoricoVisivel,
+
+            // Histórico e configuração são exclusivos.
             configuracoesVisivel =
-                if (historicoVisivel) {
+                if (novoHistoricoVisivel) {
                     false
                 } else {
                     state.configuracoesVisivel
@@ -174,8 +228,14 @@ class AppViewModel : ViewModel() {
 
     fun abrirConfiguracoes() {
 
+        if (state.interfaceOculta) {
+            return
+        }
+
         state = state.copy(
+
             configuracoesVisivel = true,
+
             historicoVisivel = false,
         )
     }
@@ -188,113 +248,91 @@ class AppViewModel : ViewModel() {
     }
 
     // =====================================================================
-    // SELEÇÃO DE ITEM DO HISTÓRICO
-    //
-    // IMPORTANTE:
-    //
-    // Aqui estamos apenas consultando uma corrida que já está
-    // no histórico.
-    //
-    // Nenhuma nova corrida é criada no histórico.
+    // HISTÓRICO
     // =====================================================================
 
+    /**
+     * Seleciona uma corrida que JÁ ESTÁ no histórico.
+     *
+     * Esta função NÃO cria uma corrida no histórico.
+     */
     fun selecionarHistorico(
         item: HistoricoItemPresentation,
     ) {
 
+        if (state.interfaceOculta) {
+            return
+        }
+
         val analise =
             item.paraAnalise()
 
-        state = PresentationBuilder.criarEstado(
-            analise = analise,
-            plano = state.plano,
+        state =
+            PresentationBuilder.criarEstado(
 
-            // Histórico permanece intacto.
-            historico = state.historico,
+                analise = analise,
 
-            historicoSelecionado = item,
+                plano = state.plano,
 
-            modo = ModoApresentacao.DETALHES,
+                // Histórico permanece intacto.
+                historico = state.historico,
 
-            historicoVisivel = false,
-            configuracoesVisivel = false,
+                historicoSelecionado = item,
 
-            interfaceOculta = state.interfaceOculta,
-            overlayAtivo = !state.interfaceOculta,
+                modo =
+                    ModoApresentacao.DETALHES,
 
-            notificacaoDisponivel =
-                state.notificacaoDisponivel,
+                historicoVisivel = false,
 
-            seloFlutuante =
-                state.seloFlutuante,
+                configuracoesVisivel = false,
 
-            monitorando =
-                state.monitorando,
+                interfaceOculta = false,
 
-            seloOffsetX =
-                state.seloOffsetX,
+                overlayAtivo = true,
 
-            seloOffsetY =
-                state.seloOffsetY,
+                notificacaoDisponivel =
+                    state.notificacaoDisponivel,
 
-            estadoSalvo =
-                state.estadoSalvo,
-        )
+                seloFlutuante = false,
+
+                monitorando =
+                    state.monitorando,
+
+                confirmacaoFecharVisivel = false,
+
+                seloOffsetX =
+                    state.seloOffsetX,
+
+                seloOffsetY =
+                    state.seloOffsetY,
+            )
     }
 
     // =====================================================================
-    // CONTROLE DE NOTIFICAÇÃO / INTERFACE
+    // NOTIFICAÇÃO
     // =====================================================================
 
     fun registrarNotificacao() {
 
         state = state.copy(
+
             overlayAtivo = true,
+
             notificacaoDisponivel = true,
+
             seloFlutuante = false,
+
             interfaceOculta = false,
-            monitorando = true,
-        )
-    }
-
-    fun semNotificacao() {
-
-        state = state.copy(
-            historicoVisivel = false,
-            configuracoesVisivel = false,
-            overlayAtivo = false,
-            notificacaoDisponivel = false,
-            seloFlutuante = true,
-            interfaceOculta = true,
-            monitorando = true,
-        )
-    }
-
-    // =====================================================================
-    // OCULTAR
-    // =====================================================================
-
-    fun ocultarInterface() {
-
-        state = state.copy(
-
-            estadoSalvo = EstadoInterfaceSalvo(
-                modo = state.corrida.modo,
-                historicoVisivel =
-                    state.historicoVisivel,
-                configuracoesVisivel =
-                    state.configuracoesVisivel,
-            ),
-
-            interfaceOculta = true,
-            seloFlutuante = true,
 
             historicoVisivel = false,
+
             configuracoesVisivel = false,
 
             corrida = state.corrida.copy(
+
                 modo =
                     ModoApresentacao.COMPACTA,
+
                 acaoDetalhes = "ⓘ",
             ),
 
@@ -303,46 +341,114 @@ class AppViewModel : ViewModel() {
     }
 
     // =====================================================================
-    // REABRIR INTERFACE
+    // SEM NOTIFICAÇÃO
     // =====================================================================
 
-    fun reabrirInterface() {
+    fun semNotificacao() {
 
-        val salvo =
-            state.estadoSalvo
+        state = state.copy(
+
+            historicoVisivel = false,
+
+            configuracoesVisivel = false,
+
+            overlayAtivo = false,
+
+            notificacaoDisponivel = false,
+
+            seloFlutuante = true,
+
+            interfaceOculta = true,
+
+            monitorando = true,
+
+            corrida = state.corrida.copy(
+
+                modo =
+                    ModoApresentacao.COMPACTA,
+
+                acaoDetalhes = "ⓘ",
+            ),
+        )
+    }
+
+    // =====================================================================
+    // OCULTAR
+    // =====================================================================
+
+    /**
+     * Ocultar = minimizar para o selo.
+     *
+     * Ordem obrigatória:
+     *
+     * 1. Fecha histórico.
+     * 2. Fecha configuração.
+     * 3. Retrai a corrida.
+     * 4. Esconde a interface.
+     * 5. Exibe o selo.
+     * 6. Mantém o monitoramento.
+     */
+    fun ocultarInterface() {
+
+        state = state.copy(
+
+            historicoVisivel = false,
+
+            configuracoesVisivel = false,
+
+            corrida = state.corrida.copy(
+
+                modo =
+                    ModoApresentacao.COMPACTA,
+
+                acaoDetalhes = "ⓘ",
+            ),
+
+            interfaceOculta = true,
+
+            overlayAtivo = false,
+
+            seloFlutuante = true,
+
+            monitorando = true,
+        )
+    }
+
+    // =====================================================================
+    // REABRIR PELO SELO
+    // =====================================================================
+
+    /**
+     * O selo sempre abre a tela COMPACTA.
+     *
+     * Não restaura:
+     * - histórico;
+     * - configuração;
+     * - tela expandida.
+     */
+    fun reabrirInterface() {
 
         state = state.copy(
 
             interfaceOculta = false,
+
             seloFlutuante = false,
+
             overlayAtivo = true,
-            monitorando = true,
+
+            historicoVisivel = false,
+
+            configuracoesVisivel = false,
 
             corrida = state.corrida.copy(
-                modo =
-                    salvo?.modo
-                        ?: ModoApresentacao.COMPACTA,
 
-                acaoDetalhes =
-                    if (
-                        salvo?.modo ==
-                        ModoApresentacao.DETALHES
-                    ) {
-                        "Menos detalhes"
-                    } else {
-                        "ⓘ"
-                    },
+                modo =
+                    ModoApresentacao.COMPACTA,
+
+                acaoDetalhes = "ⓘ",
             ),
 
-            historicoVisivel =
-                salvo?.historicoVisivel
-                    ?: false,
-
-            configuracoesVisivel =
-                salvo?.configuracoesVisivel
-                    ?: false,
-
-            estadoSalvo = null,
+            monitorando = true,
         )
     }
 
@@ -353,6 +459,7 @@ class AppViewModel : ViewModel() {
     fun solicitarFecharApp() {
 
         state = state.copy(
+
             confirmacaoFecharVisivel = true,
         )
     }
@@ -360,6 +467,7 @@ class AppViewModel : ViewModel() {
     fun cancelarFecharApp() {
 
         state = state.copy(
+
             confirmacaoFecharVisivel = false,
         )
     }
@@ -367,14 +475,19 @@ class AppViewModel : ViewModel() {
     fun confirmarFecharApp() {
 
         state = state.copy(
+
             confirmacaoFecharVisivel = false,
 
-            configuracoesVisivel = false,
             historicoVisivel = false,
 
+            configuracoesVisivel = false,
+
             overlayAtivo = false,
+
             monitorando = false,
+
             seloFlutuante = false,
+
             interfaceOculta = false,
         )
 
@@ -391,67 +504,108 @@ class AppViewModel : ViewModel() {
     ) {
 
         state = state.copy(
+
             seloOffsetX = offsetX,
+
             seloOffsetY = offsetY,
         )
     }
 
     // =====================================================================
-    // NOVA CORRIDA / NOVA OFERTA
+    // EVENTOS
     // =====================================================================
-    //
-    // REGRA DE NEGÓCIO:
-    //
-    // Uma nova notificação representa uma nova oferta.
-    //
-    // Ela:
-    //
-    // 1. Atualiza a corrida atual;
-    // 2. Atualiza analiseAtual;
-    // 3. Exibe a interface compacta;
-    // 4. NÃO altera o histórico.
-    //
-    // O aceite será tratado posteriormente.
+
+    /**
+     * Processamento determinístico dos eventos.
+     *
+     * Também é utilizado pelos testes unitários.
+     */
+    fun processarEvento(
+        evento: RideNotificationEvent,
+    ) {
+
+        when (evento) {
+
+            is RideNotificationEvent.CorridaRecebida -> {
+
+                aplicarNovaCorrida(
+                    evento.analise
+                )
+            }
+
+            RideNotificationEvent.NotificacaoNaoReconhecida -> {
+                // Não altera o estado.
+            }
+        }
+    }
+
+    // =====================================================================
+    // NOVA OFERTA
     // =====================================================================
 
     private fun aplicarNovaCorrida(
         analise: AnaliseCorrida,
     ) {
 
-        state = PresentationBuilder.criarEstado(
-            analise = analise,
-            plano = state.plano,
+        /*
+         * REGRA FUNDAMENTAL DA ETAPA 1
+         *
+         * Notification = OFERTA
+         *
+         * Oferta:
+         * - atualiza corrida atual;
+         * - abre interface compacta;
+         * - NÃO entra no histórico.
+         *
+         * O aceite será tratado na próxima etapa.
+         */
 
-            // =============================================================
-            // REGRA PRINCIPAL DA ETAPA 1
-            //
-            // O histórico existente é preservado exatamente como está.
-            // A nova oferta NÃO é adicionada.
-            // =============================================================
+        state =
+            PresentationBuilder.criarEstado(
 
-            historico = state.historico,
+                analise = analise,
 
-            historicoSelecionado = null,
+                plano = state.plano,
 
-            modo = ModoApresentacao.COMPACTA,
+                // IMPORTANTE:
+                // preserva exatamente o histórico existente.
+                historico = state.historico,
 
-            historicoVisivel = false,
-            configuracoesVisivel = false,
+                historicoSelecionado = null,
 
-            interfaceOculta = false,
+                modo =
+                    ModoApresentacao.COMPACTA,
 
-            overlayAtivo = true,
+                historicoVisivel = false,
 
-            notificacaoDisponivel = true,
+                configuracoesVisivel = false,
 
-            seloFlutuante = false,
+                interfaceOculta = false,
 
-            monitorando = true,
+                overlayAtivo = true,
 
-            seloOffsetX = state.seloOffsetX,
-            seloOffsetY = state.seloOffsetY,
+                notificacaoDisponivel = true,
 
-            estadoSalvo = state.estadoSalvo,
-        )
+                seloFlutuante = false,
+
+                monitorando = true,
+
+                confirmacaoFecharVisivel = false,
+
+                seloOffsetX =
+                    state.seloOffsetX,
+
+                seloOffsetY =
+                    state.seloOffsetY,
+            )
+    }
+
+    override fun onCleared() {
+
+        notificacaoJob?.cancel()
+
+        notificacaoJob = null
+
+        super.onCleared()
     }
 }

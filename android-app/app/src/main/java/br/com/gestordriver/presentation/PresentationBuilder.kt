@@ -13,40 +13,23 @@ import br.com.gestordriver.model.ModoApresentacao
 import br.com.gestordriver.model.PlanoAcesso
 import br.com.gestordriver.model.RecursosPlano
 import br.com.gestordriver.ui.AppState
-import br.com.gestordriver.ui.EstadoInterfaceSalvo
 
 object PresentationBuilder {
-
-    // =====================================================================
-    // DEPENDÊNCIAS
-    // =====================================================================
 
     private val calculadora =
         CalculadoraCorrida(
             configuracaoUsuario =
-                ConfiguracaoUsuario.padrao(),
+                ConfiguracaoUsuario.padrao()
         )
 
     private val controlePlano =
         ControlePlano()
 
-    // =====================================================================
-    // CORRIDA DE DEMONSTRAÇÃO
-    // =====================================================================
-    //
-    // Mantida temporariamente para preservar a estrutura visual atual
-    // enquanto o fluxo real de inicialização ainda não foi implementado.
-    //
-    // IMPORTANTE:
-    //
-    // Esta corrida NÃO é adicionada ao histórico.
-    //
-    // A remoção definitiva da corrida demonstrativa da tela inicial
-    // será tratada em uma etapa posterior, quando implementarmos:
-    //
-    // inicialização → permissões → monitoramento → selo.
-    // =====================================================================
-
+    /*
+     * Dados de demonstração da corrida atual.
+     *
+     * NÃO representam histórico.
+     */
     private val corridaDemonstracao =
         Corrida(
             valorTotal = 38.10,
@@ -58,14 +41,6 @@ object PresentationBuilder {
     // =====================================================================
     // ESTADO INICIAL
     // =====================================================================
-    //
-    // REGRA:
-    //
-    // O histórico inicial de produção começa vazio.
-    //
-    // Nenhuma corrida de demonstração será considerada uma corrida
-    // aceita pelo usuário.
-    // =====================================================================
 
     fun criarEstadoInicial(
         plano: PlanoAcesso = PlanoAcesso.BETA,
@@ -73,49 +48,100 @@ object PresentationBuilder {
 
         val analise =
             calculadora.calcular(
-                corrida = corridaDemonstracao,
+
+                corrida =
+                    corridaDemonstracao,
+
                 plataforma = "Uber",
+
                 notaPassageiro = 4.98,
             )
 
+        /*
+         * REGRA:
+         *
+         * O aplicativo inicia no selo.
+         *
+         * O histórico começa vazio porque nenhuma corrida foi
+         * aceita pelo usuário ainda.
+         */
         return criarEstado(
+
             analise = analise,
+
             plano = plano,
 
-            // =============================================================
-            // ETAPA 1
-            //
-            // Nenhuma corrida entra automaticamente no histórico.
-            // =============================================================
-
             historico = emptyList(),
+
+            modo =
+                ModoApresentacao.COMPACTA,
+
+            historicoVisivel = false,
+
+            configuracoesVisivel = false,
+
+            interfaceOculta = true,
+
+            overlayAtivo = false,
+
+            notificacaoDisponivel = false,
+
+            seloFlutuante = true,
+
+            monitorando = true,
         )
     }
 
     // =====================================================================
-    // CRIAÇÃO DO ESTADO
+    // CONSTRUÇÃO DO ESTADO
     // =====================================================================
 
     fun criarEstado(
         analise: AnaliseCorrida,
+
         plano: PlanoAcesso,
-        historico: List<HistoricoItemPresentation> =
+
+        historico:
+            List<HistoricoItemPresentation> =
             emptyList(),
+
         historicoSelecionado:
-            HistoricoItemPresentation? = null,
-        modo: ModoApresentacao =
+            HistoricoItemPresentation? =
+            null,
+
+        modo:
+            ModoApresentacao =
             ModoApresentacao.COMPACTA,
-        historicoVisivel: Boolean = false,
-        configuracoesVisivel: Boolean = false,
-        interfaceOculta: Boolean = false,
-        overlayAtivo: Boolean = true,
-        notificacaoDisponivel: Boolean = true,
-        seloFlutuante: Boolean = false,
-        monitorando: Boolean = true,
-        confirmacaoFecharVisivel: Boolean = false,
-        seloOffsetX: Float = 0f,
-        seloOffsetY: Float = 0f,
-        estadoSalvo: EstadoInterfaceSalvo? = null,
+
+        historicoVisivel:
+            Boolean = false,
+
+        configuracoesVisivel:
+            Boolean = false,
+
+        interfaceOculta:
+            Boolean = false,
+
+        overlayAtivo:
+            Boolean = true,
+
+        notificacaoDisponivel:
+            Boolean = true,
+
+        seloFlutuante:
+            Boolean = false,
+
+        monitorando:
+            Boolean = true,
+
+        confirmacaoFecharVisivel:
+            Boolean = false,
+
+        seloOffsetX:
+            Float = 0f,
+
+        seloOffsetY:
+            Float = 0f,
     ): AppState {
 
         val recursos =
@@ -133,12 +159,13 @@ object PresentationBuilder {
             )
 
         return AppState(
+
             corrida = corrida,
+
             analiseAtual = analise,
+
             plano = plano,
 
-            // Histórico é recebido de fora.
-            // Nenhuma corrida é adicionada aqui automaticamente.
             historico = historico,
 
             historicoSelecionado =
@@ -173,33 +200,26 @@ object PresentationBuilder {
 
             seloOffsetY =
                 seloOffsetY,
-
-            estadoSalvo =
-                estadoSalvo,
         )
     }
 
     // =====================================================================
     // CONVERSÃO PARA HISTÓRICO
     // =====================================================================
-    //
-    // Esta função NÃO grava nada.
-    //
-    // Ela apenas converte uma análise em uma apresentação de histórico.
-    //
-    // A persistência/registro somente deverá ser chamado quando o
-    // mecanismo de detecção de aceite confirmar a corrida.
-    // =====================================================================
 
+    /*
+     * Esta função NÃO deve ser chamada quando uma notificação chega.
+     *
+     * Ela ficará disponível para a próxima etapa, quando o sistema
+     * identificar que o usuário realmente aceitou a corrida.
+     */
     fun historicoDe(
         analise: AnaliseCorrida,
     ): HistoricoItemPresentation =
-        HistoricoItemPresentation.de(
-            analise,
-        )
+        HistoricoItemPresentation.de(analise)
 
     // =====================================================================
-    // APRESENTAÇÃO DA CORRIDA
+    // CORRIDA PRESENTATION
     // =====================================================================
 
     private fun montarCorridaPresentation(
@@ -219,7 +239,9 @@ object PresentationBuilder {
                     id = "valor_por_km",
                     titulo = "R$/KM",
                     valor =
-                        if (recursos.exibeValorPorKm) {
+                        if (
+                            recursos.exibeValorPorKm
+                        ) {
                             formatDecimal(
                                 analise.valorPorKm,
                                 2,
@@ -237,7 +259,7 @@ object PresentationBuilder {
                     titulo = "R$/TOTAL",
                     valor =
                         formatMoney(
-                            analise.valorTotal,
+                            analise.valorTotal
                         ),
                 ),
 
@@ -246,7 +268,7 @@ object PresentationBuilder {
                     titulo = "KM/TOTAL",
                     valor =
                         formatKm(
-                            analise.kmTotal,
+                            analise.kmTotal
                         ),
                 ),
 
@@ -268,8 +290,7 @@ object PresentationBuilder {
                     valor =
                         nota?.let {
                             "${formatDecimal(it, 2)} ⭐"
-                        }
-                            ?: "—",
+                        } ?: "—",
                 ),
             )
 
@@ -281,7 +302,7 @@ object PresentationBuilder {
                     titulo = "Até o Passageiro",
                     valor =
                         formatKm(
-                            analise.kmAtePassageiro,
+                            analise.kmAtePassageiro
                         ),
                 ),
 
@@ -290,7 +311,7 @@ object PresentationBuilder {
                     titulo = "Até o destino",
                     valor =
                         formatKm(
-                            analise.kmViagem,
+                            analise.kmViagem
                         ),
                 ),
 
@@ -355,13 +376,14 @@ object PresentationBuilder {
             )
 
         return CorridaPresentation(
+
             plano = plano,
 
             modo = modo,
 
             classificacao =
                 ClassificacaoVisual.from(
-                    analise.classificacao,
+                    analise.classificacao
                 ),
 
             corClassificacao =
@@ -384,10 +406,6 @@ object PresentationBuilder {
                 camposDetalhes,
         )
     }
-
-    // =====================================================================
-    // FORMATAÇÃO
-    // =====================================================================
 
     private fun formatDecimal(
         valor: Double,
