@@ -22,6 +22,10 @@ data class AppState(
 
     val analiseAtual: AnaliseCorrida? = null,
 
+    val ultimaCorridaAceita: AnaliseCorrida? = null,
+
+    val ofertaAtiva: Boolean = false,
+
     // ================================================================
     // PLANO
     // ================================================================

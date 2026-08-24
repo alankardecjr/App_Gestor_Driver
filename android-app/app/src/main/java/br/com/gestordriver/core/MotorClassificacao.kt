@@ -21,4 +21,22 @@ class MotorClassificacao(
     }
 
     fun corDe(classificacao: Classificacao): String = cores.getValue(classificacao)
+
+    companion object {
+        fun daConfiguracao(
+            configuracao: br.com.gestordriver.model.ConfiguracaoUsuario,
+        ): MotorClassificacao {
+            if (!configuracao.faixasDefinidas()) {
+                return MotorClassificacao()
+            }
+            return MotorClassificacao(
+                limites = mapOf(
+                    Classificacao.EXCELENTE to configuracao.limiteOtimaMin,
+                    Classificacao.BOA to configuracao.limiteBoaMin,
+                    Classificacao.REGULAR to configuracao.limiteRegularMin,
+                    Classificacao.BAIXA to configuracao.limiteRuimMax,
+                ),
+            )
+        }
+    }
 }

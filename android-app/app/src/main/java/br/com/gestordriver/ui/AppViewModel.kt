@@ -6,18 +6,27 @@ import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import br.com.gestordriver.core.AnaliseCorrida
+import br.com.gestordriver.core.chaveOferta
+import br.com.gestordriver.data.HistoricoRepository
+import br.com.gestordriver.data.MemoriaHistoricoRepository
+import br.com.gestordriver.data.chaveHistorico
 import br.com.gestordriver.model.HistoricoItemPresentation
 import br.com.gestordriver.model.ModoApresentacao
 import br.com.gestordriver.model.PlanoAcesso
 import br.com.gestordriver.notification.RideNotificationBus
 import br.com.gestordriver.notification.RideNotificationEvent
+import br.com.gestordriver.overlay.OverlayAcao
+import br.com.gestordriver.overlay.OverlayBridge
+import br.com.gestordriver.overlay.OverlaySnapshot
 import br.com.gestordriver.presentation.PresentationBuilder
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.launch
 
-class AppViewModel : ViewModel() {
+class AppViewModel(
+    private val historicoRepository: HistoricoRepository = MemoriaHistoricoRepository(),
+) : ViewModel() {
 
     // ================================================================
     // ESTADO
@@ -80,12 +89,46 @@ class AppViewModel : ViewModel() {
                     // NOTIFICAÇÃO DESCONHECIDA
                     // ------------------------------------------------
 
+                    RideNotificationEvent.CorridaExpirada -> {
+                        expirarOfertaAtual()
+                    }
+
                     RideNotificationEvent.NotificacaoNaoReconhecida -> {
                         // Nenhuma alteração.
                     }
                 }
             }
         }
+
+        viewModelScope.launch {
+            OverlayBridge.acoes.collect { acao ->
+                when (acao) {
+                    OverlayAcao.Reabrir -> reabrirInterface()
+                    is OverlayAcao.MoverSelo -> atualizarPosicaoSelo(acao.offsetX, acao.offsetY)
+                }
+            }
+        }
+
+        val historicoPersistido = historicoRepository.listar()
+        if (historicoPersistido.isNotEmpty()) {
+            state = state.copy(
+                historico = historicoPersistido,
+                ultimaCorridaAceita = historicoPersistido.last().paraAnalise(),
+            )
+            publicarOverlay()
+        }
+    }
+
+    fun iniciarMonitoramento() {
+        state = state.copy(
+            monitorando = true,
+            seloFlutuante = true,
+            interfaceOculta = true,
+            overlayAtivo = true,
+            historicoVisivel = false,
+            configuracoesVisivel = false,
+        )
+        publicarOverlay()
     }
 
     // ================================================================
@@ -96,31 +139,28 @@ class AppViewModel : ViewModel() {
         plano: PlanoAcesso
     ) {
 
-        val analise =
-            state.analiseAtual
-                ?: PresentationBuilder
-                    .criarEstadoInicial(plano)
-                    .analiseAtual
-                ?: return
-
-        state =
-            PresentationBuilder.criarEstado(
-                analise = analise,
-                plano = plano,
-                historico = state.historico,
-                historicoSelecionado = state.historicoSelecionado,
-                modo = state.corrida.modo,
-                historicoVisivel = state.historicoVisivel,
-                configuracoesVisivel = state.configuracoesVisivel,
-                interfaceOculta = state.interfaceOculta,
-                overlayAtivo = state.overlayAtivo,
-                notificacaoDisponivel = state.notificacaoDisponivel,
-                seloFlutuante = state.seloFlutuante,
-                monitorando = state.monitorando,
-                seloOffsetX = state.seloOffsetX,
-                seloOffsetY = state.seloOffsetY,
-                estadoSalvo = state.estadoSalvo
-            )
+        val analise = state.analiseAtual ?: state.ultimaCorridaAceita
+        state = PresentationBuilder.criarEstado(
+            analise = analise,
+            plano = plano,
+            historico = state.historico,
+            historicoSelecionado = state.historicoSelecionado,
+            modo = state.corrida.modo,
+            historicoVisivel = state.historicoVisivel,
+            configuracoesVisivel = state.configuracoesVisivel,
+            interfaceOculta = state.interfaceOculta,
+            overlayAtivo = state.overlayAtivo,
+            notificacaoDisponivel = state.notificacaoDisponivel,
+            seloFlutuante = state.seloFlutuante,
+            monitorando = state.monitorando,
+            seloOffsetX = state.seloOffsetX,
+            seloOffsetY = state.seloOffsetY,
+            estadoSalvo = state.estadoSalvo,
+            corridaAceita = state.corridaAceita,
+            ultimaCorridaAceita = state.ultimaCorridaAceita,
+            ofertaAtiva = state.ofertaAtiva,
+        )
+        publicarOverlay()
     }
 
     // ================================================================
@@ -206,29 +246,9 @@ class AppViewModel : ViewModel() {
     fun selecionarHistorico(
         item: HistoricoItemPresentation
     ) {
-
-        val analise =
-            item.paraAnalise()
-
-        state =
-            PresentationBuilder.criarEstado(
-                analise = analise,
-                plano = state.plano,
-                historico = state.historico,
-                historicoSelecionado = item,
-                modo = ModoApresentacao.DETALHES,
-                historicoVisivel = false,
-                configuracoesVisivel = false,
-                interfaceOculta = state.interfaceOculta,
-                overlayAtivo = !state.interfaceOculta,
-                notificacaoDisponivel =
-                    state.notificacaoDisponivel,
-                seloFlutuante = state.seloFlutuante,
-                monitorando = state.monitorando,
-                seloOffsetX = state.seloOffsetX,
-                seloOffsetY = state.seloOffsetY,
-                estadoSalvo = state.estadoSalvo
-            )
+        state = state.copy(
+            historicoSelecionado = item,
+        )
     }
 
     // ================================================================
@@ -244,33 +264,20 @@ class AppViewModel : ViewModel() {
     // ================================================================
 
     fun registrarAceiteCorrida() {
-
-        val analise =
-            state.analiseAtual
-                ?: return
-
-        val itemHistorico =
-            PresentationBuilder.historicoDe(
-                analise
-            )
-
-        // Evita inserir a mesma corrida duas vezes.
-        if (
-            state.historico.any { item ->
-                item == itemHistorico
-            }
-        ) {
+        val analise = state.analiseAtual ?: return
+        val itemHistorico = PresentationBuilder.historicoDe(analise)
+        if (state.historico.any { it.chaveHistorico() == itemHistorico.chaveHistorico() }) {
             return
         }
-
-        state =
-            state.copy(
-                historico =
-                    state.historico + itemHistorico,
-
-                historicoSelecionado =
-                    itemHistorico
-            )
+        historicoRepository.salvar(itemHistorico)
+        state = state.copy(
+            historico = state.historico + itemHistorico,
+            historicoSelecionado = itemHistorico,
+            corridaAceita = true,
+            ofertaAtiva = false,
+            ultimaCorridaAceita = analise,
+        )
+        publicarOverlay()
     }
 
     // ================================================================
@@ -425,6 +432,7 @@ class AppViewModel : ViewModel() {
             )
 
         _fecharApp.tryEmit(Unit)
+        publicarOverlay()
     }
 
     // ================================================================
@@ -457,7 +465,7 @@ class AppViewModel : ViewModel() {
     // RideNotificationEvent.CorridaAceita.
     // ================================================================
 
-    private fun aplicarNovaCorrida(
+    internal fun aplicarNovaCorrida(
         analise: AnaliseCorrida
     ) {
 
@@ -495,7 +503,59 @@ class AppViewModel : ViewModel() {
                     state.seloOffsetY,
 
                 estadoSalvo =
-                    state.estadoSalvo
+                    state.estadoSalvo,
+
+                corridaAceita = false,
+                ultimaCorridaAceita = state.ultimaCorridaAceita,
+                ofertaAtiva = true,
             )
+        publicarOverlay()
+    }
+
+    internal fun expirarOfertaAtual() {
+        if (state.corridaAceita || !state.ofertaAtiva) {
+            return
+        }
+        val ultima = state.ultimaCorridaAceita
+        state = PresentationBuilder.criarEstado(
+            analise = ultima,
+            plano = state.plano,
+            historico = state.historico,
+            historicoSelecionado = state.historicoSelecionado,
+            modo = ModoApresentacao.COMPACTA,
+            historicoVisivel = false,
+            configuracoesVisivel = false,
+            interfaceOculta = true,
+            overlayAtivo = true,
+            notificacaoDisponivel = ultima != null,
+            seloFlutuante = true,
+            monitorando = true,
+            seloOffsetX = state.seloOffsetX,
+            seloOffsetY = state.seloOffsetY,
+            estadoSalvo = null,
+            corridaAceita = ultima != null,
+            ultimaCorridaAceita = ultima,
+            ofertaAtiva = false,
+        )
+        publicarOverlay()
+    }
+
+    private fun publicarOverlay() {
+        val campos = state.corrida.camposCompactos.associate { it.id to it.valor }
+        OverlayBridge.publicar(
+            OverlaySnapshot(
+                monitorando = state.monitorando,
+                seloVisivel = state.monitorando && state.seloFlutuante && state.interfaceOculta,
+                compactaVisivel = state.monitorando && state.overlayAtivo && !state.seloFlutuante,
+                offsetX = state.seloOffsetX,
+                offsetY = state.seloOffsetY,
+                valorPorKm = campos["valor_por_km"] ?: "—",
+                valorTotal = campos["valor_total"] ?: "—",
+                kmTotal = campos["km_total"] ?: "—",
+                tempo = campos["tempo_estimado"] ?: "—",
+                nota = campos["nota_passageiro"] ?: "—",
+                aguardandoOferta = state.analiseAtual == null,
+            ),
+        )
     }
 }

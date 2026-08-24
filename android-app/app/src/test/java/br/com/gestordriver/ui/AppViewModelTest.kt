@@ -469,4 +469,61 @@ class AppViewModelTest {
             viewModel.state.seloOffsetY,
         )
     }
+
+    @Test
+    fun nova_oferta_nao_entra_no_historico() {
+        val viewModel = AppViewModel()
+        val analise = analiseFake()
+        viewModel.aplicarNovaCorrida(analise)
+        assertTrue(viewModel.state.historico.isEmpty())
+        assertEquals(analise.valorTotal, viewModel.state.analiseAtual?.valorTotal)
+        assertFalse(viewModel.state.corridaAceita)
+        assertTrue(viewModel.state.ofertaAtiva)
+    }
+
+    @Test
+    fun aceite_detectado_grava_historico() {
+        val viewModel = AppViewModel()
+        viewModel.aplicarNovaCorrida(analiseFake())
+        viewModel.registrarAceiteCorrida()
+        assertEquals(1, viewModel.state.historico.size)
+        assertTrue(viewModel.state.corridaAceita)
+        assertFalse(viewModel.state.ofertaAtiva)
+    }
+
+    @Test
+    fun oferta_expirada_nao_entra_no_historico_e_mantem_ultima_aceita() {
+        val viewModel = AppViewModel()
+        val aceita = analiseFake(valor = 40.0)
+        viewModel.aplicarNovaCorrida(aceita)
+        viewModel.registrarAceiteCorrida()
+        val novaOferta = analiseFake(valor = 22.0)
+        viewModel.aplicarNovaCorrida(novaOferta)
+        viewModel.expirarOfertaAtual()
+        assertEquals(1, viewModel.state.historico.size)
+        assertEquals(40.0, viewModel.state.ultimaCorridaAceita?.valorTotal ?: 0.0, 0.001)
+        assertFalse(viewModel.state.ofertaAtiva)
+    }
+
+    @Test
+    fun iniciar_monitoramento_exibe_selo_sem_encerrar_ciclo() {
+        val viewModel = AppViewModel()
+        viewModel.iniciarMonitoramento()
+        assertTrue(viewModel.state.monitorando)
+        assertTrue(viewModel.state.seloFlutuante)
+        assertTrue(viewModel.state.interfaceOculta)
+    }
+
+    private fun analiseFake(valor: Double = 38.0) =
+        br.com.gestordriver.core.CalculadoraCorrida(
+            configuracaoUsuario = br.com.gestordriver.core.ConfiguracaoUsuario.padrao(),
+        ).calcular(
+            corrida = br.com.gestordriver.core.Corrida(
+                valorTotal = valor,
+                kmAtePassageiro = 3.2,
+                kmViagem = 12.8,
+                tempoEstimado = 24,
+            ),
+            plataforma = "Uber",
+        )
 }
