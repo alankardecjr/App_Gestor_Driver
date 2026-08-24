@@ -3,69 +3,99 @@ package br.com.gestordriver.ui
 import br.com.gestordriver.core.AnaliseCorrida
 import br.com.gestordriver.model.CorridaPresentation
 import br.com.gestordriver.model.HistoricoItemPresentation
+import br.com.gestordriver.model.ModoApresentacao
 import br.com.gestordriver.model.PlanoAcesso
 
-/**
- * Estado único da interface do Gestor Driver.
- *
- * Regras da Etapa 1:
- *
- * - Corrida recebida = oferta atual.
- * - Oferta não entra automaticamente no histórico.
- * - Histórico será alimentado somente após identificação do aceite.
- * - Ocultar fecha histórico/configuração e leva ao selo.
- * - Toque no selo abre somente a tela compacta.
- * - Fechar exige confirmação.
- * - Confirmar fechamento encerra o monitoramento.
- */
+data class EstadoInterfaceSalvo(
+    val modo: ModoApresentacao,
+    val historicoVisivel: Boolean,
+    val configuracoesVisivel: Boolean = false,
+)
+
 data class AppState(
+
+    // ================================================================
+    // CORRIDA ATUAL
+    // ================================================================
+
     val corrida: CorridaPresentation,
 
     val analiseAtual: AnaliseCorrida? = null,
+
+    // ================================================================
+    // PLANO
+    // ================================================================
 
     val plano: PlanoAcesso = PlanoAcesso.BETA,
 
     // ================================================================
     // HISTÓRICO
+    //
+    // REGRA DE NEGÓCIO:
+    //
+    // Somente corridas cujo aceite foi detectado pelo Gestor Driver
+    // podem existir nesta lista.
     // ================================================================
 
     val historico: List<HistoricoItemPresentation>,
 
-    val historicoSelecionado: HistoricoItemPresentation? = null,
-
-    val historicoVisivel: Boolean = false,
+    val historicoSelecionado:
+        HistoricoItemPresentation? = null,
 
     // ================================================================
-    // CONFIGURAÇÕES
+    // ACEITE DA CORRIDA ATUAL
+    //
+    // false = oferta ainda não aceita
+    // true  = aceite já detectado
+    //
+    // Uma nova notificação sempre reinicia este valor para false.
     // ================================================================
 
-    val configuracoesVisivel: Boolean = false,
+    val corridaAceita: Boolean = false,
 
     // ================================================================
     // INTERFACE
     // ================================================================
 
+    val historicoVisivel: Boolean = false,
+
+    val configuracoesVisivel: Boolean = false,
+
     val interfaceOculta: Boolean = false,
 
-    val overlayAtivo: Boolean = false,
+    val overlayAtivo: Boolean = true,
 
-    val notificacaoDisponivel: Boolean = false,
+    val notificacaoDisponivel: Boolean = true,
 
     // ================================================================
     // SELO
     // ================================================================
 
-    val seloFlutuante: Boolean = true,
+    val seloFlutuante: Boolean = false,
+
+    // ================================================================
+    // MONITORAMENTO
+    // ================================================================
 
     val monitorando: Boolean = true,
-
-    val seloOffsetX: Float = 0f,
-
-    val seloOffsetY: Float = 0f,
 
     // ================================================================
     // FECHAMENTO
     // ================================================================
 
     val confirmacaoFecharVisivel: Boolean = false,
+
+    // ================================================================
+    // POSIÇÃO DO SELO
+    // ================================================================
+
+    val seloOffsetX: Float = 0f,
+
+    val seloOffsetY: Float = 0f,
+
+    // ================================================================
+    // ESTADO DA INTERFACE ANTES DE OCULTAR
+    // ================================================================
+
+    val estadoSalvo: EstadoInterfaceSalvo? = null,
 )

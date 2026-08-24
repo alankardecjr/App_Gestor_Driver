@@ -1,11 +1,7 @@
 package br.com.gestordriver.ui
 
-import br.com.gestordriver.core.AnaliseCorrida
-import br.com.gestordriver.core.Classificacao
-import br.com.gestordriver.core.Corrida
 import br.com.gestordriver.model.ModoApresentacao
 import br.com.gestordriver.model.PlanoAcesso
-import br.com.gestordriver.notification.RideNotificationEvent
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -13,311 +9,352 @@ import org.junit.Test
 
 class AppViewModelTest {
 
-    private fun analiseTeste():
-        AnaliseCorrida {
-
-        return AnaliseCorrida(
-
-            corrida = Corrida(
-                valorTotal = 38.10,
-                kmAtePassageiro = 3.21,
-                kmViagem = 12.82,
-                tempoEstimado = 24,
-            ),
-
-            valorTotal = 38.10,
-
-            kmAtePassageiro = 3.21,
-
-            kmViagem = 12.82,
-
-            tempoEstimado = 24,
-
-            notaPassageiro = 4.98,
-
-            plataforma = "Uber",
-
-            dataHora = null,
-
-            kmTotal = 16.03,
-
-            valorPorKm = 2.38,
-
-            combustivelEstimado = 1.28,
-
-            custoCombustivel = 7.92,
-
-            classificacao =
-                Classificacao.BOA,
-
-            corClassificacao =
-                "#7CB342",
-        )
-    }
+    // =====================================================================
+    // HISTÓRICO
+    // =====================================================================
+    //
+    // Uma nova oferta não deve ser automaticamente considerada aceita.
+    // Portanto, o estado inicial precisa possuir histórico vazio.
+    // =====================================================================
 
     @Test
-    fun estado_inicial_deve_ser_selo_com_historico_vazio() {
+    fun historico_inicial_deve_estar_vazio() {
 
         val viewModel =
             AppViewModel()
 
         assertTrue(
-            viewModel.state
-                .historico
-                .isEmpty()
-        )
-
-        assertTrue(
-            viewModel.state
-                .seloFlutuante
-        )
-
-        assertTrue(
-            viewModel.state
-                .interfaceOculta
-        )
-
-        assertFalse(
-            viewModel.state
-                .overlayAtivo
-        )
-
-        assertTrue(
-            viewModel.state
-                .monitorando
+            viewModel.state.historico.isEmpty(),
         )
     }
 
+    // =====================================================================
+    // CORRIDA
+    // =====================================================================
+
     @Test
-    fun nova_oferta_nao_entra_no_historico() {
+    fun deve_iniciar_em_modo_compacto() {
 
         val viewModel =
             AppViewModel()
-
-        viewModel.processarEvento(
-
-            RideNotificationEvent.CorridaRecebida(
-                analiseTeste()
-            )
-        )
-
-        assertTrue(
-            viewModel.state
-                .historico
-                .isEmpty()
-        )
 
         assertEquals(
             ModoApresentacao.COMPACTA,
-            viewModel.state
-                .corrida
-                .modo
-        )
-
-        assertFalse(
-            viewModel.state
-                .interfaceOculta
-        )
-
-        assertFalse(
-            viewModel.state
-                .seloFlutuante
-        )
-
-        assertTrue(
-            viewModel.state
-                .overlayAtivo
-        )
-    }
-
-    @Test
-    fun expandir_e_retrair_corrida() {
-
-        val viewModel =
-            AppViewModel()
-
-        viewModel.processarEvento(
-
-            RideNotificationEvent.CorridaRecebida(
-                analiseTeste()
-            )
-        )
-
-        viewModel.alternarDetalhes()
-
-        assertEquals(
-            ModoApresentacao.DETALHES,
-            viewModel.state
-                .corrida
-                .modo
-        )
-
-        assertEquals(
-            "Menos detalhes",
-            viewModel.state
-                .corrida
-                .acaoDetalhes
-        )
-
-        viewModel.alternarDetalhes()
-
-        assertEquals(
-            ModoApresentacao.COMPACTA,
-            viewModel.state
-                .corrida
-                .modo
+            viewModel.state.corrida.modo,
         )
 
         assertEquals(
             "ⓘ",
-            viewModel.state
-                .corrida
-                .acaoDetalhes
+            viewModel.state.corrida.acaoDetalhes,
         )
     }
 
+    // =====================================================================
+    // EXPANDIR / RETRAIR
+    // =====================================================================
+
     @Test
-    fun historico_so_abre_na_tela_expandida() {
+    fun deve_alternar_detalhes_da_corrida() {
 
         val viewModel =
             AppViewModel()
 
-        // Compacta: não abre.
-        viewModel.alternarHistorico()
-
-        assertFalse(
-            viewModel.state
-                .historicoVisivel
-        )
-
-        // Oferta recebida.
-        viewModel.processarEvento(
-
-            RideNotificationEvent.CorridaRecebida(
-                analiseTeste()
-            )
+        // Estado inicial.
+        assertEquals(
+            ModoApresentacao.COMPACTA,
+            viewModel.state.corrida.modo,
         )
 
         // Expande.
         viewModel.alternarDetalhes()
 
-        // Agora pode abrir.
-        viewModel.alternarHistorico()
+        assertEquals(
+            ModoApresentacao.DETALHES,
+            viewModel.state.corrida.modo,
+        )
 
-        assertTrue(
-            viewModel.state
-                .historicoVisivel
+        assertEquals(
+            "Menos detalhes",
+            viewModel.state.corrida.acaoDetalhes,
+        )
+
+        // Retrai.
+        viewModel.alternarDetalhes()
+
+        assertEquals(
+            ModoApresentacao.COMPACTA,
+            viewModel.state.corrida.modo,
+        )
+
+        assertEquals(
+            "ⓘ",
+            viewModel.state.corrida.acaoDetalhes,
         )
     }
 
+    // =====================================================================
+    // HISTÓRICO
+    // =====================================================================
+
     @Test
-    fun ocultar_fecha_historico_e_configuracao() {
+    fun historico_deve_ser_aberto_e_fechado() {
 
         val viewModel =
             AppViewModel()
 
-        viewModel.processarEvento(
+        viewModel.alternarDetalhes()
 
-            RideNotificationEvent.CorridaRecebida(
-                analiseTeste()
-            )
+        assertFalse(
+            viewModel.state.historicoVisivel,
         )
+
+        viewModel.alternarHistorico()
+
+        assertTrue(
+            viewModel.state.historicoVisivel,
+        )
+
+        viewModel.alternarHistorico()
+
+        assertFalse(
+            viewModel.state.historicoVisivel,
+        )
+    }
+
+    // =====================================================================
+    // CONFIGURAÇÃO E HISTÓRICO
+    // =====================================================================
+
+    @Test
+    fun configuracao_e_historico_devem_ser_exclusivos() {
+
+        val viewModel =
+            AppViewModel()
 
         viewModel.alternarDetalhes()
 
+        // Abre configuração.
         viewModel.abrirConfiguracoes()
+
+        assertTrue(
+            viewModel.state.configuracoesVisivel,
+        )
+
+        assertFalse(
+            viewModel.state.historicoVisivel,
+        )
+
+        // Abre histórico.
+        viewModel.alternarHistorico()
+
+        assertTrue(
+            viewModel.state.historicoVisivel,
+        )
+
+        assertFalse(
+            viewModel.state.configuracoesVisivel,
+        )
+    }
+
+    // =====================================================================
+    // PLANO
+    // =====================================================================
+
+    @Test
+    fun deve_selecionar_plano() {
+
+        val viewModel =
+            AppViewModel()
+
+        viewModel.selecionarPlano(
+            PlanoAcesso.PRO,
+        )
+
+        assertEquals(
+            PlanoAcesso.PRO,
+            viewModel.state.plano,
+        )
+    }
+
+    // =====================================================================
+    // SEM NOTIFICAÇÃO
+    // =====================================================================
+
+    @Test
+    fun sem_notificacao_deve_manter_monitoramento_e_mostrar_selo() {
+
+        val viewModel =
+            AppViewModel()
+
+        viewModel.semNotificacao()
+
+        assertFalse(
+            viewModel.state.notificacaoDisponivel,
+        )
+
+        assertTrue(
+            viewModel.state.seloFlutuante,
+        )
+
+        assertTrue(
+            viewModel.state.monitorando,
+        )
+
+        assertTrue(
+            viewModel.state.interfaceOculta,
+        )
+
+        assertFalse(
+            viewModel.state.historicoVisivel,
+        )
+
+        assertFalse(
+            viewModel.state.configuracoesVisivel,
+        )
+    }
+
+    // =====================================================================
+    // OCULTAR
+    // =====================================================================
+    //
+    // REGRA:
+    //
+    // Ocultar NÃO encerra o monitoramento.
+    //
+    // Ele:
+    //
+    // histórico/configuração → fechados
+    // corrida → compacta
+    // interface → ocultada
+    // selo → exibido
+    // monitoramento → continua ativo
+    // =====================================================================
+
+    @Test
+    fun ocultar_mantem_monitoramento_e_exibe_selo() {
+
+        val viewModel =
+            AppViewModel()
+
+        viewModel.alternarDetalhes()
+        viewModel.alternarHistorico()
 
         viewModel.ocultarInterface()
 
         assertTrue(
-            viewModel.state
-                .interfaceOculta
+            viewModel.state.interfaceOculta,
         )
 
         assertTrue(
-            viewModel.state
-                .seloFlutuante
+            viewModel.state.seloFlutuante,
+        )
+
+        assertTrue(
+            viewModel.state.monitorando,
         )
 
         assertFalse(
-            viewModel.state
-                .historicoVisivel
+            viewModel.state.historicoVisivel,
         )
 
         assertFalse(
-            viewModel.state
-                .configuracoesVisivel
+            viewModel.state.configuracoesVisivel,
         )
 
         assertEquals(
             ModoApresentacao.COMPACTA,
-            viewModel.state
-                .corrida
-                .modo
-        )
-
-        assertTrue(
-            viewModel.state
-                .monitorando
+            viewModel.state.corrida.modo,
         )
     }
 
+    // =====================================================================
+    // OCULTAR CONFIGURAÇÃO
+    // =====================================================================
+
     @Test
-    fun selo_reabre_somente_tela_compacta() {
+    fun ocultar_deve_fechar_configuracao_e_mostrar_selo() {
 
         val viewModel =
             AppViewModel()
 
-        viewModel.processarEvento(
+        viewModel.alternarDetalhes()
+        viewModel.abrirConfiguracoes()
 
-            RideNotificationEvent.CorridaRecebida(
-                analiseTeste()
-            )
+        assertTrue(
+            viewModel.state.configuracoesVisivel,
         )
 
-        viewModel.alternarDetalhes()
-
-        viewModel.alternarHistorico()
-
         viewModel.ocultarInterface()
+
+        assertTrue(
+            viewModel.state.interfaceOculta,
+        )
+
+        assertTrue(
+            viewModel.state.seloFlutuante,
+        )
+
+        assertTrue(
+            viewModel.state.monitorando,
+        )
+
+        assertFalse(
+            viewModel.state.configuracoesVisivel,
+        )
+
+        assertFalse(
+            viewModel.state.historicoVisivel,
+        )
+
+        assertEquals(
+            ModoApresentacao.COMPACTA,
+            viewModel.state.corrida.modo,
+        )
+    }
+
+    // =====================================================================
+    // REABRIR PELO SELO
+    // =====================================================================
+
+    @Test
+    fun selo_deve_reabrir_interface() {
+
+        val viewModel =
+            AppViewModel()
+
+        viewModel.alternarDetalhes()
+        viewModel.abrirConfiguracoes()
+        viewModel.ocultarInterface()
+
+        assertTrue(
+            viewModel.state.seloFlutuante,
+        )
 
         viewModel.reabrirInterface()
 
         assertFalse(
-            viewModel.state
-                .interfaceOculta
+            viewModel.state.interfaceOculta,
         )
 
         assertFalse(
-            viewModel.state
-                .seloFlutuante
-        )
-
-        assertFalse(
-            viewModel.state
-                .historicoVisivel
-        )
-
-        assertFalse(
-            viewModel.state
-                .configuracoesVisivel
-        )
-
-        assertEquals(
-            ModoApresentacao.COMPACTA,
-            viewModel.state
-                .corrida
-                .modo
+            viewModel.state.seloFlutuante,
         )
 
         assertTrue(
-            viewModel.state
-                .monitorando
+            viewModel.state.overlayAtivo,
+        )
+
+        assertTrue(
+            viewModel.state.monitorando,
         )
     }
 
+    // =====================================================================
+    // FECHAMENTO
+    // =====================================================================
+
     @Test
-    fun cancelar_fechar_nao_altera_monitoramento() {
+    fun solicitar_fechar_deve_exibir_confirmacao() {
 
         val viewModel =
             AppViewModel()
@@ -325,25 +362,51 @@ class AppViewModelTest {
         viewModel.solicitarFecharApp()
 
         assertTrue(
-            viewModel.state
-                .confirmacaoFecharVisivel
+            viewModel.state.confirmacaoFecharVisivel,
+        )
+
+        assertTrue(
+            viewModel.state.monitorando,
+        )
+    }
+
+    // =====================================================================
+    // CANCELAR FECHAMENTO
+    // =====================================================================
+
+    @Test
+    fun cancelar_fechar_nao_deve_alterar_monitoramento() {
+
+        val viewModel =
+            AppViewModel()
+
+        viewModel.solicitarFecharApp()
+
+        assertTrue(
+            viewModel.state.confirmacaoFecharVisivel,
         )
 
         viewModel.cancelarFecharApp()
 
         assertFalse(
-            viewModel.state
-                .confirmacaoFecharVisivel
+            viewModel.state.confirmacaoFecharVisivel,
         )
 
         assertTrue(
-            viewModel.state
-                .monitorando
+            viewModel.state.monitorando,
+        )
+
+        assertTrue(
+            viewModel.state.seloFlutuante.not(),
         )
     }
 
+    // =====================================================================
+    // CONFIRMAR FECHAMENTO
+    // =====================================================================
+
     @Test
-    fun confirmar_fechar_para_monitoramento() {
+    fun confirmar_fechar_deve_encerrar_monitoramento() {
 
         val viewModel =
             AppViewModel()
@@ -353,50 +416,57 @@ class AppViewModelTest {
         viewModel.confirmarFecharApp()
 
         assertFalse(
-            viewModel.state
-                .confirmacaoFecharVisivel
+            viewModel.state.monitorando,
         )
 
         assertFalse(
-            viewModel.state
-                .monitorando
+            viewModel.state.seloFlutuante,
         )
 
         assertFalse(
-            viewModel.state
-                .seloFlutuante
+            viewModel.state.overlayAtivo,
         )
 
         assertFalse(
-            viewModel.state
-                .overlayAtivo
+            viewModel.state.interfaceOculta,
+        )
+
+        assertFalse(
+            viewModel.state.historicoVisivel,
+        )
+
+        assertFalse(
+            viewModel.state.configuracoesVisivel,
+        )
+
+        assertFalse(
+            viewModel.state.confirmacaoFecharVisivel,
         )
     }
 
+    // =====================================================================
+    // POSIÇÃO DO SELO
+    // =====================================================================
+
     @Test
-    fun selecionar_plano_preserva_historico_vazio() {
+    fun deve_atualizar_posicao_do_selo() {
 
         val viewModel =
             AppViewModel()
 
-        viewModel.selecionarPlano(
-            PlanoAcesso.PRO
+        viewModel.atualizarPosicaoSelo(
+            offsetX = 120f,
+            offsetY = 240f,
         )
 
         assertEquals(
-            PlanoAcesso.PRO,
-            viewModel.state.plano
+            120f,
+            viewModel.state.seloOffsetX,
         )
 
-        assertTrue(
-            viewModel.state
-                .historico
-                .isEmpty()
-        )
-
-        assertTrue(
-            viewModel.state
-                .monitorando
+        assertEquals(
+            240f,
+            viewModel.state.seloOffsetY,
         )
     }
 }

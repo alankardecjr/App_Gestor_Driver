@@ -13,23 +13,40 @@ import br.com.gestordriver.model.ModoApresentacao
 import br.com.gestordriver.model.PlanoAcesso
 import br.com.gestordriver.model.RecursosPlano
 import br.com.gestordriver.ui.AppState
+import br.com.gestordriver.ui.EstadoInterfaceSalvo
 
 object PresentationBuilder {
 
+    // =====================================================================
+    // DEPENDÊNCIAS
+    // =====================================================================
+
     private val calculadora =
         CalculadoraCorrida(
-            configuracaoUsuario =
-                ConfiguracaoUsuario.padrao()
+            configuracaoUsuario = ConfiguracaoUsuario.padrao(),
         )
 
     private val controlePlano =
         ControlePlano()
 
-    /*
-     * Dados de demonstração da corrida atual.
-     *
-     * NÃO representam histórico.
-     */
+    // =====================================================================
+    // CORRIDA DE DEMONSTRAÇÃO
+    // =====================================================================
+    //
+    // Mantida temporariamente para permitir a validação visual da interface.
+    //
+    // IMPORTANTE:
+    //
+    // Esta corrida NÃO representa uma corrida aceita pelo usuário.
+    // Portanto, ela NUNCA deve ser adicionada automaticamente ao histórico.
+    //
+    // A substituição definitiva dessa demonstração pelo fluxo real:
+    //
+    // permissões → monitoramento → notificação → corrida atual
+    //
+    // será feita nas etapas posteriores.
+    // =====================================================================
+
     private val corridaDemonstracao =
         Corrida(
             valorTotal = 38.10,
@@ -48,106 +65,81 @@ object PresentationBuilder {
 
         val analise =
             calculadora.calcular(
-
-                corrida =
-                    corridaDemonstracao,
-
+                corrida = corridaDemonstracao,
                 plataforma = "Uber",
-
                 notaPassageiro = 4.98,
             )
 
-        /*
-         * REGRA:
-         *
-         * O aplicativo inicia no selo.
-         *
-         * O histórico começa vazio porque nenhuma corrida foi
-         * aceita pelo usuário ainda.
-         */
         return criarEstado(
-
             analise = analise,
-
             plano = plano,
 
+            // Regra de negócio:
+            // o histórico inicia vazio.
             historico = emptyList(),
 
-            modo =
-                ModoApresentacao.COMPACTA,
+            modo = ModoApresentacao.COMPACTA,
 
             historicoVisivel = false,
-
             configuracoesVisivel = false,
 
-            interfaceOculta = true,
+            interfaceOculta = false,
 
-            overlayAtivo = false,
+            overlayAtivo = true,
+            notificacaoDisponivel = true,
 
-            notificacaoDisponivel = false,
-
-            seloFlutuante = true,
+            seloFlutuante = false,
 
             monitorando = true,
+
+            confirmacaoFecharVisivel = false,
+
+            seloOffsetX = 0f,
+            seloOffsetY = 0f,
+
+            estadoSalvo = null,
         )
     }
 
     // =====================================================================
-    // CONSTRUÇÃO DO ESTADO
+    // CRIAÇÃO DO ESTADO
+    // =====================================================================
+    //
+    // Esta função apenas monta o estado.
+    //
+    // Ela NÃO:
+    // - grava corrida;
+    // - adiciona corrida ao histórico;
+    // - interpreta aceite;
+    // - altera banco de dados.
+    //
+    // O histórico sempre é recebido explicitamente pelo parâmetro
+    // "historico".
     // =====================================================================
 
     fun criarEstado(
         analise: AnaliseCorrida,
-
         plano: PlanoAcesso,
-
-        historico:
-            List<HistoricoItemPresentation> =
-            emptyList(),
-
-        historicoSelecionado:
-            HistoricoItemPresentation? =
-            null,
-
-        modo:
-            ModoApresentacao =
-            ModoApresentacao.COMPACTA,
-
-        historicoVisivel:
-            Boolean = false,
-
-        configuracoesVisivel:
-            Boolean = false,
-
-        interfaceOculta:
-            Boolean = false,
-
-        overlayAtivo:
-            Boolean = true,
-
-        notificacaoDisponivel:
-            Boolean = true,
-
-        seloFlutuante:
-            Boolean = false,
-
-        monitorando:
-            Boolean = true,
-
-        confirmacaoFecharVisivel:
-            Boolean = false,
-
-        seloOffsetX:
-            Float = 0f,
-
-        seloOffsetY:
-            Float = 0f,
+        historico: List<HistoricoItemPresentation> = emptyList(),
+        historicoSelecionado: HistoricoItemPresentation? = null,
+        modo: ModoApresentacao = ModoApresentacao.COMPACTA,
+        historicoVisivel: Boolean = false,
+        configuracoesVisivel: Boolean = false,
+        interfaceOculta: Boolean = false,
+        overlayAtivo: Boolean = true,
+        notificacaoDisponivel: Boolean = true,
+        seloFlutuante: Boolean = false,
+        monitorando: Boolean = true,
+        confirmacaoFecharVisivel: Boolean = false,
+        seloOffsetX: Float = 0f,
+        seloOffsetY: Float = 0f,
+        estadoSalvo: EstadoInterfaceSalvo? = null,
     ): AppState {
 
         val recursos =
             controlePlano.aplicar(
-                analise,
-                plano,
+                analise = analise,
+                plano = plano,
             )
 
         val corrida =
@@ -159,11 +151,8 @@ object PresentationBuilder {
             )
 
         return AppState(
-
             corrida = corrida,
-
             analiseAtual = analise,
-
             plano = plano,
 
             historico = historico,
@@ -200,26 +189,37 @@ object PresentationBuilder {
 
             seloOffsetY =
                 seloOffsetY,
+
+            estadoSalvo =
+                estadoSalvo,
         )
     }
 
     // =====================================================================
     // CONVERSÃO PARA HISTÓRICO
     // =====================================================================
+    //
+    // ATENÇÃO:
+    //
+    // Esta função NÃO significa "aceitar corrida".
+    //
+    // Ela somente transforma uma análise já existente em um objeto de
+    // apresentação de histórico.
+    //
+    // A chamada correta deverá ocorrer futuramente quando o sistema
+    // detectar que o usuário aceitou a corrida dentro do Uber,
+    // 99 ou inDrive.
+    // =====================================================================
 
-    /*
-     * Esta função NÃO deve ser chamada quando uma notificação chega.
-     *
-     * Ela ficará disponível para a próxima etapa, quando o sistema
-     * identificar que o usuário realmente aceitou a corrida.
-     */
     fun historicoDe(
         analise: AnaliseCorrida,
     ): HistoricoItemPresentation =
-        HistoricoItemPresentation.de(analise)
+        HistoricoItemPresentation.de(
+            analise,
+        )
 
     // =====================================================================
-    // CORRIDA PRESENTATION
+    // APRESENTAÇÃO DA CORRIDA
     // =====================================================================
 
     private fun montarCorridaPresentation(
@@ -229,19 +229,18 @@ object PresentationBuilder {
         modo: ModoApresentacao,
     ): CorridaPresentation {
 
-        val nota =
-            analise.notaPassageiro
-
         val camposCompactos =
             listOf(
+
+                // ---------------------------------------------------------
+                // R$/KM
+                // ---------------------------------------------------------
 
                 CampoApresentacao(
                     id = "valor_por_km",
                     titulo = "R$/KM",
                     valor =
-                        if (
-                            recursos.exibeValorPorKm
-                        ) {
+                        if (recursos.exibeValorPorKm) {
                             formatDecimal(
                                 analise.valorPorKm,
                                 2,
@@ -254,23 +253,35 @@ object PresentationBuilder {
                     destaque = true,
                 ),
 
+                // ---------------------------------------------------------
+                // VALOR TOTAL
+                // ---------------------------------------------------------
+
                 CampoApresentacao(
                     id = "valor_total",
                     titulo = "R$/TOTAL",
                     valor =
                         formatMoney(
-                            analise.valorTotal
+                            analise.valorTotal,
                         ),
                 ),
+
+                // ---------------------------------------------------------
+                // KM TOTAL
+                // ---------------------------------------------------------
 
                 CampoApresentacao(
                     id = "km_total",
                     titulo = "KM/TOTAL",
                     valor =
                         formatKm(
-                            analise.kmTotal
+                            analise.kmTotal,
                         ),
                 ),
+
+                // ---------------------------------------------------------
+                // TEMPO
+                // ---------------------------------------------------------
 
                 CampoApresentacao(
                     id = "tempo_estimado",
@@ -278,21 +289,31 @@ object PresentationBuilder {
                     valor =
                         analise.corrida
                             .tempoEstimado
-                            ?.let {
-                                "$it min"
+                            ?.let { tempo ->
+                                "$tempo min"
                             }
                             ?: "—",
                 ),
+
+                // ---------------------------------------------------------
+                // NOTA
+                // ---------------------------------------------------------
 
                 CampoApresentacao(
                     id = "nota_passageiro",
                     titulo = "NOTA",
                     valor =
-                        nota?.let {
-                            "${formatDecimal(it, 2)} ⭐"
-                        } ?: "—",
+                        analise.notaPassageiro
+                            ?.let { nota ->
+                                "${formatDecimal(nota, 2)} ⭐"
+                            }
+                            ?: "—",
                 ),
             )
+
+        // =================================================================
+        // DETALHES
+        // =================================================================
 
         val camposDetalhes =
             listOf(
@@ -302,7 +323,7 @@ object PresentationBuilder {
                     titulo = "Até o Passageiro",
                     valor =
                         formatKm(
-                            analise.kmAtePassageiro
+                            analise.kmAtePassageiro,
                         ),
                 ),
 
@@ -311,7 +332,7 @@ object PresentationBuilder {
                     titulo = "Até o destino",
                     valor =
                         formatKm(
-                            analise.kmViagem
+                            analise.kmViagem,
                         ),
                 ),
 
@@ -320,21 +341,20 @@ object PresentationBuilder {
                     titulo = "Combustível estimado",
                     valor =
                         if (
-                            recursos
-                                .exibeCombustivelEstimado
+                            recursos.exibeCombustivelEstimado
                         ) {
-                            analise
-                                .combustivelEstimado
-                                ?.let {
-                                    formatLiters(it)
+                            analise.combustivelEstimado
+                                ?.let { combustivel ->
+                                    formatLiters(
+                                        combustivel,
+                                    )
                                 }
                                 ?: "—"
                         } else {
                             "🔒"
                         },
                     disponivel =
-                        recursos
-                            .exibeCombustivelEstimado,
+                        recursos.exibeCombustivelEstimado,
                 ),
 
                 CampoApresentacao(
@@ -342,30 +362,25 @@ object PresentationBuilder {
                     titulo = "Gasto estimado",
                     valor =
                         if (
-                            recursos
-                                .exibeCustoCombustivel
+                            recursos.exibeCustoCombustivel
                         ) {
-                            analise
-                                .custoCombustivel
-                                ?.let {
-                                    formatMoney(it)
+                            analise.custoCombustivel
+                                ?.let { custo ->
+                                    formatMoney(custo)
                                 }
                                 ?: "—"
                         } else {
                             "🔒"
                         },
                     disponivel =
-                        recursos
-                            .exibeCustoCombustivel,
+                        recursos.exibeCustoCombustivel,
                 ),
 
                 CampoApresentacao(
                     id = "recursos_avancados",
                     titulo = "Recursos avançados",
                     valor =
-                        if (
-                            recursos.recursosAvancados
-                        ) {
+                        if (recursos.recursosAvancados) {
                             "Ativo"
                         } else {
                             "Bloqueado"
@@ -375,15 +390,18 @@ object PresentationBuilder {
                 ),
             )
 
-        return CorridaPresentation(
+        // =================================================================
+        // PRESENTATION
+        // =================================================================
 
+        return CorridaPresentation(
             plano = plano,
 
             modo = modo,
 
             classificacao =
                 ClassificacaoVisual.from(
-                    analise.classificacao
+                    analise.classificacao,
                 ),
 
             corClassificacao =
@@ -406,6 +424,10 @@ object PresentationBuilder {
                 camposDetalhes,
         )
     }
+
+    // =====================================================================
+    // FORMATAÇÃO
+    // =====================================================================
 
     private fun formatDecimal(
         valor: Double,
