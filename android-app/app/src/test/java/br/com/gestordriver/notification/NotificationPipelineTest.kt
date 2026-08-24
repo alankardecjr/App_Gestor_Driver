@@ -126,6 +126,19 @@ class RideNotificationProcessorTest {
 
         assertTrue(evento is RideNotificationEvent.NotificacaoNaoReconhecida)
     }
+
+    @Test
+    fun deve_detectar_aceite_sem_tratar_como_oferta() {
+        val processor = RideNotificationProcessor()
+        val evento = processor.processar(
+            NotificationData(
+                packageName = "com.ubercab.driver",
+                title = "Viagem aceita",
+                text = "Dirija ate o passageiro",
+            ),
+        )
+        assertTrue(evento is RideNotificationEvent.CorridaAceita)
+    }
 }
 
 class CalculadoraCorridaTest {

@@ -33,6 +33,12 @@ sealed class RideNotificationEvent {
     data object CorridaAceita : RideNotificationEvent()
 
     // ================================================================
+    // OFERTA EXPIRADA / REMOVIDA SEM ACEITE
+    // ================================================================
+
+    data object CorridaExpirada : RideNotificationEvent()
+
+    // ================================================================
     // NOTIFICAÇÃO NÃO RECONHECIDA
     // ================================================================
 

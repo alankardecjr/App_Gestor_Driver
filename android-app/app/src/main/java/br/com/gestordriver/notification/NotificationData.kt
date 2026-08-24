@@ -6,6 +6,7 @@ data class NotificationData(
     val packageName: String,
     val title: String,
     val text: String,
+    val key: String? = null,
     val receivedAt: LocalDateTime = LocalDateTime.now(),
 ) {
     val fullText: String

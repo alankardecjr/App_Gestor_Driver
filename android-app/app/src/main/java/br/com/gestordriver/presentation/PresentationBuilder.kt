@@ -62,41 +62,23 @@ object PresentationBuilder {
     fun criarEstadoInicial(
         plano: PlanoAcesso = PlanoAcesso.BETA,
     ): AppState {
-
-        val analise =
-            calculadora.calcular(
-                corrida = corridaDemonstracao,
-                plataforma = "Uber",
-                notaPassageiro = 4.98,
-            )
-
         return criarEstado(
-            analise = analise,
+            analise = null,
             plano = plano,
-
-            // Regra de negócio:
-            // o histórico inicia vazio.
             historico = emptyList(),
-
             modo = ModoApresentacao.COMPACTA,
-
             historicoVisivel = false,
             configuracoesVisivel = false,
-
-            interfaceOculta = false,
-
-            overlayAtivo = true,
-            notificacaoDisponivel = true,
-
+            interfaceOculta = true,
+            overlayAtivo = false,
+            notificacaoDisponivel = false,
             seloFlutuante = false,
-
-            monitorando = true,
-
+            monitorando = false,
+            ofertaAtiva = false,
+            corridaAceita = false,
             confirmacaoFecharVisivel = false,
-
             seloOffsetX = 0f,
             seloOffsetY = 0f,
-
             estadoSalvo = null,
         )
     }
@@ -118,7 +100,7 @@ object PresentationBuilder {
     // =====================================================================
 
     fun criarEstado(
-        analise: AnaliseCorrida,
+        analise: AnaliseCorrida?,
         plano: PlanoAcesso,
         historico: List<HistoricoItemPresentation> = emptyList(),
         historicoSelecionado: HistoricoItemPresentation? = null,
@@ -134,25 +116,37 @@ object PresentationBuilder {
         seloOffsetX: Float = 0f,
         seloOffsetY: Float = 0f,
         estadoSalvo: EstadoInterfaceSalvo? = null,
+        corridaAceita: Boolean = false,
+        ultimaCorridaAceita: AnaliseCorrida? = null,
+        ofertaAtiva: Boolean = analise != null && !corridaAceita,
     ): AppState {
 
-        val recursos =
-            controlePlano.aplicar(
-                analise = analise,
-                plano = plano,
-            )
-
         val corrida =
-            montarCorridaPresentation(
-                analise = analise,
-                plano = plano,
-                recursos = recursos,
-                modo = modo,
-            )
+            if (analise == null) {
+                montarCorridaVazia(
+                    plano = plano,
+                    modo = modo,
+                )
+            } else {
+                val recursos =
+                    controlePlano.aplicar(
+                        analise = analise,
+                        plano = plano,
+                    )
+                montarCorridaPresentation(
+                    analise = analise,
+                    plano = plano,
+                    recursos = recursos,
+                    modo = modo,
+                )
+            }
 
         return AppState(
             corrida = corrida,
             analiseAtual = analise,
+            ultimaCorridaAceita = ultimaCorridaAceita,
+            ofertaAtiva = ofertaAtiva,
+            corridaAceita = corridaAceita,
             plano = plano,
 
             historico = historico,
@@ -221,6 +215,35 @@ object PresentationBuilder {
     // =====================================================================
     // APRESENTAÇÃO DA CORRIDA
     // =====================================================================
+
+    private fun montarCorridaVazia(
+        plano: PlanoAcesso,
+        modo: ModoApresentacao,
+    ): CorridaPresentation {
+        val camposCompactos = listOf(
+            CampoApresentacao(id = "valor_por_km", titulo = "R$/KM", valor = "—", destaque = true),
+            CampoApresentacao(id = "valor_total", titulo = "R$/TOTAL", valor = "—"),
+            CampoApresentacao(id = "km_total", titulo = "KM/TOTAL", valor = "—"),
+            CampoApresentacao(id = "tempo_estimado", titulo = "TEMPO", valor = "—"),
+            CampoApresentacao(id = "nota_passageiro", titulo = "NOTA", valor = "—"),
+        )
+        val camposDetalhes = listOf(
+            CampoApresentacao(id = "km_ate_passageiro", titulo = "Até o Passageiro", valor = "—"),
+            CampoApresentacao(id = "km_viagem", titulo = "Até o destino", valor = "—"),
+            CampoApresentacao(id = "combustivel_estimado", titulo = "Combustível estimado", valor = "—"),
+            CampoApresentacao(id = "custo_combustivel", titulo = "Gasto estimado", valor = "—"),
+            CampoApresentacao(id = "status_oferta", titulo = "Status", valor = "Aguardando oferta"),
+        )
+        return CorridaPresentation(
+            plano = plano,
+            modo = modo,
+            classificacao = ClassificacaoVisual.REGULAR,
+            corClassificacao = "#607D8B",
+            acaoDetalhes = if (modo == ModoApresentacao.DETALHES) "Menos detalhes" else "ⓘ",
+            camposCompactos = camposCompactos,
+            camposDetalhes = camposDetalhes,
+        )
+    }
 
     private fun montarCorridaPresentation(
         analise: AnaliseCorrida,
