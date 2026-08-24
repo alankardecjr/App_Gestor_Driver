@@ -20,6 +20,8 @@ O objetivo é simples:
 
 > **Ajudar o motorista a decidir rapidamente se uma corrida vale a pena.**
 
+O Gestor Driver **não aceita corridas**. O motorista aceita ou recusa no Uber, 99 ou inDrive. Este app identifica a oferta, mostra os dados, monitora a plataforma e só grava no histórico quando o aceite é detectado.
+
 O aplicativo foi projetado para funcionar com uma interface horizontal, compacta e de baixa obstrução, permitindo que o motorista mantenha a visão do aplicativo de transporte.
 
 ---

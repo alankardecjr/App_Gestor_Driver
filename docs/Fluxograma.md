@@ -110,6 +110,27 @@ O aplicativo:
 
 # 3. Fluxo de uma corrida
 
+          NOTIFICAÇÃO DE OFERTA
+               │
+               ▼
+          CORRIDA ATUAL
+               │
+               ▼
+          INTERFACE COMPACTA
+               │
+               ▼
+     MOTORISTA AGE NA PLATAFORMA
+               │
+     ┌─────────┴─────────┐
+     ▼                   ▼
+ACEITE DETECTADO    RECUSA / EXPIRA
+     │                   │
+     ▼                   ▼
+  HISTÓRICO           DESCARTA
+     │
+     ▼
+ÚLTIMA CORRIDA ACEITA PERMANECE
+
           NOTIFICAÇÃO
                │
                ▼

@@ -16,6 +16,8 @@ O motorista precisa decidir rapidamente com base em informações incompletas e 
 
 ## 4. Funcionalidades do MVP
 
+O Gestor Driver **nunca aceita a corrida pelo usuário**. O aceite ocorre no Uber, 99 ou inDrive. O histórico armazena somente corridas cujo aceite foi detectado.
+
 ### 4.1 Análise da corrida
 
 - calcular distância total;
