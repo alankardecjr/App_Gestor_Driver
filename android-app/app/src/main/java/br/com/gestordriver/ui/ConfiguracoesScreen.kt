@@ -1,5 +1,7 @@
 package br.com.gestordriver.ui
 
+import android.content.Intent
+import android.provider.Settings
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -26,10 +28,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import br.com.gestordriver.model.AppNavegacao
 import br.com.gestordriver.model.Combustivel
+import br.com.gestordriver.permission.PermissoesMonitoramento
 
 private val FundoCard = Color(0xFF050809)
 private val TextoPrincipal = Color.White
@@ -124,11 +128,50 @@ fun ConfiguracoesScreen(
 
         SecaoCard(titulo = "Ajustes do App") {
             SubtituloSecao(texto = "Permissões")
+            val contexto = LocalContext.current
+            val overlayOk = PermissoesMonitoramento.overlayConcedida(contexto)
+            val listenerOk = PermissoesMonitoramento.listenerNotificacoesAtivo(contexto)
             Text(
-                text = "Acesso a notificações e overlay serão configurados aqui.",
+                text = if (overlayOk && listenerOk) {
+                    "Permissões de overlay e notificações concedidas."
+                } else {
+                    "Conceda overlay e acesso a notificações para monitorar ofertas."
+                },
                 color = TextoSecundario,
                 style = MaterialTheme.typography.bodySmall,
             )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                TextButton(
+                    onClick = {
+                        contexto.startActivity(Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS))
+                    },
+                ) {
+                    Text(
+                        text = if (listenerOk) "Notificações ✓" else "Notificações",
+                        color = if (listenerOk) DestaqueSelecionado else TextoPrincipal,
+                        style = MaterialTheme.typography.labelSmall,
+                    )
+                }
+                TextButton(
+                    onClick = {
+                        contexto.startActivity(
+                            Intent(
+                                Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+                                android.net.Uri.parse("package:${contexto.packageName}"),
+                            ),
+                        )
+                    },
+                ) {
+                    Text(
+                        text = if (overlayOk) "Overlay ✓" else "Overlay",
+                        color = if (overlayOk) DestaqueSelecionado else TextoPrincipal,
+                        style = MaterialTheme.typography.labelSmall,
+                    )
+                }
+            }
 
             Spacer(modifier = Modifier.height(4.dp))
 
@@ -176,7 +219,12 @@ fun ConfiguracoesScreen(
             horizontalArrangement = Arrangement.SpaceEvenly,
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            TextButton(onClick = onVoltar) {
+            TextButton(
+                onClick = {
+                    viewModel.salvar()
+                    onVoltar()
+                },
+            ) {
                 Text(
                     text = "⬅️ Voltar",
                     color = TextoPrincipal,
