@@ -32,8 +32,8 @@
 - [x] Modelo HistoricoCorrida (Python)
 - [x] Persistência local (Python/JSON)
 - [x] Consulta das últimas corridas
-- [x] Interface do histórico (Android demo)
-- [ ] Persistência Room no Android
+- [x] Interface do histórico (somente corridas aceitas)
+- [x] Persistência Room no Android
 
 ## Planos
 
@@ -50,8 +50,8 @@
 - [ ] Room
 - [x] Interface compacta / expandida
 - [x] Selo flutuante com arrastar e reabrir
-- [ ] Overlay real sobre apps de transporte
-- [ ] Configurações persistidas
+- [x] Overlay real sobre apps de transporte
+- [x] Configurações persistidas
 
 ## Notificações
 
@@ -60,6 +60,8 @@
 - [x] NotificationExtractor + CorridaParser
 - [x] RideNotificationBus → AppViewModel
 - [x] Tratamento de notificações não reconhecidas
+- [x] Classificação oferta vs aceite (padrões provisórios até teste real)
+- [x] Expiração da oferta sem gravar histórico
 
 ## Testes
 
