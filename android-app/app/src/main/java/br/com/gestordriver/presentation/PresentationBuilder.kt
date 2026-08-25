@@ -14,6 +14,7 @@ import br.com.gestordriver.model.PlanoAcesso
 import br.com.gestordriver.model.RecursosPlano
 import br.com.gestordriver.ui.AppState
 import br.com.gestordriver.ui.EstadoInterfaceSalvo
+import java.util.Locale
 
 object PresentationBuilder {
 
@@ -469,14 +470,14 @@ object PresentationBuilder {
         casas: Int,
     ): String =
         "%.${casas}f"
-            .format(valor)
+            .format(Locale.US, valor)
             .replace(".", ",")
 
     private fun formatMoney(
         valor: Double,
     ): String =
         "R$ %.2f"
-            .format(valor)
+            .format(Locale.US, valor)
             .replace(".", ",")
 
     private fun formatKm(
@@ -485,9 +486,9 @@ object PresentationBuilder {
 
         val texto =
             if (valor % 1.0 == 0.0) {
-                "%.0f".format(valor)
+                "%.0f".format(Locale.US, valor)
             } else {
-                "%.1f".format(valor)
+                "%.1f".format(Locale.US, valor)
             }
 
         return "$texto km"
@@ -497,6 +498,6 @@ object PresentationBuilder {
         valor: Double,
     ): String =
         "%.2f L"
-            .format(valor)
+            .format(Locale.US, valor)
             .replace(".", ",")
 }

@@ -2,12 +2,19 @@ package br.com.gestordriver.ui
 
 import br.com.gestordriver.model.ModoApresentacao
 import br.com.gestordriver.model.PlanoAcesso
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class AppViewModelTest {
+
+    private fun novoViewModel(): AppViewModel = AppViewModel(
+        coroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.Unconfined),
+    )
 
     // =====================================================================
     // HISTÓRICO
@@ -21,7 +28,7 @@ class AppViewModelTest {
     fun historico_inicial_deve_estar_vazio() {
 
         val viewModel =
-            AppViewModel()
+            novoViewModel()
 
         assertTrue(
             viewModel.state.historico.isEmpty(),
@@ -36,7 +43,7 @@ class AppViewModelTest {
     fun deve_iniciar_em_modo_compacto() {
 
         val viewModel =
-            AppViewModel()
+            novoViewModel()
 
         assertEquals(
             ModoApresentacao.COMPACTA,
@@ -57,7 +64,7 @@ class AppViewModelTest {
     fun deve_alternar_detalhes_da_corrida() {
 
         val viewModel =
-            AppViewModel()
+            novoViewModel()
 
         // Estado inicial.
         assertEquals(
@@ -100,7 +107,7 @@ class AppViewModelTest {
     fun historico_deve_ser_aberto_e_fechado() {
 
         val viewModel =
-            AppViewModel()
+            novoViewModel()
 
         viewModel.alternarDetalhes()
 
@@ -129,7 +136,7 @@ class AppViewModelTest {
     fun configuracao_e_historico_devem_ser_exclusivos() {
 
         val viewModel =
-            AppViewModel()
+            novoViewModel()
 
         viewModel.alternarDetalhes()
 
@@ -164,7 +171,7 @@ class AppViewModelTest {
     fun deve_selecionar_plano() {
 
         val viewModel =
-            AppViewModel()
+            novoViewModel()
 
         viewModel.selecionarPlano(
             PlanoAcesso.PRO,
@@ -184,7 +191,7 @@ class AppViewModelTest {
     fun sem_notificacao_deve_manter_monitoramento_e_mostrar_selo() {
 
         val viewModel =
-            AppViewModel()
+            novoViewModel()
 
         viewModel.semNotificacao()
 
@@ -234,7 +241,7 @@ class AppViewModelTest {
     fun ocultar_mantem_monitoramento_e_exibe_selo() {
 
         val viewModel =
-            AppViewModel()
+            novoViewModel()
 
         viewModel.alternarDetalhes()
         viewModel.alternarHistorico()
@@ -275,7 +282,7 @@ class AppViewModelTest {
     fun ocultar_deve_fechar_configuracao_e_mostrar_selo() {
 
         val viewModel =
-            AppViewModel()
+            novoViewModel()
 
         viewModel.alternarDetalhes()
         viewModel.abrirConfiguracoes()
@@ -320,7 +327,7 @@ class AppViewModelTest {
     fun selo_deve_reabrir_interface() {
 
         val viewModel =
-            AppViewModel()
+            novoViewModel()
 
         viewModel.alternarDetalhes()
         viewModel.abrirConfiguracoes()
@@ -357,7 +364,7 @@ class AppViewModelTest {
     fun solicitar_fechar_deve_exibir_confirmacao() {
 
         val viewModel =
-            AppViewModel()
+            novoViewModel()
 
         viewModel.iniciarMonitoramento()
         viewModel.solicitarFecharApp()
@@ -379,7 +386,7 @@ class AppViewModelTest {
     fun cancelar_fechar_nao_deve_alterar_monitoramento() {
 
         val viewModel =
-            AppViewModel()
+            novoViewModel()
 
         viewModel.iniciarMonitoramento()
         viewModel.solicitarFecharApp()
@@ -411,7 +418,7 @@ class AppViewModelTest {
     fun confirmar_fechar_deve_encerrar_monitoramento() {
 
         val viewModel =
-            AppViewModel()
+            novoViewModel()
 
         viewModel.solicitarFecharApp()
 
@@ -454,7 +461,7 @@ class AppViewModelTest {
     fun deve_atualizar_posicao_do_selo() {
 
         val viewModel =
-            AppViewModel()
+            novoViewModel()
 
         viewModel.atualizarPosicaoSelo(
             offsetX = 120f,
@@ -474,7 +481,7 @@ class AppViewModelTest {
 
     @Test
     fun nova_oferta_nao_entra_no_historico() {
-        val viewModel = AppViewModel()
+        val viewModel = novoViewModel()
         val analise = analiseFake()
         viewModel.aplicarNovaCorrida(analise)
         assertTrue(viewModel.state.historico.isEmpty())
@@ -485,7 +492,7 @@ class AppViewModelTest {
 
     @Test
     fun aceite_detectado_grava_historico() {
-        val viewModel = AppViewModel()
+        val viewModel = novoViewModel()
         viewModel.aplicarNovaCorrida(analiseFake())
         viewModel.registrarAceiteCorrida()
         assertEquals(1, viewModel.state.historico.size)
@@ -495,7 +502,7 @@ class AppViewModelTest {
 
     @Test
     fun oferta_expirada_nao_entra_no_historico_e_mantem_ultima_aceita() {
-        val viewModel = AppViewModel()
+        val viewModel = novoViewModel()
         val aceita = analiseFake(valor = 40.0)
         viewModel.aplicarNovaCorrida(aceita)
         viewModel.registrarAceiteCorrida()
@@ -509,7 +516,7 @@ class AppViewModelTest {
 
     @Test
     fun iniciar_monitoramento_nao_esconde_oferta_ativa() {
-        val viewModel = AppViewModel()
+        val viewModel = novoViewModel()
         viewModel.aplicarNovaCorrida(analiseFake())
         viewModel.iniciarMonitoramento()
         assertTrue(viewModel.state.ofertaAtiva)
@@ -519,7 +526,7 @@ class AppViewModelTest {
 
     @Test
     fun iniciar_monitoramento_exibe_selo_sem_encerrar_ciclo() {
-        val viewModel = AppViewModel()
+        val viewModel = novoViewModel()
         viewModel.iniciarMonitoramento()
         assertTrue(viewModel.state.monitorando)
         assertTrue(viewModel.state.seloFlutuante)

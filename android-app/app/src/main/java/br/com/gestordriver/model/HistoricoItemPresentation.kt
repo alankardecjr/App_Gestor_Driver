@@ -5,6 +5,7 @@ import br.com.gestordriver.core.Classificacao
 import br.com.gestordriver.core.Corrida
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
+import java.util.Locale
 
 data class HistoricoItemPresentation(
     val dataHora: String,
@@ -109,13 +110,13 @@ object HistoricoFormatacao {
     }
 
     private fun formatDecimal(valor: Double, casas: Int): String =
-        "%.${casas}f".format(valor).replace(".", ",")
+        "%.${casas}f".format(Locale.US, valor).replace(".", ",")
 
     private fun formatKm(valor: Double): String {
         val texto = if (valor % 1.0 == 0.0) {
-            "%.0f".format(valor)
+            "%.0f".format(Locale.US, valor)
         } else {
-            "%.1f".format(valor)
+            "%.1f".format(Locale.US, valor)
         }
         return "$texto km"
     }

@@ -11,7 +11,7 @@ interface ConfiguracaoStore {
 }
 
 class MemoriaConfiguracaoStore(
-    inicial: ConfiguracaoUsuario = ConfiguracaoUsuario(),
+    inicial: ConfiguracaoUsuario = ConfiguracaoUsuario.padrao(),
 ) : ConfiguracaoStore {
 
     private var atual = inicial

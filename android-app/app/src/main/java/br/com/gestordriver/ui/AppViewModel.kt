@@ -18,6 +18,7 @@ import br.com.gestordriver.overlay.OverlayAcao
 import br.com.gestordriver.overlay.OverlayBridge
 import br.com.gestordriver.overlay.OverlaySnapshot
 import br.com.gestordriver.presentation.PresentationBuilder
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
@@ -25,7 +26,10 @@ import kotlinx.coroutines.launch
 
 class AppViewModel(
     private val historicoRepository: HistoricoRepository = MemoriaHistoricoRepository(),
+    coroutineScope: CoroutineScope? = null,
 ) : ViewModel() {
+
+    private val scope: CoroutineScope = coroutineScope ?: viewModelScope
 
     // ================================================================
     // ESTADO
@@ -53,7 +57,7 @@ class AppViewModel(
     // ================================================================
 
     init {
-        viewModelScope.launch {
+        scope.launch {
             RideNotificationBus.events.collect { evento ->
 
                 when (evento) {
@@ -71,6 +75,9 @@ class AppViewModel(
                         aplicarNovaCorrida(
                             evento.analise
                         )
+                        if (evento.aceiteImediato) {
+                            registrarAceiteCorrida()
+                        }
                     }
 
                     // ------------------------------------------------
@@ -99,7 +106,7 @@ class AppViewModel(
             }
         }
 
-        viewModelScope.launch {
+        scope.launch {
             OverlayBridge.acoes.collect { acao ->
                 when (acao) {
                     OverlayAcao.Reabrir -> reabrirInterface()
@@ -119,6 +126,16 @@ class AppViewModel(
     }
 
     fun iniciarMonitoramento() {
+        if (state.ofertaAtiva) {
+            state = state.copy(
+                monitorando = true,
+                overlayAtivo = true,
+                seloFlutuante = false,
+                interfaceOculta = false,
+            )
+            publicarOverlay()
+            return
+        }
         if (state.monitorando) {
             publicarOverlay()
             return
