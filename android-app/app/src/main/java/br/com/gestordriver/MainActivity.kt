@@ -43,6 +43,7 @@ class MainActivity : ComponentActivity() {
             }
         }
         val app = application as GestorDriverApp
+        pedirNotificacaoPersistente()
 
         setContent {
             GestorDriverTheme {
@@ -110,6 +111,18 @@ class MainActivity : ComponentActivity() {
         if (PermissoesMonitoramento.todasConcedidas(this)) {
             OverlayService.iniciar(this)
         }
+    }
+
+    private fun pedirNotificacaoPersistente() {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
+            return
+        }
+        if (checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS) ==
+            android.content.pm.PackageManager.PERMISSION_GRANTED
+        ) {
+            return
+        }
+        requestPermissions(arrayOf(android.Manifest.permission.POST_NOTIFICATIONS), 7102)
     }
 
     fun abrirConfiguracaoOverlay() {

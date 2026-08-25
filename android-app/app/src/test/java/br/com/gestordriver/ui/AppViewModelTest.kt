@@ -359,6 +359,7 @@ class AppViewModelTest {
         val viewModel =
             AppViewModel()
 
+        viewModel.iniciarMonitoramento()
         viewModel.solicitarFecharApp()
 
         assertTrue(
@@ -380,6 +381,7 @@ class AppViewModelTest {
         val viewModel =
             AppViewModel()
 
+        viewModel.iniciarMonitoramento()
         viewModel.solicitarFecharApp()
 
         assertTrue(
@@ -397,7 +399,7 @@ class AppViewModelTest {
         )
 
         assertTrue(
-            viewModel.state.seloFlutuante.not(),
+            viewModel.state.seloFlutuante,
         )
     }
 
@@ -503,6 +505,16 @@ class AppViewModelTest {
         assertEquals(1, viewModel.state.historico.size)
         assertEquals(40.0, viewModel.state.ultimaCorridaAceita?.valorTotal ?: 0.0, 0.001)
         assertFalse(viewModel.state.ofertaAtiva)
+    }
+
+    @Test
+    fun iniciar_monitoramento_nao_esconde_oferta_ativa() {
+        val viewModel = AppViewModel()
+        viewModel.aplicarNovaCorrida(analiseFake())
+        viewModel.iniciarMonitoramento()
+        assertTrue(viewModel.state.ofertaAtiva)
+        assertFalse(viewModel.state.seloFlutuante)
+        assertFalse(viewModel.state.interfaceOculta)
     }
 
     @Test

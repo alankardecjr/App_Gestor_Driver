@@ -5,6 +5,8 @@ data class Corrida(
     val kmAtePassageiro: Double,
     val kmViagem: Double,
     val tempoEstimado: Int? = null,
+    val enderecoEmbarque: String? = null,
+    val enderecoDestino: String? = null,
 ) {
     val kmTotal: Double
         get() = kmAtePassageiro + kmViagem

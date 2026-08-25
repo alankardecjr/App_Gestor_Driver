@@ -20,6 +20,7 @@ sealed class RideNotificationEvent {
 
     data class CorridaRecebida(
         val analise: AnaliseCorrida,
+        val aceiteImediato: Boolean = false,
     ) : RideNotificationEvent()
 
     // ================================================================

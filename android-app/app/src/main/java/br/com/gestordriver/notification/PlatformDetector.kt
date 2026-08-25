@@ -8,7 +8,7 @@ enum class Plataforma(val label: String) {
 }
 
 object PlatformDetector {
-    private val packages = mapOf(
+    internal val packages = mapOf(
         "com.ubercab.driver" to Plataforma.UBER,
         "com.taxis99.driver" to Plataforma.NOVE_NOVE,
         "sinet.startup.inDriver" to Plataforma.INDRIVE,

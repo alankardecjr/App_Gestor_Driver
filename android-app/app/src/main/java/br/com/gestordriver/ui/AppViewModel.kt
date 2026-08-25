@@ -6,7 +6,6 @@ import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import br.com.gestordriver.core.AnaliseCorrida
-import br.com.gestordriver.core.chaveOferta
 import br.com.gestordriver.data.HistoricoRepository
 import br.com.gestordriver.data.MemoriaHistoricoRepository
 import br.com.gestordriver.data.chaveHistorico
@@ -120,6 +119,10 @@ class AppViewModel(
     }
 
     fun iniciarMonitoramento() {
+        if (state.monitorando) {
+            publicarOverlay()
+            return
+        }
         state = state.copy(
             monitorando = true,
             seloFlutuante = true,
@@ -555,6 +558,11 @@ class AppViewModel(
                 tempo = campos["tempo_estimado"] ?: "—",
                 nota = campos["nota_passageiro"] ?: "—",
                 aguardandoOferta = state.analiseAtual == null,
+                enderecoEmbarque = state.analiseAtual?.corrida?.enderecoEmbarque
+                    ?: state.ultimaCorridaAceita?.corrida?.enderecoEmbarque,
+                enderecoDestino = state.analiseAtual?.corrida?.enderecoDestino
+                    ?: state.ultimaCorridaAceita?.corrida?.enderecoDestino,
+                corridaAceita = state.corridaAceita,
             ),
         )
     }

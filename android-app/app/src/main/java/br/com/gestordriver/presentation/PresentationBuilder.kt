@@ -360,6 +360,18 @@ object PresentationBuilder {
                 ),
 
                 CampoApresentacao(
+                    id = "endereco_embarque",
+                    titulo = "Embarque",
+                    valor = analise.corrida.enderecoEmbarque ?: "—",
+                ),
+
+                CampoApresentacao(
+                    id = "endereco_destino",
+                    titulo = "Destino",
+                    valor = analise.corrida.enderecoDestino ?: "—",
+                ),
+
+                CampoApresentacao(
                     id = "combustivel_estimado",
                     titulo = "Combustível estimado",
                     valor =

@@ -19,8 +19,10 @@ import android.view.WindowManager
 import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.core.app.NotificationCompat
+import br.com.gestordriver.GestorDriverApp
 import br.com.gestordriver.MainActivity
 import br.com.gestordriver.R
+import br.com.gestordriver.navigation.NavegacaoLauncher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -136,7 +138,7 @@ class OverlayService : Service() {
         layout.orientation = LinearLayout.HORIZONTAL
         layout.setPadding(18, 14, 18, 14)
         layout.setBackgroundColor(Color.parseColor("#F2050809"))
-        layout.setOnClickListener { reabrirApp() }
+        layout.setOnClickListener { abrirRotaOuReabrir() }
         repeat(5) {
             layout.addView(
                 TextView(this).apply {
@@ -228,6 +230,27 @@ class OverlayService : Service() {
             }
             return false
         }
+    }
+
+    private fun abrirRotaOuReabrir() {
+        val snapshot = OverlayBridge.snapshot.value
+        val alvo = NavegacaoLauncher.destinoNavegacao(
+            embarque = snapshot.enderecoEmbarque,
+            destino = snapshot.enderecoDestino,
+            corridaAceita = snapshot.corridaAceita,
+        )
+        if (alvo != null) {
+            val app = application as GestorDriverApp
+            NavegacaoLauncher.abrir(
+                context = this,
+                navegacao = app.configuracaoStore.carregar().navegacao,
+                embarque = snapshot.enderecoEmbarque,
+                destino = snapshot.enderecoDestino,
+                corridaAceita = snapshot.corridaAceita,
+            )
+            return
+        }
+        reabrirApp()
     }
 
     private fun reabrirApp() {

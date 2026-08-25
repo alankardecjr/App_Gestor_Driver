@@ -1,613 +1,140 @@
-# ⭐ Gestor Driver
+# Gestor Driver
 
-> **Um assistente inteligente para motoristas de aplicativos, desenvolvido para analisar ofertas de corrida em tempo real e ajudar na tomada de decisão em poucos segundos.**
+Assistente Android para motoristas de aplicativo: lê a oferta na notificação, calcula **R$/KM** e custo de combustível, e ajuda a decidir em segundos — **sem aceitar a corrida pelo usuário**.
 
----
+O aceite acontece no Uber, 99 ou inDrive. O Gestor Driver só identifica a oferta, mostra a análise, detecta o aceite e grava o histórico.
 
-## 🚗 Sobre o Projeto
-
-O **Gestor Driver** é um aplicativo Android criado para auxiliar motoristas de aplicativos de transporte, oferecendo uma análise rápida da rentabilidade de cada corrida.
-
-Inicialmente, o projeto será compatível com:
-
-- Uber
-- 99
-- inDrive
-
-A arquitetura foi planejada para permitir novas plataformas futuramente.
-
-O objetivo é simples:
-
-> **Ajudar o motorista a decidir rapidamente se uma corrida vale a pena.**
-
-O Gestor Driver **não aceita corridas**. O motorista aceita ou recusa no Uber, 99 ou inDrive. Este app identifica a oferta, mostra os dados, monitora a plataforma e só grava no histórico quando o aceite é detectado.
-
-O aplicativo foi projetado para funcionar com uma interface horizontal, compacta e de baixa obstrução, permitindo que o motorista mantenha a visão do aplicativo de transporte.
+**Status:** Beta em calibração de campo (parser e textos reais das plataformas). Não é produto publicado na Play Store e **não é afiliado** à Uber, 99 ou inDrive.
 
 ---
 
-## 🎯 Objetivo do MVP
+## Problema
 
-O núcleo do MVP é analisar uma oferta de corrida e apresentar informações relevantes para a tomada de decisão.
+O motorista precisa aceitar ou recusar em poucos segundos, com valor, distância e tempo espalhados na tela do app de transporte. Sem um número único (R$/KM) e sem custo estimado de combustível, a decisão vira feeling.
 
-O principal indicador financeiro é:
+## O que o app faz hoje
 
-```text
-🛞 R$/KM
-```
+- Overlay compacto sobre o app de transporte (selo + barra horizontal).
+- Análise: R$/KM, km total, tempo, combustível estimado, classificação pela **cor da borda**.
+- Histórico **somente** de corridas cujo aceite foi detectado (Room).
+- Configurações persistidas (veículo, consumo, preços, faixas, Maps ou Waze).
+- Abre a rota no Maps/Waze quando a notificação traz origem/destino.
+- Planos Free / Beta / Pro no código (a build atual inicia em **Beta**: financeiro visível). Pro (custo operacional completo) ainda não está implementado.
 
-O símbolo de pneu representa movimento e substitui a estrela anteriormente utilizada para representar o valor por quilômetro.
-
-A análise considera:
-
-- valor total da corrida;
-- distância até o passageiro;
-- distância da viagem;
-- distância total;
-- tempo estimado;
-- nota do passageiro, quando disponível;
-- consumo estimado;
-- custo estimado de combustível;
-- classificação da corrida.
+O parser usa padrões de texto (R$, km, min) e frases de aceite. Formatos reais das plataformas ainda precisam de calibração com o log local `notificacoes_diagnostico.txt`.
 
 ---
 
-## 🖥 Interface
+## Interface (contrato visual)
 
-A interface principal foi projetada para ocupar pouco espaço na tela do celular e permitir que o motorista continue visualizando o aplicativo de transporte.
-
-### Interface Compacta
+Compacta (sobre o app de transporte):
 
 ```text
-╭──────────────────────────────────────────────────────────────────────╮
-│ 🛞 R$/KM 2,38 │ 💰 R$38,00 │ 📍16 km │ ⏱24 min │ ⭐4,98 │ ⓘ │
-╰──────────────────────────────────────────────────────────────────────╯
+R$/KM 2,38 │ R$ 38,00 │ 16 km │ 24 min │ nota │ ⓘ
 ```
 
-### Ordem das informações
+Detalhes: km até o passageiro, km da viagem, endereços (se vierem na notificação), combustível, gasto, Config, Maps/Waze, Ocultar, Fechar, Histórico.
 
-1. 🛞 R$/KM
-2. 💰 Valor total
-3. 📍 KM total
-4. ⏱ Tempo estimado
-5. ⭐ Nota do passageiro
-6. ⓘ Mais detalhes / Menos detalhes
-
-O **R$/KM** possui maior destaque visual.
+Sem oferta o app fica em monitoramento (selo). Ausência de notificação **não é erro**.
 
 ---
 
-## 🔎 Interface Expandida
+## Arquitetura
 
-Ao selecionar **Mais detalhes**, a interface apresenta informações adicionais.
-
-```text
-╭────────────────────────────────────────────────────────────────────────────╮
-│ 🛞 R$/KM 2,38 │ 💰 R$38,00 │ 📍16 km │ ⏱24 min │ ⭐4,98 │
-├────────────────────────────────────────────────────────────────────────────┤
-│ 📍 Passageiro        → 1,6 km                                              │
-│ 🏁 Destino           → 12,7 km                                             │
-│ ⛽ Combustível       → 1,28 L                                              │
-│ 💸 Gasto estimado    → R$ 8,19                                             │
-├────────────────────────────────────────────────────────────────────────────┤
-│ ⚙ Configurações │ ✕ Sair interface │ ⏻ Fechar app │ 🕘 Histórico           │
-╰────────────────────────────────────────────────────────────────────────────╯
-```
-
-O botão de informação é dinâmico:
-
-```text
-Interface compacta
-        ↓
-ⓘ Mais detalhes
-        ↓
-Interface expandida
-        ↓
-ⓘ Menos detalhes
-        ↓
-Interface compacta
-```
-
----
-
-## 🎨 Classificação Visual
-
-A classificação da corrida é representada principalmente pela **cor da borda da interface**, evitando ocupar espaço com texto adicional.
-
-```text
-🟢 Excelente
-🟢 Boa
-🟡 Regular
-🟠 Baixa
-🔴 Ruim
-```
-
-A classificação é centralizada no motor oficial do projeto. Limites e cores não devem ser duplicados em diferentes módulos.
-
----
-
-## ◉ Selo Flutuante
-
-Quando não houver uma corrida disponível, o Gestor Driver poderá permanecer minimizado em um pequeno selo:
-
-```text
-        ◉
-```
-
-O aplicativo continua preparado para monitorar novas ofertas.
-
-```text
-◉
-│
-Nova corrida
-│
-▼
-Interface Compacta
-│
-Mais detalhes
-▼
-Interface Expandida
-│
-Menos detalhes
-▼
-Interface Compacta
-```
-
----
-
-## 🔔 Ausência de Notificações
-
-A ausência de uma notificação **não é considerada erro**.
-
-O motorista pode estar:
-
-- sem login na Uber;
-- sem login na 99;
-- sem login no inDrive;
-- com os aplicativos fechados;
-- sem oferta disponível;
-- fora do período de trabalho;
-- utilizando o Gestor Driver apenas para consultar configurações ou histórico.
-
-Nesse cenário, o aplicativo permanece em estado de monitoramento/espera.
-
-```text
-Gestor Driver
-      ↓
-Monitoramento ativo
-      ↓
-Aguardando oferta...
-```
-
-O aplicativo não deve criar uma corrida falsa nem apresentar erro simplesmente porque nenhuma notificação foi recebida.
-
----
-
-## 🔔 Notificação Não Reconhecida
-
-Quando uma notificação for recebida, mas não puder ser interpretada corretamente:
-
-```text
-Notificação
-     ↓
-Não reconhecida
-     ↓
-Não criar corrida falsa
-```
-
-O evento poderá futuramente ser registrado para diagnóstico e evolução dos parsers.
-
----
-
-## 🕘 Histórico
-
-O histórico estará disponível nas três versões do aplicativo.
-
-As corridas serão apresentadas utilizando o mesmo padrão visual horizontal das notificações.
-
-```text
-╭────────────────────────────────────────────────────────────╮
-│ 🛞 2,38 │ 💰 R$38 │ 📍16 km │ ⏱24 min │ ⭐4,98 │
-╰────────────────────────────────────────────────────────────╯
-```
-
-O histórico deverá armazenar o resultado da análise no momento em que a corrida foi processada.
-
-Uma corrida antiga não deverá ser recalculada automaticamente caso o usuário altere posteriormente:
-
-- preço do combustível;
-- consumo;
-- critérios de classificação;
-- configurações do veículo.
-
----
-
-## ⚙ Configurações
-
-A tela de configuração é uma exceção à interface horizontal compacta. Ela poderá utilizar uma tela convencional, permitindo melhor organização dos campos.
-
-### Veículo
-
-- Marca
-- Modelo
-- Versão
-- Ano
-
-### Consumo
-
-- Gasolina (km/L)
-- Etanol (km/L)
-
-### Combustível em uso
-
-- Gasolina
-- Etanol
-
-### Preços
-
-- Valor da gasolina
-- Valor do etanol
-
-Essas informações permitem calcular:
-
-- combustível estimado;
-- custo estimado de combustível.
-
-A estrutura também será preparada para futuros custos operacionais.
-
----
-
-## 🧮 Motor de Análise
-
-O núcleo utiliza um contrato consolidado de análise da corrida.
-
-```text
-Dados da corrida
-       ↓
-    Corrida
-       ↓
-   Calculator
-       ↓
- AnaliseCorrida
-       ↓
-┌──────┴───────────────────────┐
-│                              │
-R$/KM                    Combustível
-│                              │
-Classificação            Custo estimado
-└──────────────┬───────────────┘
-               ↓
-           Interface
-```
-
-O motor já contempla:
-
-- classificação oficial;
-- R$/KM;
-- combustível estimado;
-- custo de combustível;
-- configuração de usuário;
-- gasolina;
-- etanol.
-
----
-
-## 💰 Modelo de Versões
-
-O Gestor Driver será desenvolvido em três versões:
-
-```text
-🆓 FREE
-🧪 BETA
-⭐ PRO
-```
-
-### 🆓 Free
-
-A versão Free terá os mesmos recursos básicos do MVP, porém alguns valores financeiros serão ocultados.
-
-**Visíveis:**
-
-- 💰 Valor total da corrida;
-- 📍 KM total;
-- ⏱ Tempo;
-- ⭐ Nota do passageiro;
-- classificação visual pela cor da borda;
-- histórico básico.
-
-**Ocultos:**
-
-- 🛞 R$/KM;
-- ⛽ Combustível estimado;
-- 💸 Gasto estimado.
-
-Exemplo:
-
-```text
-╭────────────────────────────────────────────────────────────╮
-│ 🛞 🔒 │ 💰 R$38,00 │ 📍16 km │ ⏱24 min │ ⭐4,98 │
-╰────────────────────────────────────────────────────────────╯
-```
-
-A Free deve demonstrar claramente que o aplicativo está analisando a corrida.
-
-### 🧪 Beta
-
-A Beta terá os mesmos recursos básicos da Free, porém exibirá os valores financeiros da análise.
-
-```text
-╭────────────────────────────────────────────────────────────╮
-│ 🛞 R$/KM 2,38 │ 💰 R$38 │ 📍16 km │ ⏱24 min │ ⭐4,98 │
-╰────────────────────────────────────────────────────────────╯
-```
-
-Nos detalhes:
-
-```text
-📍 Passageiro       1,6 km
-🏁 Destino          12,7 km
-⛽ Combustível      1,28 L
-💸 Gasto estimado   R$ 8,19
-```
-
-O histórico também exibirá esses valores.
-
-### ⭐ Pro
-
-A versão Pro será a evolução do aplicativo para análise de custo operacional completo.
-
-Funcionalidades previstas:
-
-- combustível;
-- pneus;
-- óleo;
-- manutenção;
-- depreciação;
-- outros custos operacionais;
-- custo operacional total;
-- valor líquido da corrida;
-- R$/KM líquido;
-- histórico avançado;
-- estatísticas;
-- relatórios;
-- metas de rentabilidade;
-- comparação entre plataformas;
-- múltiplos veículos.
-
----
-
-## 🧱 Arquitetura
+O domínio foi validado em Python e portado para Kotlin. O app de produção é o módulo Android.
 
 ```text
 GestorDriver/
-│
-├── app/                    # demos Python
-├── core/                   # núcleo Python (referência)
-├── notifications/          # parsers Python (referência)
-├── android-app/            # app Android (Kotlin)
-│   └── app/src/main/java/br/com/gestordriver/
-│       ├── core/           # calculator, classifier, fuel (portado)
-│       ├── notification/   # parser, extractor, listener, bus
-│       ├── presentation/   # PresentationBuilder
-│       └── ui/             # Compose + ViewModel
-├── tests/
+├── android-app/          # app Kotlin (Compose, Room, overlay, listener)
+│   └── .../br/com/gestordriver/
+│       ├── core/         # cálculo, classificação, combustível
+│       ├── data/         # Room (histórico) + DataStore (config)
+│       ├── notification/ # listener, parser, aceite, log diagnóstico
+│       ├── overlay/      # SYSTEM_ALERT_WINDOW + foreground service
+│       ├── navigation/   # Maps / Waze
+│       ├── presentation/ # PresentationBuilder + planos
+│       └── ui/           # Compose + ViewModels
+├── core/                 # núcleo Python (referência / testes)
+├── notifications/        # parsers Python (referência)
+├── app/                  # demos Python
+├── tests/                # 25 testes Python
 └── docs/
 ```
 
-A organização poderá evoluir conforme a implementação Android avance.
+Fluxo: `NotificationListenerService` → parser → `CalculadoraCorrida` → `AppViewModel` → overlay / histórico.
 
 ---
 
-## 🔄 Máquina de Estados
+## Stack
 
-```text
-                ┌──────────────────┐
-                │      IDLE        │
-                └────────┬─────────┘
-                         ↓
-                ┌──────────────────┐
-                │   MONITORANDO    │
-                └────────┬─────────┘
-                         │
-                    notificação
-                         ↓
-                ┌──────────────────┐
-                │ CORRIDA_COMPACTA │
-                └────────┬─────────┘
-                         │
-                    Mais detalhes
-                         ↓
-                ┌──────────────────┐
-                │ CORRIDA_DETALHES │
-                └────────┬─────────┘
-                         │
-                    Menos detalhes
-                         ↓
-                 CORRIDA_COMPACTA
-```
+| Camada | Tecnologia |
+| --- | --- |
+| App | Kotlin, Jetpack Compose, MVVM |
+| Dados | Room, DataStore Preferences |
+| Sistema | NotificationListenerService, Foreground Service, overlay |
+| Domínio de referência | Python 3 (cálculo e testes independentes do Android) |
 
-O histórico e as configurações possuem seus próprios fluxos.
+`minSdk` 30 · `applicationId` `br.com.gestordriver`
 
 ---
 
-## 🛠 Tecnologias Planejadas
+## Como executar
 
-- Kotlin
-- Android Studio
-- Jetpack Compose
-- MVVM
-- Room Database
-- NotificationListenerService
-- Foreground Service
-- Overlay / SYSTEM_ALERT_WINDOW
+### Android (portfólio / uso no celular)
 
-O núcleo de regras é desenvolvido e validado de forma independente antes da integração completa com Android.
+1. Abra a pasta `android-app` no Android Studio.
+2. JDK 17+, instale no aparelho (API 30+) ou emulador.
+3. Conceda **acesso a notificações** e **exibir sobre outros apps**.
+4. No Android 13+, aceite a permissão de notificação do Gestor.
+5. Guia de teste em campo: [`docs/ROTEIRO_BETA.md`](docs/ROTEIRO_BETA.md).
 
----
-
-## 🧪 Validação Atual
-
-O núcleo possui testes automatizados cobrindo:
-
-- classificação;
-- contrato de análise;
-- gasolina;
-- etanol;
-- combustível;
-- custo estimado.
-
-**Estado atual:**
-
-```text
-25 testes Python + testes unitários Android
-```
-
-Para executar os testes Python:
+### Testes Python (núcleo)
 
 ```bash
 pip install -r requirements.txt
 python -m pytest tests/ -v
 ```
 
-O núcleo de regras também foi portado para Kotlin em `android-app/.../core/`, espelhando calculator, classifier e fuel do Python.
+Ou: `python -m unittest discover -s tests -p "test_*.py"`
+
+### Testes Android
+
+No Android Studio, rode os unit tests do módulo `app` (`:app:testDebugUnitTest`). Cobre ViewModel, parser, classificação, persistência de config e navegação. Testes instrumentados com notificações reais ainda não existem.
 
 ---
 
-## 🚀 Roadmap Atual
+## Planos (produto)
 
-### Núcleo
-
-- [x] Models
-- [x] Calculator
-- [x] Validator
-- [x] Classificação oficial
-- [x] Analysis / AnaliseCorrida
-- [x] Testes automatizados
-
-### Custos
-
-- [x] Combustível
-- [x] Gasolina
-- [x] Etanol
-- [x] Consumo estimado
-- [x] Custo estimado
-- [ ] Custo operacional completo
-
-### Comportamento
-
-- [x] Máquina de estados definida
-- [x] Ausência de notificações
-- [x] Mais detalhes / Menos detalhes
-- [x] Sair interface
-- [x] Fechar app
-- [x] Notificação não reconhecida
-
-### Histórico
-
-- [x] Definir modelo HistoricoCorrida
-- [x] Definir dados persistidos
-- [x] Criar armazenamento (Python)
-- [x] Salvar análises
-- [x] Recuperar últimas corridas
-- [x] Testar histórico
-- [x] Integrar regras Free/Beta/Pro (Python)
-- [ ] Persistência Room no Android
-
-### Android
-
-- [x] Projeto Android
-- [x] MVVM
-- [x] Jetpack Compose
-- [ ] Room
-- [x] Interface compacta
-- [x] Interface expandida
-- [ ] Configurações
-- [ ] Overlay real (SYSTEM_ALERT_WINDOW)
-- [x] Selo flutuante (modo ocultar + arrastar)
-
-### Notificações
-
-- [x] NotificationListenerService
-- [x] Identificação da plataforma
-- [x] Parser Uber
-- [x] Parser 99
-- [x] Parser inDrive
-- [x] Tratamento de notificações desconhecidas
-- [x] Integração Service → ViewModel (SharedFlow)
-
-### Planos
-
-- [x] Definir Free
-- [x] Definir Beta
-- [x] Definir Pro
-- [x] Definir valores ocultos na Free
-- [x] Definir histórico disponível na Free
-- [x] Implementar controle de recursos por plano
-
-### Testes
-
-- [ ] Sem login na Uber (instrumentado)
-- [x] Sem notificações (unitário)
-- [x] Nova corrida (pipeline)
-- [x] Expandir detalhes
-- [x] Retrair detalhes
-- [x] Ocultar interface (selo flutuante)
-- [x] Fechar app (confirmação)
-- [x] Histórico (UI demo)
-- [ ] Nova corrida após ocultar interface
-- [x] Notificação desconhecida
-- [x] Regras Free
-- [x] Regras Beta
-- [x] Regras Pro
+| | Free | Beta (atual) | Pro (planejado) |
+| --- | --- | --- | --- |
+| Valor, km, tempo, nota, cor | sim | sim | sim |
+| R$/KM, combustível, gasto | oculto | visível | visível |
+| Histórico de aceites | sim | sim | sim + operacional |
 
 ---
 
-## ⭐ Diferenciais
+## Documentação
 
-- Interface horizontal compacta;
-- baixa obstrução da tela;
-- pensada para motoristas de carros e motocicletas;
-- decisão rápida;
-- destaque visual para 🛞 R$/KM;
-- classificação pela cor da borda;
-- análise de combustível;
-- histórico;
-- funcionamento independente da existência de uma oferta;
-- arquitetura preparada para evolução;
-- três níveis de produto: Free, Beta e Pro.
+| Arquivo | Função |
+| --- | --- |
+| [docs/ROTEIRO_BETA.md](docs/ROTEIRO_BETA.md) | Como testar no celular agora |
+| [docs/Gestor_Driver_MVP_Especificacao_v1.0.md](docs/Gestor_Driver_MVP_Especificacao_v1.0.md) | Regras de negócio do MVP |
+| [docs/Roadmap.md](docs/Roadmap.md) | O que está feito / pendente |
+| [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | Camadas |
+| [docs/TESTING_STRATEGY.md](docs/TESTING_STRATEGY.md) | Estratégia de testes |
+| [docs/DEVELOPMENT_GUIDE.md](docs/DEVELOPMENT_GUIDE.md) | Ambiente de desenvolvimento |
 
----
-
-## 📚 Documentação
-
-A documentação técnica está organizada na pasta `docs/`.
-
-```text
-docs/
-├── Gestor_Driver_MVP_Especificacao_v1.0.md
-├── Roadmap.md
-├── EXECUTION_BOARD.md
-├── CLASSIFICACAO_ETAPAS.md
-├── ARQUITETURA.md
-└── UI_GUIDE.md
-```
+Documentos de sprint e etapas (`EXECUTION_BOARD`, `CLASSIFICACAO_ETAPAS`, `SPRINT2_RELEASE_NOTES`) são histórico de desenvolvimento, não o estado atual.
 
 ---
 
-## 📌 Status Atual
+## O que ainda não está no portfólio como “pronto”
 
-**Projeto:** Gestor Driver  
-**Versão:** MVP v1.0  
-**Status:** 🚧 Em desenvolvimento  
-**Núcleo:** ✅ Validado  
-**Classificação:** ✅ Concluída  
-**Análise:** ✅ Concluída  
-**Combustível:** ✅ Concluído  
-**Estado e comportamento:** ✅ Formalizado  
-**Planos Free/Beta/Pro:** ✅ Implementados (Python + Android)  
-**Android:** 🚧 UI, núcleo portado, notificações integradas ao ViewModel  
-**Próxima etapa:** 🔔 Overlay real + persistência Room + testes instrumentados  
+- Calibração do parser com notificações reais (Uber / 99 / inDrive).
+- Testes instrumentados em dispositivo.
+- Versão Pro (pneus, óleo, depreciação, relatórios).
+- Publicação na loja.
 
 ---
 
-> **Gestor Driver — Informação rápida para uma decisão melhor.**
+Projeto acadêmico / portfólio. Informação rápida para uma decisão melhor.

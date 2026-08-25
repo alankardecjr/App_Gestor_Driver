@@ -2,36 +2,36 @@
 
 ## Objetivo
 
-Garantir confiabilidade na lógica de cálculo e na experiência do usuário.
+Proteger o cálculo (R$/KM, classificação, combustível) e as regras de produto (oferta ≠ histórico, aceite, planos).
 
-## Prioridades
+## O que existe hoje
 
-### Testes unitários
-- validar cálculo de distância;
-- validar cálculo de valor por quilômetro;
-- validar classificação de rentabilidade;
-- validar regras de negócio básicas.
+### Python (`tests/`)
 
-### Testes de interface
-- validar telas principais;
-- validar navegação inicial;
-- validar comportamento de componentes.
-
-## Recomendações
-
-- começar com testes de regras centrais;
-- expandir gradualmente para interface e fluxo do usuário;
-- manter os testes simples e objetivos.
-
-## Cobertura atual (Sprint 2)
-
-- testes unitarios do pipeline de notificacoes:
-	- extracao de valor, distancia e tempo;
-	- parse por plataforma suportada;
-	- falha explicita para plataforma nao suportada.
-
-## Execucao dos testes Python
+25 casos: classificação, contrato `AnaliseCorrida`, pipeline de notificações, histórico, Free/Beta/Pro, apresentação.
 
 ```bash
-python -m unittest discover -s tests -p "test_*.py"
+python -m pytest tests/ -v
 ```
+
+### Kotlin (`android-app` unit tests)
+
+Espelho do domínio, parser, ViewModel (ocultar, fechar, oferta vs aceite), persistência de configuração, extração de endereço, escolha de destino Maps/Waze.
+
+```bash
+# na pasta android-app, via Android Studio ou:
+./gradlew :app:testDebugUnitTest
+```
+
+No Windows: `gradlew.bat :app:testDebugUnitTest`.
+
+### Ainda não
+
+- Testes instrumentados com NotificationListener e Uber/99 reais.
+- Testes de UI Compose no dispositivo.
+
+## Prioridade
+
+1. Regras de cálculo e aceite (unitário) — feito e deve permanecer verde.
+2. Fixtures com textos reais anonimizados — depois do piloto (ver `ROTEIRO_BETA.md`).
+3. Instrumentados — quando o parser estiver calibrado.

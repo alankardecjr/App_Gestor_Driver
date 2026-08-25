@@ -37,4 +37,34 @@ class RideEventClassifierTest {
         val evento = RideEventClassifier.classificar(notification, ofertaParseavel = false)
         assertEquals(TipoEventoCorrida.IGNORADO, evento)
     }
+
+    @Test
+    fun oferta_atualizada_com_aceite_vira_aceite_se_ja_ha_sessao() {
+        val notification = NotificationData(
+            packageName = "com.ubercab.driver",
+            title = "R$ 38,00 • 3,2 km • 12,8 km • 24 min",
+            text = "Dirija ate o passageiro",
+        )
+        val evento = RideEventClassifier.classificar(
+            notification = notification,
+            ofertaParseavel = true,
+            ofertaEmAndamento = true,
+        )
+        assertEquals(TipoEventoCorrida.ACEITE_DETECTADO, evento)
+    }
+
+    @Test
+    fun primeira_notificacao_com_aceite_mostra_oferta_e_grava() {
+        val notification = NotificationData(
+            packageName = "com.ubercab.driver",
+            title = "R$ 38,00 • 3,2 km • 12,8 km • 24 min",
+            text = "Dirija ate o passageiro",
+        )
+        val evento = RideEventClassifier.classificar(
+            notification = notification,
+            ofertaParseavel = true,
+            ofertaEmAndamento = false,
+        )
+        assertEquals(TipoEventoCorrida.OFERTA_E_ACEITE, evento)
+    }
 }

@@ -15,6 +15,8 @@ object OfertaSessao {
     var aceiteDetectado: Boolean = false
         private set
 
+    fun chaveAtiva(): Boolean = chaveNotificacao != null && !aceiteDetectado
+
     fun registrarOferta(chave: String?) {
         chaveNotificacao = chave
         aceiteDetectado = false

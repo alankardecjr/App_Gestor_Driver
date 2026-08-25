@@ -10,11 +10,14 @@ interface NotificationParser {
 class ParserPadrao : NotificationParser {
     override fun parse(notification: NotificationData): Corrida {
         val campos = NotificationExtractor.extrairCamposPadrao(notification.fullText)
+        val enderecos = EnderecoExtractor.extrair(notification.fullText)
         return Corrida(
             valorTotal = campos.valorTotal,
             kmAtePassageiro = campos.kmAtePassageiro,
             kmViagem = campos.kmViagem,
             tempoEstimado = campos.tempoEstimado,
+            enderecoEmbarque = enderecos.embarque,
+            enderecoDestino = enderecos.destino,
         )
     }
 }

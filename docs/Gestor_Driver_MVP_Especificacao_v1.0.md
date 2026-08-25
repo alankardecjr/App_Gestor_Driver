@@ -2,6 +2,8 @@
 
 Este documento descreve o escopo inicial do produto, seus objetivos, regras de negócio e critérios de aceitação para o MVP.
 
+**Implementação:** o app Android cobre o MVP/Beta (análise, overlay, histórico no aceite, configurações). Pro (custo operacional completo) permanece especificado aqui como evolução, não como código entregue. Estado do repositório: [README](../README.md) e [Roadmap](Roadmap.md).
+
 ## 1. Objetivo do produto
 
 Auxiliar motoristas de aplicativos a avaliar rapidamente se uma corrida é financeiramente vantajosa antes de aceitá-la.

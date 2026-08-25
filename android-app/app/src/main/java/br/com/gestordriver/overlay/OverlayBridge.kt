@@ -19,6 +19,9 @@ data class OverlaySnapshot(
     val tempo: String = "—",
     val nota: String = "—",
     val aguardandoOferta: Boolean = true,
+    val enderecoEmbarque: String? = null,
+    val enderecoDestino: String? = null,
+    val corridaAceita: Boolean = false,
 )
 
 sealed class OverlayAcao {

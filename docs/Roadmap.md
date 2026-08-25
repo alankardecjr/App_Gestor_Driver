@@ -1,4 +1,6 @@
-# Roadmap Atualizado
+# Roadmap
+
+Estado alinhado ao código em `android-app/` (Beta em calibração de campo).
 
 ## Núcleo
 
@@ -16,57 +18,48 @@
 - [x] Calcular litros estimados
 - [x] Calcular custo estimado
 - [x] Port combustível para Kotlin
-- [ ] Preparar estrutura para custo operacional
+- [ ] Custo operacional completo (Pro)
 
 ## Comportamento
 
-- [x] Definir estados do aplicativo
-- [x] Definir comportamento sem notificações
-- [x] Definir ciclo de vida da interface
-- [x] Ocultar interface (selo flutuante móvel, monitoramento ativo)
-- [x] Fechar app (confirmação + encerrar monitoramento)
-- [x] Definir Mais/Menos detalhes
+- [x] Estados do aplicativo
+- [x] Sem notificações = monitoramento, não erro
+- [x] Mais / menos detalhes
+- [x] Ocultar (selo) e fechar app
+- [x] Abrir rota no Maps ou Waze (quando há endereço na notificação)
 
 ## Histórico
 
-- [x] Modelo HistoricoCorrida (Python)
-- [x] Persistência local (Python/JSON)
-- [x] Consulta das últimas corridas
-- [x] Interface do histórico (somente corridas aceitas)
-- [x] Persistência Room no Android
+- [x] Modelo e persistência Python
+- [x] Interface (somente corridas aceitas)
+- [x] Room no Android
 
 ## Planos
 
-- [x] Contrato Free/Beta/Pro
-- [x] Controle de recursos financeiros
-- [x] Histórico disponível por plano
-- [x] Integração Android (ControlePlano + PresentationBuilder)
+- [x] Contrato Free / Beta / Pro no código
+- [x] Controle de recursos na apresentação
+- [ ] Seletor de plano na UI (hoje a build inicia em Beta)
 
 ## Android
 
-- [x] Projeto Android
-- [x] MVVM
-- [x] Jetpack Compose
-- [ ] Room
-- [x] Interface compacta / expandida
-- [x] Selo flutuante com arrastar e reabrir
-- [x] Overlay real sobre apps de transporte
-- [x] Configurações persistidas
+- [x] Compose + MVVM
+- [x] Room (histórico) + DataStore (configurações)
+- [x] Overlay real (`SYSTEM_ALERT_WINDOW`) + foreground service
+- [x] Selo flutuante (arrastar / reabrir)
+- [x] Tela de configurações persistida
 
 ## Notificações
 
 - [x] NotificationListenerService
-- [x] PlatformDetector (Uber, 99, inDrive)
-- [x] NotificationExtractor + CorridaParser
-- [x] RideNotificationBus → AppViewModel
-- [x] Tratamento de notificações não reconhecidas
-- [x] Classificação oferta vs aceite (padrões provisórios até teste real)
-- [x] Expiração da oferta sem gravar histórico
+- [x] Detector Uber / 99 / inDrive (package names)
+- [x] Parser genérico (R$, km, min) + extração de endereços quando o texto traz Origem/Destino
+- [x] Oferta vs aceite (padrões; calibrar com log real)
+- [x] Expiração sem gravar histórico
+- [x] Log diagnóstico local
 
-## Testes
+## Testes e release
 
-- [x] Pipeline de notificações (Python + Kotlin)
-- [x] Contrato AnaliseCorrida (Python + Kotlin)
-- [x] ViewModel: ocultar, fechar, detalhes, histórico
-- [ ] Testes instrumentados com notificações reais
-- [ ] Beta fechado / RC1
+- [x] Unitários Python + Kotlin
+- [ ] Instrumentados com notificações reais
+- [ ] Calibração de campo (parser / aceite)
+- [ ] RC1 / publicação

@@ -21,6 +21,8 @@ data class HistoricoItemPresentation(
     val combustivelEstimado: Double?,
     val custoCombustivel: Double?,
     val dataHoraRegistro: LocalDateTime? = null,
+    val enderecoEmbarque: String? = null,
+    val enderecoDestino: String? = null,
 ) {
     val data: String
         get() = dataHora
@@ -40,6 +42,8 @@ data class HistoricoItemPresentation(
             kmAtePassageiro = kmAtePassageiro,
             kmViagem = kmViagem,
             tempoEstimado = tempoEstimado,
+            enderecoEmbarque = enderecoEmbarque,
+            enderecoDestino = enderecoDestino,
         ),
         valorTotal = valorTotal,
         kmAtePassageiro = kmAtePassageiro,
@@ -74,6 +78,8 @@ data class HistoricoItemPresentation(
             combustivelEstimado = analise.combustivelEstimado,
             custoCombustivel = analise.custoCombustivel,
             dataHoraRegistro = analise.dataHora,
+            enderecoEmbarque = analise.corrida.enderecoEmbarque,
+            enderecoDestino = analise.corrida.enderecoDestino,
         )
     }
 }

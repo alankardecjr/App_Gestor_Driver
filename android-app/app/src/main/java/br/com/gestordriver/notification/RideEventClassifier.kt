@@ -3,16 +3,15 @@ package br.com.gestordriver.notification
 /**
  * Classifica o evento de uma notificação de plataforma.
  *
- * Regra congelada:
- * - uma notificação parseável com valor/km é SEMPRE oferta;
- * - aceite só é emitido com assinatura explícita e sem métricas de oferta;
- * - nenhuma notificação desconhecida vira aceite.
- *
- * Os padrões de aceite abaixo são provisórios até o teste real
- * (Uber / 99 / inDrive) confirmar os textos de cada plataforma.
+ * Oferta parseável sem assinatura de aceite = nova oferta.
+ * Oferta parseável com assinatura de aceite, se já há oferta na sessão = aceite
+ * (Uber/99 costumam atualizar a mesma notificação com valor + "a caminho").
+ * Oferta parseável com aceite e sessão vazia = mostra a corrida e grava histórico.
+ * Aceite explícito sem métricas de oferta = só aceite.
  */
 enum class TipoEventoCorrida {
     NOVA_OFERTA,
+    OFERTA_E_ACEITE,
     ACEITE_DETECTADO,
     IGNORADO,
 }
@@ -28,6 +27,7 @@ object RideEventClassifier {
         "trip accepted",
         "ride accepted",
         "a caminho do passageiro",
+        "a caminho do local",
         "dirija até o passageiro",
         "dirija ate o passageiro",
         "vá buscar o passageiro",
@@ -36,22 +36,45 @@ object RideEventClassifier {
         "navigate to pickup",
         "go to pickup",
         "indo buscar o passageiro",
+        "indo até o passageiro",
+        "indo ate o passageiro",
+        "siga para o local",
+        "siga até o passageiro",
+        "siga ate o passageiro",
+        "navegar até o passageiro",
+        "navegar ate o passageiro",
+        "você confirmou",
+        "voce confirmou",
+        "corrida em andamento",
+        "viagem em andamento",
+        "em direção ao passageiro",
+        "em direcao ao passageiro",
+        "passenger pickup",
+        "on the way to the rider",
+        "on the way to pickup",
     )
+
+    fun pareceAceite(notification: NotificationData): Boolean {
+        val texto = notification.fullText.lowercase()
+        return padroesAceite.any { padrao -> texto.contains(padrao) }
+    }
 
     fun classificar(
         notification: NotificationData,
         ofertaParseavel: Boolean,
+        ofertaEmAndamento: Boolean = false,
     ): TipoEventoCorrida {
+        val aceite = pareceAceite(notification)
+        if (ofertaParseavel && aceite && ofertaEmAndamento) {
+            return TipoEventoCorrida.ACEITE_DETECTADO
+        }
+        if (ofertaParseavel && aceite) {
+            return TipoEventoCorrida.OFERTA_E_ACEITE
+        }
         if (ofertaParseavel) {
             return TipoEventoCorrida.NOVA_OFERTA
         }
-
-        val texto = notification.fullText.lowercase()
-        val pareceAceite = padroesAceite.any { padrao ->
-            texto.contains(padrao)
-        }
-
-        return if (pareceAceite) {
+        return if (aceite) {
             TipoEventoCorrida.ACEITE_DETECTADO
         } else {
             TipoEventoCorrida.IGNORADO

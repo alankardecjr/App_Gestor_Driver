@@ -38,12 +38,15 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
+import br.com.gestordriver.model.AppNavegacao
 import br.com.gestordriver.model.CampoApresentacao
 import br.com.gestordriver.model.HistoricoItemPresentation
 import br.com.gestordriver.model.ModoApresentacao
+import br.com.gestordriver.navigation.NavegacaoLauncher
 import kotlin.math.roundToInt
 
 // =====================================================================
@@ -120,15 +123,21 @@ fun AppScreen(
             return@Surface
         }
 
-        ConteudoPrincipal(viewModel = viewModel, state = state)
+        ConteudoPrincipal(
+            viewModel = viewModel,
+            configuracoesViewModel = configuracoesViewModel,
+            state = state,
+        )
     }
 }
 
 @Composable
 private fun ConteudoPrincipal(
     viewModel: AppViewModel,
+    configuracoesViewModel: ConfiguracoesViewModel,
     state: AppState,
 ) {
+        val contexto = LocalContext.current
 
         Column(
             modifier = Modifier
@@ -232,10 +241,21 @@ private fun ConteudoPrincipal(
 
                         ControlesInterface(
                             historicoVisivel = state.historicoVisivel,
+                            navegacao = configuracoesViewModel.configuracao.navegacao,
                             onConfig = viewModel::abrirConfiguracoes,
                             onOcultar = viewModel::ocultarInterface,
                             onFechar = viewModel::solicitarFecharApp,
                             onAlternarHistorico = viewModel::alternarHistorico,
+                            onNavegar = {
+                                val analise = state.analiseAtual ?: state.ultimaCorridaAceita
+                                NavegacaoLauncher.abrir(
+                                    context = contexto,
+                                    navegacao = configuracoesViewModel.configuracao.navegacao,
+                                    embarque = analise?.corrida?.enderecoEmbarque,
+                                    destino = analise?.corrida?.enderecoDestino,
+                                    corridaAceita = state.corridaAceita,
+                                )
+                            },
                         )
                     }
                 }
@@ -615,10 +635,12 @@ private fun LinhaDetalhe(
 @Composable
 private fun ControlesInterface(
     historicoVisivel: Boolean,
+    navegacao: AppNavegacao,
     onConfig: () -> Unit,
     onOcultar: () -> Unit,
     onFechar: () -> Unit,
     onAlternarHistorico: () -> Unit,
+    onNavegar: () -> Unit,
 ) {
 
     Row(
@@ -627,14 +649,7 @@ private fun ControlesInterface(
         verticalAlignment = Alignment.CenterVertically,
     ) {
 
-        // =============================================================
-        // CONFIG
-        // =============================================================
-
-        TextButton(
-            onClick = onConfig,
-        ) {
-
+        TextButton(onClick = onConfig) {
             Text(
                 text = "⚙️Config",
                 color = TextoPrincipal,
@@ -642,14 +657,15 @@ private fun ControlesInterface(
             )
         }
 
-        // =============================================================
-        // OCULTAR
-        // =============================================================
+        TextButton(onClick = onNavegar) {
+            Text(
+                text = if (navegacao == AppNavegacao.WAZE) "Waze" else "Maps",
+                color = TextoPrincipal,
+                style = MaterialTheme.typography.labelSmall,
+            )
+        }
 
-        TextButton(
-            onClick = onOcultar,
-        ) {
-
+        TextButton(onClick = onOcultar) {
             Text(
                 text = "❎Ocultar",
                 color = TextoPrincipal,
@@ -657,14 +673,7 @@ private fun ControlesInterface(
             )
         }
 
-        // =============================================================
-        // FECHAR
-        // =============================================================
-
-        TextButton(
-            onClick = onFechar,
-        ) {
-
+        TextButton(onClick = onFechar) {
             Text(
                 text = "📴Fechar",
                 color = TextoPrincipal,
@@ -672,14 +681,7 @@ private fun ControlesInterface(
             )
         }
 
-        // =============================================================
-        // HISTÓRICO
-        // =============================================================
-
-        TextButton(
-            onClick = onAlternarHistorico,
-        ) {
-
+        TextButton(onClick = onAlternarHistorico) {
             Text(
                 text = if (historicoVisivel) {
                     "⤴️Histórico"

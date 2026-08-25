@@ -18,103 +18,88 @@ class ConfiguracoesViewModel(
         private set
 
     fun atualizarMarca(valor: String) {
-        configuracao = configuracao.copy(
-            marcaVeiculo = valor,
-        )
+        aplicar(configuracao.copy(marcaVeiculo = valor))
     }
 
     fun atualizarModelo(valor: String) {
-        configuracao = configuracao.copy(
-            modeloVeiculo = valor,
-        )
+        aplicar(configuracao.copy(modeloVeiculo = valor))
     }
 
     fun atualizarVersao(valor: String) {
-        configuracao = configuracao.copy(
-            versaoVeiculo = valor,
-        )
+        aplicar(configuracao.copy(versaoVeiculo = valor))
     }
 
     fun atualizarAno(valor: String) {
-        configuracao = configuracao.copy(
-            anoVeiculo = valor,
-        )
+        aplicar(configuracao.copy(anoVeiculo = valor))
     }
 
     fun atualizarConsumoGasolina(valor: Double) {
-        configuracao = configuracao.copy(
-            consumoGasolina = valor,
-        )
+        aplicar(configuracao.copy(consumoGasolina = valor))
     }
 
     fun atualizarConsumoEtanol(valor: Double) {
-        configuracao = configuracao.copy(
-            consumoEtanol = valor,
-        )
+        aplicar(configuracao.copy(consumoEtanol = valor))
     }
 
     fun selecionarCombustivel(
         combustivel: Combustivel,
     ) {
-        configuracao = configuracao.copy(
-            combustivel = combustivel,
-        )
+        aplicar(configuracao.copy(combustivel = combustivel))
     }
 
     fun atualizarPrecoGasolina(valor: Double) {
-        configuracao = configuracao.copy(
-            precoGasolina = valor,
-        )
+        aplicar(configuracao.copy(precoGasolina = valor))
     }
 
     fun atualizarPrecoEtanol(valor: Double) {
-        configuracao = configuracao.copy(
-            precoEtanol = valor,
-        )
+        aplicar(configuracao.copy(precoEtanol = valor))
     }
 
     fun selecionarNavegacao(
         navegacao: AppNavegacao,
     ) {
-        configuracao = configuracao.copy(
-            navegacao = navegacao,
-        )
+        aplicar(configuracao.copy(navegacao = navegacao))
     }
 
     fun atualizarLimiteRuimMin(valor: Double) {
-        configuracao = configuracao.copy(limiteRuimMin = valor)
+        aplicar(configuracao.copy(limiteRuimMin = valor))
     }
 
     fun atualizarLimiteRuimMax(valor: Double) {
-        configuracao = configuracao.copy(limiteRuimMax = valor)
+        aplicar(configuracao.copy(limiteRuimMax = valor))
     }
 
     fun atualizarLimiteRegularMin(valor: Double) {
-        configuracao = configuracao.copy(limiteRegularMin = valor)
+        aplicar(configuracao.copy(limiteRegularMin = valor))
     }
 
     fun atualizarLimiteRegularMax(valor: Double) {
-        configuracao = configuracao.copy(limiteRegularMax = valor)
+        aplicar(configuracao.copy(limiteRegularMax = valor))
     }
 
     fun atualizarLimiteBoaMin(valor: Double) {
-        configuracao = configuracao.copy(limiteBoaMin = valor)
+        aplicar(configuracao.copy(limiteBoaMin = valor))
     }
 
     fun atualizarLimiteBoaMax(valor: Double) {
-        configuracao = configuracao.copy(limiteBoaMax = valor)
+        aplicar(configuracao.copy(limiteBoaMax = valor))
     }
 
     fun atualizarLimiteOtimaMin(valor: Double) {
-        configuracao = configuracao.copy(limiteOtimaMin = valor)
+        aplicar(configuracao.copy(limiteOtimaMin = valor))
     }
 
     fun atualizarLimiteOtimaMax(valor: Double) {
-        configuracao = configuracao.copy(limiteOtimaMax = valor)
+        aplicar(configuracao.copy(limiteOtimaMax = valor))
     }
 
     fun salvar() {
         store.salvar(configuracao)
+    }
+
+    private fun aplicar(nova: ConfiguracaoUsuario) {
+        configuracao = nova
+        store.salvar(nova)
     }
 
     override fun onCleared() {

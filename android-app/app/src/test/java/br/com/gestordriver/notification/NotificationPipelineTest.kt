@@ -76,6 +76,24 @@ class CorridaParserTest {
     }
 
     @Test
+    fun deve_parsear_enderecos_quando_presentes() {
+        val notification = NotificationData(
+            packageName = "com.ubercab.driver",
+            title = "Nova viagem",
+            text = """
+                R$ 38,00 • 3,2 km ate o passageiro • 12,8 km viagem • 24 min
+                Origem: Av. Paulista, 1000
+                Destino: Rua Augusta, 200
+            """.trimIndent(),
+        )
+
+        val corrida = parser.parse(notification)
+
+        assertEquals("Av. Paulista, 1000", corrida.enderecoEmbarque)
+        assertEquals("Rua Augusta, 200", corrida.enderecoDestino)
+    }
+
+    @Test
     fun deve_falhar_para_plataforma_desconhecida() {
         val notification = NotificationData(
             packageName = "com.exemplo.outroapp",
@@ -138,6 +156,20 @@ class RideNotificationProcessorTest {
             ),
         )
         assertTrue(evento is RideNotificationEvent.CorridaAceita)
+    }
+
+    @Test
+    fun oferta_com_texto_de_aceite_marca_aceite_imediato() {
+        val processor = RideNotificationProcessor()
+        val evento = processor.processar(
+            NotificationData(
+                packageName = "com.ubercab.driver",
+                title = "R$ 38,00 • 3,2 km ate o passageiro • 12,8 km viagem • 24 min",
+                text = "Dirija ate o passageiro",
+            ),
+        )
+        val recebida = evento as RideNotificationEvent.CorridaRecebida
+        assertTrue(recebida.aceiteImediato)
     }
 }
 

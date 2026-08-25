@@ -31,6 +31,8 @@ data class HistoricoCorridaEntity(
     val combustivelEstimado: Double?,
     val custoCombustivel: Double?,
     val dataHoraRegistro: String?,
+    val enderecoEmbarque: String?,
+    val enderecoDestino: String?,
 )
 
 @Dao
@@ -44,7 +46,7 @@ interface HistoricoDao {
 
 @androidx.room.Database(
     entities = [HistoricoCorridaEntity::class],
-    version = 1,
+    version = 2,
     exportSchema = false,
 )
 abstract class GestorDatabase : RoomDatabase() {
@@ -79,6 +81,8 @@ fun HistoricoItemPresentation.paraEntity(): HistoricoCorridaEntity =
         combustivelEstimado = combustivelEstimado,
         custoCombustivel = custoCombustivel,
         dataHoraRegistro = dataHoraRegistro?.toString(),
+        enderecoEmbarque = enderecoEmbarque,
+        enderecoDestino = enderecoDestino,
     )
 
 fun HistoricoCorridaEntity.paraPresentation(): HistoricoItemPresentation =
@@ -97,4 +101,6 @@ fun HistoricoCorridaEntity.paraPresentation(): HistoricoItemPresentation =
         combustivelEstimado = combustivelEstimado,
         custoCombustivel = custoCombustivel,
         dataHoraRegistro = dataHoraRegistro?.let { LocalDateTime.parse(it) },
+        enderecoEmbarque = enderecoEmbarque,
+        enderecoDestino = enderecoDestino,
     )

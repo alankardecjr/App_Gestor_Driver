@@ -1,23 +1,22 @@
 # Guia de desenvolvimento
 
-## Ambiente recomendado
+## Ambiente
 
-- Android Studio
+- Android Studio (abrir o diretório `android-app`)
 - JDK 17+
-- Python 3.10+
+- Python 3.10+ (opcional: núcleo e `tests/`)
 - Git
+- Aparelho físico Android 11+ recomendado para overlay e notificações
 
-## Fluxo de trabalho
+## Fluxo
 
-1. criar branch para cada tarefa;
-2. implementar com foco em qualidade;
-3. validar a mudança localmente;
-4. abrir PR com contexto claro;
-5. revisar e integrar.
+1. Branch por tarefa.
+2. Mudar o mínimo necessário; regras de domínio em `core/` (Kotlin) com teste.
+3. Validar unitários; no celular seguir [ROTEIRO_BETA.md](ROTEIRO_BETA.md).
+4. PR com o *porquê* da mudança.
 
-## Recomendações
+## Convenções
 
-- manter commits pequenos e objetivos;
-- usar nomes claros para funções e classes;
-- preferir soluções simples e legíveis;
-- documentar decisões técnicas quando necessário.
+- O app não aceita corrida; aceite só via detecção da plataforma.
+- Não gravar oferta no Room.
+- Parser: preferir log real a chute de regex.

@@ -10,19 +10,32 @@ class RideNotificationProcessor(
     private val parser: CorridaParser = CorridaParser(),
     private val calculadora: CalculadoraCorrida? = null,
     private val configuracaoProvider: () -> ConfiguracaoUsuario = { ConfiguracaoUsuario.padrao() },
+    private val ofertaEmAndamento: () -> Boolean = { OfertaSessao.chaveAtiva() },
 ) {
     fun processar(notification: NotificationData): RideNotificationEvent {
-        val ofertaParseavel = tentarParsearOferta(notification) != null
-        return when (RideEventClassifier.classificar(notification, ofertaParseavel)) {
-            TipoEventoCorrida.NOVA_OFERTA -> {
-                val parseada = tentarParsearOferta(notification)
-                    ?: return RideNotificationEvent.NotificacaoNaoReconhecida
+        val parseada = tentarParsearOferta(notification)
+        val ofertaParseavel = parseada != null
+        return when (
+            RideEventClassifier.classificar(
+                notification = notification,
+                ofertaParseavel = ofertaParseavel,
+                ofertaEmAndamento = ofertaEmAndamento(),
+            )
+        ) {
+            TipoEventoCorrida.NOVA_OFERTA,
+            TipoEventoCorrida.OFERTA_E_ACEITE,
+            -> {
                 val (corrida, plataforma) = parseada
+                    ?: return RideNotificationEvent.NotificacaoNaoReconhecida
                 val analise = calculadoraAtual().calcular(
                     corrida = corrida,
                     plataforma = plataforma.label,
                 )
-                RideNotificationEvent.CorridaRecebida(analise)
+                RideNotificationEvent.CorridaRecebida(
+                    analise = analise,
+                    aceiteImediato = RideEventClassifier.pareceAceite(notification) &&
+                        !ofertaEmAndamento(),
+                )
             }
 
             TipoEventoCorrida.ACEITE_DETECTADO ->
