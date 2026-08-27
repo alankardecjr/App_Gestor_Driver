@@ -19,7 +19,7 @@ class NotificationSimulator:
 	@staticmethod
 	def nove_nove() -> NotificationData:
 		return NotificationData(
-			package_name="com.taxis99.driver",
+			package_name="com.app99.driver",
 			title="Corrida 99",
 			text="Ganhe R$ 22,50 em 1,5 km + 7,0 km. Tempo estimado: 18 min",
 		)

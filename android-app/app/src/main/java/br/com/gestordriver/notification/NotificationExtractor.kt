@@ -54,13 +54,13 @@ object NotificationExtractor {
 
     fun extrairCamposPadrao(texto: String): CamposExtraidos {
         val valorTotal = extrairValor(texto)
-        val distancias = extrairDistancias(texto)
+        val distancias = runCatching { extrairDistancias(texto) }.getOrDefault(emptyList())
         val tempoEstimado = extrairTempo(texto)
 
-        val (kmAtePassageiro, kmViagem) = if (distancias.size >= 2) {
-            distancias[0] to distancias[1]
-        } else {
-            0.0 to distancias[0]
+        val (kmAtePassageiro, kmViagem) = when {
+            distancias.size >= 2 -> distancias[0] to distancias[1]
+            distancias.size == 1 -> 0.0 to distancias[0]
+            else -> 0.0 to 0.0
         }
 
         return CamposExtraidos(

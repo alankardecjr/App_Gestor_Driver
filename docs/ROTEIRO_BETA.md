@@ -2,7 +2,7 @@
 
 Objetivo: o app começar a funcionar no seu celular. Depois calibramos parser e aceite com o que o teste real mostrar.
 
-Versão alvo: **Beta** (R$/KM, combustível e gasto visíveis). Sem Pro, sem Play Store, sem custo operacional.
+Versão alvo: **Beta** (R$/KM, combustível, gasto e lucro visíveis). Sem Pro, sem Play Store. Gasto e lucro usam **somente combustível**.
 
 ## O que entra agora
 
@@ -25,17 +25,18 @@ Custo operacional Pro, estatísticas, múltiplos veículos, testes instrumentado
 5. Desative otimização de bateria para o Gestor Driver (Senão o overlay some).
 6. Preencha consumo/preço e escolha Maps ou Waze. Volte — os valores precisam continuar iguais depois de fechar o app.
 7. Abra Uber Driver, 99 ou inDrive **logado**.
-8. Deixe o Gestor em segundo plano (selo/overlay visível).
+8. Deixe o Gestor em segundo plano (selo/overlay visível sobre Uber/99).
 9. Espere uma oferta real.
 
 ### Sucesso mínimo desta sessão
 
 | Passo | Esperado |
 | --- | --- |
-| Oferta chega | Barra compacta com valor e km (não precisa estar perfeito) |
-| Recusa / some a oferta | Volta ao selo, **não** entra no histórico |
+| Oferta chega | Barra compacta no topo (R$/KM, valor, km, min, nota) |
+| Recusa / some a oferta | Volta ao selo na mesma posição, **não** entra no histórico |
+| Toque no selo | Expandida overlay ~1/3 da tela; o mapa da plataforma continua visível |
 | Aceita no app da plataforma | Histórico ganha **uma** linha |
-| Mais detalhes → botão Maps/Waze | Abre a rota (se a notificação trouxe endereço) |
+| Expandida | Distâncias + custos (combustível) + lucro; botões Config / Ocultar / Fechar / Histórico |
 | Fecha e reabre o Gestor | Configurações iguais às que você salvou |
 
 Se a oferta **não aparecer**, o teste ainda vale: o arquivo `notificacoes_diagnostico.txt` (armazenamento interno do app) guarda o texto real. Com isso ajustamos o parser na próxima rodada.

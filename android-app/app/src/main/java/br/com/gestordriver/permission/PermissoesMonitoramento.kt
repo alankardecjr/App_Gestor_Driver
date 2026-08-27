@@ -8,6 +8,15 @@ object PermissoesMonitoramento {
     fun overlayConcedida(context: Context): Boolean =
         Settings.canDrawOverlays(context)
 
+    fun localizacaoConcedida(context: Context): Boolean {
+        val fine = android.Manifest.permission.ACCESS_FINE_LOCATION
+        val coarse = android.Manifest.permission.ACCESS_COARSE_LOCATION
+        return context.checkSelfPermission(fine) ==
+            android.content.pm.PackageManager.PERMISSION_GRANTED ||
+            context.checkSelfPermission(coarse) ==
+            android.content.pm.PackageManager.PERMISSION_GRANTED
+    }
+
     fun listenerNotificacoesAtivo(context: Context): Boolean {
         val habilitados = Settings.Secure.getString(
             context.contentResolver,

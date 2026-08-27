@@ -66,36 +66,22 @@ class AppViewModelTest {
         val viewModel =
             novoViewModel()
 
-        // Estado inicial.
-        assertEquals(
-            ModoApresentacao.COMPACTA,
-            viewModel.state.corrida.modo,
-        )
-
-        // Expande.
-        viewModel.alternarDetalhes()
+        viewModel.reabrirInterface()
 
         assertEquals(
             ModoApresentacao.DETALHES,
             viewModel.state.corrida.modo,
         )
 
-        assertEquals(
-            "Menos detalhes",
-            viewModel.state.corrida.acaoDetalhes,
-        )
+        assertTrue(viewModel.state.interfaceOculta)
 
-        // Retrai.
         viewModel.alternarDetalhes()
 
+        assertTrue(viewModel.state.interfaceOculta)
+        assertTrue(viewModel.state.compactaTemporaria)
         assertEquals(
             ModoApresentacao.COMPACTA,
             viewModel.state.corrida.modo,
-        )
-
-        assertEquals(
-            "ⓘ",
-            viewModel.state.corrida.acaoDetalhes,
         )
     }
 
@@ -109,7 +95,7 @@ class AppViewModelTest {
         val viewModel =
             novoViewModel()
 
-        viewModel.alternarDetalhes()
+        viewModel.reabrirInterface()
 
         assertFalse(
             viewModel.state.historicoVisivel,
@@ -138,9 +124,7 @@ class AppViewModelTest {
         val viewModel =
             novoViewModel()
 
-        viewModel.alternarDetalhes()
-
-        // Abre configuração.
+        viewModel.reabrirInterface()
         viewModel.abrirConfiguracoes()
 
         assertTrue(
@@ -243,7 +227,7 @@ class AppViewModelTest {
         val viewModel =
             novoViewModel()
 
-        viewModel.alternarDetalhes()
+        viewModel.reabrirInterface()
         viewModel.alternarHistorico()
 
         viewModel.ocultarInterface()
@@ -284,7 +268,7 @@ class AppViewModelTest {
         val viewModel =
             novoViewModel()
 
-        viewModel.alternarDetalhes()
+        viewModel.reabrirInterface()
         viewModel.abrirConfiguracoes()
 
         assertTrue(
@@ -329,7 +313,7 @@ class AppViewModelTest {
         val viewModel =
             novoViewModel()
 
-        viewModel.alternarDetalhes()
+        viewModel.reabrirInterface()
         viewModel.abrirConfiguracoes()
         viewModel.ocultarInterface()
 
@@ -339,12 +323,20 @@ class AppViewModelTest {
 
         viewModel.reabrirInterface()
 
+        assertTrue(viewModel.state.interfaceOculta)
+        assertFalse(viewModel.state.seloFlutuante)
+
         assertFalse(
-            viewModel.state.interfaceOculta,
+            viewModel.state.configuracoesVisivel,
         )
 
         assertFalse(
-            viewModel.state.seloFlutuante,
+            viewModel.state.historicoVisivel,
+        )
+
+        assertEquals(
+            ModoApresentacao.DETALHES,
+            viewModel.state.corrida.modo,
         )
 
         assertTrue(
@@ -488,6 +480,8 @@ class AppViewModelTest {
         assertEquals(analise.valorTotal, viewModel.state.analiseAtual?.valorTotal)
         assertFalse(viewModel.state.corridaAceita)
         assertTrue(viewModel.state.ofertaAtiva)
+        assertTrue(viewModel.state.interfaceOculta)
+        assertFalse(viewModel.state.seloFlutuante)
     }
 
     @Test
@@ -520,8 +514,8 @@ class AppViewModelTest {
         viewModel.aplicarNovaCorrida(analiseFake())
         viewModel.iniciarMonitoramento()
         assertTrue(viewModel.state.ofertaAtiva)
+        assertTrue(viewModel.state.interfaceOculta)
         assertFalse(viewModel.state.seloFlutuante)
-        assertFalse(viewModel.state.interfaceOculta)
     }
 
     @Test
@@ -531,6 +525,67 @@ class AppViewModelTest {
         assertTrue(viewModel.state.monitorando)
         assertTrue(viewModel.state.seloFlutuante)
         assertTrue(viewModel.state.interfaceOculta)
+    }
+
+    @Test
+    fun retrair_com_oferta_permanece_compacta_sem_timer() {
+        val viewModel = novoViewModel()
+        viewModel.aplicarNovaCorrida(analiseFake())
+        viewModel.reabrirInterface(origemCompacta = true)
+        viewModel.alternarDetalhes()
+        assertTrue(viewModel.state.ofertaAtiva)
+        assertTrue(viewModel.state.interfaceOculta)
+        assertFalse(viewModel.state.compactaTemporaria)
+        assertFalse(viewModel.state.seloFlutuante)
+    }
+
+    @Test
+    fun recolher_ao_sair_volta_ao_selo() {
+        val viewModel = novoViewModel()
+        viewModel.reabrirInterface()
+        viewModel.abrirHistoricoPeloOverlay()
+        viewModel.recolherAoSairDoApp()
+        assertTrue(viewModel.state.interfaceOculta)
+        assertTrue(viewModel.state.seloFlutuante)
+    }
+
+    @Test
+    fun retrair_sem_oferta_inicia_espera_para_selo() {
+        val viewModel = novoViewModel()
+        viewModel.reabrirInterface()
+        viewModel.alternarDetalhes()
+        assertTrue(viewModel.state.compactaTemporaria)
+        assertTrue(viewModel.state.interfaceOculta)
+        assertFalse(viewModel.state.seloFlutuante)
+    }
+
+    @Test
+    fun oferta_na_expandida_expira_para_ultima_exibida() {
+        val viewModel = novoViewModel()
+        viewModel.iniciarMonitoramento()
+        viewModel.reabrirInterface()
+        val aceita = analiseFake(valor = 40.0)
+        viewModel.aplicarNovaCorrida(aceita)
+        viewModel.registrarAceiteCorrida()
+        viewModel.aplicarNovaCorrida(analiseFake(valor = 22.0))
+        assertEquals(22.0, viewModel.state.analiseAtual?.valorTotal ?: 0.0, 0.001)
+        assertTrue(viewModel.state.interfaceOculta)
+        viewModel.expirarOfertaAtual()
+        assertEquals(40.0, viewModel.state.analiseAtual?.valorTotal ?: 0.0, 0.001)
+        assertFalse(viewModel.state.ofertaAtiva)
+        assertTrue(viewModel.state.interfaceOculta)
+    }
+
+    @Test
+    fun oferta_no_overlay_expira_volta_ao_selo_na_mesma_posicao() {
+        val viewModel = novoViewModel()
+        viewModel.atualizarPosicaoSelo(80f, 160f)
+        viewModel.aplicarNovaCorrida(analiseFake())
+        viewModel.expirarOfertaAtual()
+        assertTrue(viewModel.state.seloFlutuante)
+        assertTrue(viewModel.state.interfaceOculta)
+        assertEquals(80f, viewModel.state.seloOffsetX)
+        assertEquals(160f, viewModel.state.seloOffsetY)
     }
 
     private fun analiseFake(valor: Double = 38.0) =

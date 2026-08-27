@@ -38,6 +38,14 @@ class NotificationExtractorTest {
 
         assertEquals(19, campos.tempoEstimado)
     }
+
+    @Test
+    fun deve_aceitar_oferta_so_com_valor() {
+        val campos = NotificationExtractor.extrairCamposPadrao("Nova corrida R$ 18,40")
+        assertEquals(18.40, campos.valorTotal, 0.001)
+        assertEquals(0.0, campos.kmAtePassageiro, 0.001)
+        assertEquals(0.0, campos.kmViagem, 0.001)
+    }
 }
 
 class CorridaParserTest {
@@ -62,7 +70,7 @@ class CorridaParserTest {
     @Test
     fun deve_parsear_notificacao_99() {
         val notification = NotificationData(
-            packageName = "com.taxis99.driver",
+            packageName = "com.app99.driver",
             title = "Corrida 99",
             text = "Ganhe R$ 22,50 em 1,5 km + 7,0 km. Tempo estimado: 18 min",
         )
@@ -170,6 +178,25 @@ class RideNotificationProcessorTest {
         )
         val recebida = evento as RideNotificationEvent.CorridaRecebida
         assertTrue(recebida.aceiteImediato)
+    }
+}
+
+class PlatformDetectorTest {
+    @Test
+    fun reconhece_app_99_motorista() {
+        assertEquals(
+            Plataforma.NOVE_NOVE,
+            PlatformDetector.resolver("com.app99.driver"),
+        )
+        assertTrue(PlatformDetector.ehSuportada("com.app99.driver"))
+    }
+
+    @Test
+    fun reconhece_uber_driver() {
+        assertEquals(
+            Plataforma.UBER,
+            PlatformDetector.resolver("com.ubercab.driver"),
+        )
     }
 }
 

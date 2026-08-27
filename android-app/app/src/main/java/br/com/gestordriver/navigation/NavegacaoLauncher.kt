@@ -7,6 +7,9 @@ import android.widget.Toast
 import br.com.gestordriver.model.AppNavegacao
 
 object NavegacaoLauncher {
+    private const val PACOTE_MAPS = "com.google.android.apps.maps"
+    private const val PACOTE_WAZE = "com.waze"
+
     fun abrir(
         context: Context,
         navegacao: AppNavegacao,
@@ -36,6 +39,36 @@ object NavegacaoLauncher {
             Toast.makeText(
                 context,
                 "Não foi possível abrir o app de navegação.",
+                Toast.LENGTH_LONG,
+            ).show()
+        }
+    }
+
+    fun abrirAplicativo(
+        context: Context,
+        navegacao: AppNavegacao,
+    ) {
+        val pacote = when (navegacao) {
+            AppNavegacao.GOOGLE_MAPS -> PACOTE_MAPS
+            AppNavegacao.WAZE -> PACOTE_WAZE
+        }
+        val nome = if (navegacao == AppNavegacao.WAZE) "Waze" else "Google Maps"
+        val launch = context.packageManager.getLaunchIntentForPackage(pacote)
+        if (launch == null) {
+            Toast.makeText(
+                context,
+                "$nome não está instalado neste celular.",
+                Toast.LENGTH_LONG,
+            ).show()
+            return
+        }
+        launch.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        runCatching {
+            context.startActivity(launch)
+        }.onFailure {
+            Toast.makeText(
+                context,
+                "Não foi possível abrir o $nome.",
                 Toast.LENGTH_LONG,
             ).show()
         }

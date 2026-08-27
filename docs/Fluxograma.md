@@ -11,9 +11,9 @@
 
 # 1. Visão geral
 
-O Gestor Driver funciona como um aplicativo de monitoramento de corridas.
+O Gestor Driver é um **overlay auxiliar**. Uber, 99 e inDrive continuam visíveis (especialmente o mapa).
 
-O **selo flutuante** representa o estado principal do aplicativo enquanto o monitoramento está ativo.
+O **selo flutuante** (ícone redondo do app) é o estado principal enquanto o monitoramento está ativo.
 
 O aplicativo:
 
@@ -21,13 +21,13 @@ O aplicativo:
 2. verifica as permissões necessárias;
 3. solicita configurações/permissões quando necessário;
 4. inicia o monitoramento;
-5. exibe o selo flutuante;
+5. exibe o selo flutuante sobre o app de transporte;
 6. monitora notificações;
-7. apresenta a corrida atual;
-8. permite expansão;
-9. permite acesso ao histórico e configurações;
-10. permite minimizar novamente para o selo;
-11. permite encerrar o aplicativo mediante confirmação.
+7. na oferta, mostra a **barra compacta** no topo;
+8. no toque do selo, abre a **expandida em overlay (~1/3 da tela)**;
+9. Histórico e Configurações abrem a Activity do Gestor; ao sair ou tocar no selo, voltam ao overlay;
+10. Ocultar e expiração da oferta retornam ao selo na última posição;
+11. Fechar encerra o app após confirmação.
 
 ---
 
@@ -82,31 +82,22 @@ O aplicativo:
         │                │
         ▼                ▼
 ┌───────────────┐  ┌───────────────┐
-│   COMPACTA    │  │ CORRIDA ATUAL │
+│ EXPANDIDA 1/3 │  │ BARRA COMPACTA│
+│   (overlay)   │  │   (overlay)   │
 └───────┬───────┘  └───────┬───────┘
         │                  │
         └─────────┬────────┘
                   │
                   ▼
-           ┌─────────────┐
-           │  EXPANDIDA  │
-           └──────┬──────┘
-                  │
        ┌──────────┼───────────┐
        │          │           │
        ▼          ▼           ▼
-   HISTÓRICO  CONFIGURAÇÃO  CORRIDA
+   HISTÓRICO  CONFIGURAÇÃO  ⓘ / OCULTAR
        │          │           │
-       └──────────┼───────────┘
-                  │
-                  ▼
-              ❎ OCULTAR
-                  │
-                  ▼
-           FECHAR CONTEXTO
-                  │
-                  ▼
-                  ◉
+   (Activity) (Activity)      ▼
+       │          │          SELO
+       └──────────┘
+         ao sair → SELO
 
 # 3. Fluxo de uma corrida
 
@@ -172,28 +163,12 @@ ACEITE DETECTADO    RECUSA / EXPIRA
 
 # 4. Fluxo de minimização
 
-          EXPANDIDA
+          EXPANDIDA (overlay 1/3)
           │
-          ├── HISTÓRICO
-          │      │
-          │      ▼
-          │   FECHAR
-          │
-          ├── CONFIGURAÇÃO
-          │      │
-          │      ▼
-          │   FECHAR
-          │
-          └── CORRIDA
-               │
-               ▼
-          COMPACTA
-               │
-               ▼
-          ❎ OCULTAR
-               │
-               ▼
-               ◉
+          ├── 📜 HISTÓRICO → Activity → ao sair / selo → overlay
+          ├── ⚙️ CONFIG → Activity → ao sair / selo → overlay
+          ├── ⓘ retrai para compacta (3 s sem oferta → selo)
+          └── ❎ OCULTAR → selo (fecha histórico e config)
 
 #5. Fluxo de encerramento
 

@@ -1,5 +1,6 @@
 package br.com.gestordriver.notification
 
+import android.content.ComponentName
 import android.service.notification.NotificationListenerService
 import android.service.notification.StatusBarNotification
 import br.com.gestordriver.GestorDriverApp
@@ -17,19 +18,27 @@ class RideNotificationListenerService : NotificationListenerService() {
         (application as GestorDriverApp).diagnosticLog
     }
 
+    override fun onListenerConnected() {
+        activeNotifications?.forEach { onNotificationPosted(it) }
+    }
+
+    override fun onListenerDisconnected() {
+        requestRebind(ComponentName(this, RideNotificationListenerService::class.java))
+    }
+
     override fun onNotificationPosted(sbn: StatusBarNotification?) {
         if (sbn == null) {
             return
         }
-        if (!PlatformDetector.packages.containsKey(sbn.packageName)) {
+        if (!PlatformDetector.ehSuportada(sbn.packageName.orEmpty())) {
             return
         }
 
         val notification = NotificationMapper.de(sbn)
-        if (notification.title.isBlank() && notification.text.isBlank()) {
+        if (notification.fullText.isBlank()) {
+            diagnostico.registrar(notification, "VAZIA")
             return
         }
-
         when (val evento = processor.processar(notification)) {
             is RideNotificationEvent.CorridaRecebida -> {
                 OfertaSessao.registrarOferta(sbn.key)

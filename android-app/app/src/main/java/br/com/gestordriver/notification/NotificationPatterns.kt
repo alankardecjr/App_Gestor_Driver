@@ -1,7 +1,10 @@
 package br.com.gestordriver.notification
 
 object NotificationPatterns {
-    val VALOR = Regex("""R\$\s*([\d.,]+)""")
+    val VALOR = Regex(
+        """(?:R\$|RS)\s*([\d.,]+)""",
+        RegexOption.IGNORE_CASE,
+    )
 
     val DISTANCIA_COM_UNIDADE = Regex(
         """([\d.,]+)\s*(km|m)\b""",

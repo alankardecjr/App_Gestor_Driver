@@ -11,6 +11,7 @@ data class OverlaySnapshot(
     val monitorando: Boolean = false,
     val seloVisivel: Boolean = false,
     val compactaVisivel: Boolean = false,
+    val expandidaVisivel: Boolean = false,
     val offsetX: Float = 0f,
     val offsetY: Float = 0f,
     val valorPorKm: String = "—",
@@ -18,15 +19,27 @@ data class OverlaySnapshot(
     val kmTotal: String = "—",
     val tempo: String = "—",
     val nota: String = "—",
+    val detalhes: List<String> = emptyList(),
     val aguardandoOferta: Boolean = true,
+    val liquidoPorKm: String = "—",
+    val litrosEstimados: String = "—",
+    val gastoEstimado: String = "—",
+    val lucroEstimado: String = "—",
+    val kmAtePassageiro: String = "—",
+    val kmViagem: String = "—",
     val enderecoEmbarque: String? = null,
     val enderecoDestino: String? = null,
     val corridaAceita: Boolean = false,
 )
 
 sealed class OverlayAcao {
-    data object Reabrir : OverlayAcao()
+    data class Reabrir(val origemCompacta: Boolean = false) : OverlayAcao()
     data class MoverSelo(val offsetX: Float, val offsetY: Float) : OverlayAcao()
+    data object AbrirHistorico : OverlayAcao()
+    data object AbrirConfig : OverlayAcao()
+    data object Ocultar : OverlayAcao()
+    data object Retratil : OverlayAcao()
+    data object Fechar : OverlayAcao()
 }
 
 object OverlayBridge {

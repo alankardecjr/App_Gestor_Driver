@@ -21,6 +21,7 @@ class Plataforma(Enum):
 
 PACKAGES = {
     "com.ubercab.driver": Plataforma.UBER,
+    "com.app99.driver": Plataforma.NOVE_NOVE,
     "com.taxis99.driver": Plataforma.NOVE_NOVE,
     "sinet.startup.inDriver": Plataforma.INDRIVE,
 }

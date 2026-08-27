@@ -3,7 +3,6 @@ package br.com.gestordriver.ui
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -14,7 +13,6 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.safeDrawing
@@ -37,17 +35,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
-import br.com.gestordriver.model.AppNavegacao
 import br.com.gestordriver.model.CampoApresentacao
 import br.com.gestordriver.model.HistoricoItemPresentation
 import br.com.gestordriver.model.ModoApresentacao
-import br.com.gestordriver.navigation.NavegacaoLauncher
-import kotlin.math.roundToInt
+import br.com.gestordriver.presentation.PresentationBuilder
 
 // =====================================================================
 // CORES DA INTERFACE
@@ -61,6 +55,10 @@ private val TextoPrincipal = Color.White
 private val TextoSecundario = Color(0xFFB8C5D1)
 private val TextoDetalhes = Color(0xFFD0D9E2)
 private val TextoHistorico = Color(0xFFDDE6F2)
+private val TextoAzul = Color(0xFF42A5F5)
+private val TextoVerde = Color(0xFF7CB342)
+private val TextoLaranja = Color(0xFFFF9800)
+private val TextoAmarelo = Color(0xFFFFD54F)
 
 // =====================================================================
 // TELA PRINCIPAL
@@ -73,6 +71,14 @@ fun AppScreen(
 ) {
 
     val state = viewModel.state
+    val janelaCheia = state.historicoVisivel || state.configuracoesVisivel
+    val activity = LocalContext.current as? br.com.gestordriver.MainActivity
+    androidx.compose.runtime.SideEffect {
+        activity?.aplicarJanela(
+            oculta = state.interfaceOculta,
+            cheia = janelaCheia,
+        )
+    }
 
     if (state.confirmacaoFecharVisivel) {
         AlertDialog(
@@ -100,45 +106,43 @@ fun AppScreen(
         modifier = Modifier
             .fillMaxSize()
             .windowInsetsPadding(WindowInsets.safeDrawing),
-        color = FundoPrincipal,
+        color = Color.Transparent,
     ) {
-        if (state.interfaceOculta && state.seloFlutuante) {
-            Box(modifier = Modifier.fillMaxSize()) {
-                SeloFlutuante(
-                    offsetX = state.seloOffsetX,
-                    offsetY = state.seloOffsetY,
-                    monitorando = state.monitorando,
-                    onReabrir = viewModel::reabrirInterface,
-                    onPosicaoAlterada = viewModel::atualizarPosicaoSelo,
-                )
+        if (state.interfaceOculta) {
+            return@Surface
+        }
+
+        Box(
+            modifier = Modifier.fillMaxSize(),
+            contentAlignment = Alignment.BottomCenter,
+        ) {
+            Surface(
+                modifier = Modifier.fillMaxSize(),
+                color = FundoPrincipal,
+            ) {
+                if (state.configuracoesVisivel) {
+                    ConfiguracoesScreen(
+                        viewModel = configuracoesViewModel,
+                        onVoltar = viewModel::fecharConfiguracoes,
+                    )
+                } else {
+                    ConteudoPrincipal(
+                        viewModel = viewModel,
+                        configuracoesViewModel = configuracoesViewModel,
+                        state = state,
+                    )
+                }
             }
-            return@Surface
         }
-
-        if (state.configuracoesVisivel) {
-            ConfiguracoesScreen(
-                viewModel = configuracoesViewModel,
-                onVoltar = viewModel::fecharConfiguracoes,
-            )
-            return@Surface
-        }
-
-        ConteudoPrincipal(
-            viewModel = viewModel,
-            configuracoesViewModel = configuracoesViewModel,
-            state = state,
-        )
     }
 }
 
 @Composable
 private fun ConteudoPrincipal(
     viewModel: AppViewModel,
-    configuracoesViewModel: ConfiguracoesViewModel,
+    @Suppress("UNUSED_PARAMETER") configuracoesViewModel: ConfiguracoesViewModel,
     state: AppState,
 ) {
-        val contexto = LocalContext.current
-
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -210,6 +214,9 @@ private fun ConteudoPrincipal(
                     CabecalhoCorrida(
                         campos = state.corrida.camposCompactos,
                         modo = state.corrida.modo,
+                        liquidoPorKm = PresentationBuilder.formatarLiquidoPorKm(
+                            state.analiseAtual ?: state.ultimaCorridaAceita,
+                        ),
                         onInformacao = viewModel::alternarDetalhes,
                         onAlternarDetalhes = viewModel::alternarDetalhes,
                     )
@@ -241,21 +248,10 @@ private fun ConteudoPrincipal(
 
                         ControlesInterface(
                             historicoVisivel = state.historicoVisivel,
-                            navegacao = configuracoesViewModel.configuracao.navegacao,
                             onConfig = viewModel::abrirConfiguracoes,
                             onOcultar = viewModel::ocultarInterface,
                             onFechar = viewModel::solicitarFecharApp,
                             onAlternarHistorico = viewModel::alternarHistorico,
-                            onNavegar = {
-                                val analise = state.analiseAtual ?: state.ultimaCorridaAceita
-                                NavegacaoLauncher.abrir(
-                                    context = contexto,
-                                    navegacao = configuracoesViewModel.configuracao.navegacao,
-                                    embarque = analise?.corrida?.enderecoEmbarque,
-                                    destino = analise?.corrida?.enderecoDestino,
-                                    corridaAceita = state.corridaAceita,
-                                )
-                            },
                         )
                     }
                 }
@@ -278,14 +274,6 @@ private fun ConteudoPrincipal(
                     onSelecionarHistorico = viewModel::selecionarHistorico,
                 )
             }
-
-            // =========================================================
-            // PREVIEW DO OVERLAY
-            // =========================================================
-
-            if (state.overlayAtivo && state.monitorando) {
-                OverlayPreview()
-            }
         }
 }
 
@@ -305,6 +293,7 @@ private fun ConteudoPrincipal(
 private fun CabecalhoCorrida(
     campos: List<CampoApresentacao>,
     modo: ModoApresentacao,
+    liquidoPorKm: String,
     onInformacao: () -> Unit,
     onAlternarDetalhes: () -> Unit,
 ) {
@@ -333,7 +322,11 @@ private fun CabecalhoCorrida(
                     contentAlignment = Alignment.Center,
                 ) {
 
-                    CampoCabecalho(campo)
+                    CampoCabecalho(
+                        campo = campo,
+                        modo = modo,
+                        liquidoPorKm = liquidoPorKm,
+                    )
                 }
             }
         }
@@ -412,71 +405,68 @@ private fun CabecalhoCorrida(
 @Composable
 private fun CampoCabecalho(
     campo: CampoApresentacao,
+    modo: ModoApresentacao,
+    liquidoPorKm: String,
 ) {
 
     when (campo.id) {
 
-        // =============================================================
-        // R$/KM
-        // =============================================================
-
         "valor_por_km" -> {
 
-            CabecalhoSimples(
-                icone = "💵",
-                titulo = "R$/KM",
-                valor = campo.valor,
-                destaque = campo.destaque,
-            )
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                CabecalhoSimples(
+                    icone = "💵",
+                    titulo = "R$/KM",
+                    valor = campo.valor,
+                    destaque = campo.destaque,
+                    corTitulo = TextoVerde,
+                )
+                if (modo == ModoApresentacao.DETALHES) {
+                    Text(
+                        text = "LÍQUIDO $liquidoPorKm",
+                        color = TextoVerde,
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.SemiBold,
+                        maxLines = 1,
+                    )
+                }
+            }
         }
-
-        // =============================================================
-        // VALOR
-        // =============================================================
 
         "valor_total" -> {
 
             CabecalhoSimples(
                 icone = "💰",
-                titulo = "R$/TOTAL",
+                titulo = if (modo == ModoApresentacao.DETALHES) "VALOR" else "R$",
                 valor = removerPrefixoReal(
                     campo.valor,
                 ),
                 destaque = campo.destaque,
+                corTitulo = TextoVerde,
             )
         }
-
-        // =============================================================
-        // DISTÂNCIA
-        // =============================================================
 
         "km_total" -> {
 
             CabecalhoSimples(
                 icone = "🛞",
-                titulo = "KM/TOTAL",
+                titulo = if (modo == ModoApresentacao.DETALHES) "KM TOTAL" else "KM",
                 valor = campo.valor,
                 destaque = campo.destaque,
+                corTitulo = TextoAzul,
             )
         }
-
-        // =============================================================
-        // TEMPO
-        // =============================================================
 
         "tempo_estimado" -> {
 
             CabecalhoSimples(
                 icone = "🕐",
-                titulo = "TEMPO",
+                titulo = if (modo == ModoApresentacao.DETALHES) "TEMPO" else "MIN",
                 valor = campo.valor,
                 destaque = campo.destaque,
+                corTitulo = TextoLaranja,
             )
         }
-
-        // =============================================================
-        // NOTA        
-        // =============================================================
 
         "nota_passageiro" -> {
 
@@ -485,12 +475,9 @@ private fun CampoCabecalho(
                 titulo = "NOTA",
                 valor = campo.valor,
                 destaque = campo.destaque,
+                corTitulo = TextoAmarelo,
             )
         }
-
-        // =============================================================
-        // OUTROS
-        // =============================================================
 
         else -> {
 
@@ -514,6 +501,7 @@ private fun CabecalhoSimples(
     titulo: String,
     valor: String,
     destaque: Boolean,
+    corTitulo: Color = TextoSecundario,
 ) {
 
     Column(
@@ -522,7 +510,7 @@ private fun CabecalhoSimples(
 
         Text(
             text = titulo,
-            color = TextoSecundario,
+            color = corTitulo,
             style = MaterialTheme.typography.labelSmall,
             fontWeight = FontWeight.Medium,
             maxLines = 1,
@@ -565,31 +553,81 @@ private fun CabecalhoSimples(
 private fun DetalhesCorrida(
     campos: List<CampoApresentacao>,
 ) {
+    val mapa = campos.associateBy { it.id }
+    val distancias = listOfNotNull(
+        mapa["km_ate_passageiro"],
+        mapa["km_viagem"],
+        mapa["km_total_detalhe"],
+        mapa["endereco_embarque"],
+        mapa["endereco_destino"],
+    )
+    val custos = listOfNotNull(
+        mapa["combustivel_estimado"],
+        mapa["custo_combustivel"],
+        mapa["lucro_estimado"],
+    )
 
     Column(
         modifier = Modifier
             .fillMaxWidth()
             .padding(top = 2.dp),
-        verticalArrangement = Arrangement.spacedBy(5.dp),
+        verticalArrangement = Arrangement.spacedBy(6.dp),
     ) {
-
-        // =============================================================
-        // TÍTULO CENTRALIZADO
-        // =============================================================
-
-        Box(
+        Row(
             modifier = Modifier.fillMaxWidth(),
-            contentAlignment = Alignment.Center,
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
         ) {
-
-            Text(
-                text = "Detalhes",
-                color = TextoPrincipal,
-                style = MaterialTheme.typography.titleSmall,
-                fontWeight = FontWeight.SemiBold,
+            ColunaDetalhes(
+                modifier = Modifier.weight(1f),
+                titulo = "DISTÂNCIAS",
+                icone = "🛞",
+                corTitulo = TextoAzul,
+                campos = distancias,
+            )
+            ColunaDetalhes(
+                modifier = Modifier.weight(1f),
+                titulo = "CUSTOS (COMBUSTÍVEL)",
+                icone = "💰",
+                corTitulo = TextoVerde,
+                campos = custos,
             )
         }
+        campos.filter { campo ->
+            campo.id !in setOf(
+                "km_ate_passageiro",
+                "km_viagem",
+                "km_total_detalhe",
+                "endereco_embarque",
+                "endereco_destino",
+                "combustivel_estimado",
+                "custo_combustivel",
+                "lucro_estimado",
+            )
+        }.forEach { campo ->
+            LinhaDetalhe(campo)
+        }
+    }
+}
 
+@Composable
+private fun ColunaDetalhes(
+    modifier: Modifier,
+    titulo: String,
+    icone: String,
+    corTitulo: Color,
+    campos: List<CampoApresentacao>,
+) {
+    Column(
+        modifier = modifier,
+        verticalArrangement = Arrangement.spacedBy(4.dp),
+    ) {
+        Text(
+            text = "$icone $titulo",
+            color = corTitulo,
+            style = MaterialTheme.typography.labelSmall,
+            fontWeight = FontWeight.SemiBold,
+            maxLines = 1,
+        )
         campos.forEach { campo ->
             LinhaDetalhe(campo)
         }
@@ -635,12 +673,10 @@ private fun LinhaDetalhe(
 @Composable
 private fun ControlesInterface(
     historicoVisivel: Boolean,
-    navegacao: AppNavegacao,
     onConfig: () -> Unit,
     onOcultar: () -> Unit,
     onFechar: () -> Unit,
     onAlternarHistorico: () -> Unit,
-    onNavegar: () -> Unit,
 ) {
 
     Row(
@@ -652,14 +688,6 @@ private fun ControlesInterface(
         TextButton(onClick = onConfig) {
             Text(
                 text = "⚙️Config",
-                color = TextoPrincipal,
-                style = MaterialTheme.typography.labelSmall,
-            )
-        }
-
-        TextButton(onClick = onNavegar) {
-            Text(
-                text = if (navegacao == AppNavegacao.WAZE) "Waze" else "Maps",
                 color = TextoPrincipal,
                 style = MaterialTheme.typography.labelSmall,
             )
@@ -708,65 +736,69 @@ private fun HistoricoSection(
     state: AppState,
     onSelecionarHistorico: (HistoricoItemPresentation) -> Unit,
 ) {
+    val abas = listOf("Uber", "99", "inDrive")
+    var abaSelecionada by remember { mutableStateOf(0) }
+    val itens = state.historico.filter { item ->
+        when (abas[abaSelecionada]) {
+            "Uber" -> item.plataforma.contains("Uber", ignoreCase = true)
+            "99" -> item.plataforma.contains("99")
+            else -> item.plataforma.contains("inDrive", ignoreCase = true) ||
+                item.plataforma.contains("indrive", ignoreCase = true)
+        }
+    }
 
     Column(
         modifier = Modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(6.dp),
     ) {
-
-        // =============================================================
-        // CABEÇALHO DO HISTÓRICO
-        // =============================================================
-
-        Row(
+        Box(
             modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
+            contentAlignment = Alignment.Center,
         ) {
-
-            Box(
-                modifier = Modifier.weight(1f),
-                contentAlignment = Alignment.Center,
-            ) {
-
-                Text(
-                    text = "Histórico",
-                    color = TextoPrincipal,
-                    style = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.SemiBold,
-                )
-            }
-
             Text(
-                text = "ℹ️",
+                text = "Histórico",
                 color = TextoPrincipal,
-                style = MaterialTheme.typography.bodySmall,
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.SemiBold,
             )
         }
 
-        // =============================================================
-        // LISTA HORIZONTAL
-        // =============================================================
-
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .horizontalScroll(
-                    rememberScrollState(),
-                ),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceEvenly,
         ) {
+            abas.forEachIndexed { index, titulo ->
+                TextButton(onClick = { abaSelecionada = index }) {
+                    Text(
+                        text = titulo,
+                        color = if (abaSelecionada == index) Color(0xFF7CB342) else TextoSecundario,
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = if (abaSelecionada == index) FontWeight.SemiBold else FontWeight.Normal,
+                    )
+                }
+            }
+        }
 
-            state.historico.forEachIndexed { index, item ->
-
-                HistoricoCard(
-                    item = item,
-                    seta = when (index) {
-                        0 -> "⬅️"
-                        1 -> "➡️"
-                        else -> "⏹️"
-                    },
-                    onClick = { onSelecionarHistorico(item) },
-                )
+        if (itens.isEmpty()) {
+            Text(
+                text = "Nenhuma corrida aceita nesta plataforma.",
+                color = TextoSecundario,
+                style = MaterialTheme.typography.bodySmall,
+            )
+        } else {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .horizontalScroll(rememberScrollState()),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                itens.forEach { item ->
+                    HistoricoCard(
+                        item = item,
+                        seta = "➡️",
+                        onClick = { onSelecionarHistorico(item) },
+                    )
+                }
             }
         }
     }
@@ -873,94 +905,6 @@ private fun HistoricoCard(
                 color = TextoPrincipal,
                 style = MaterialTheme.typography.labelSmall,
                 maxLines = 1,
-            )
-        }
-    }
-}
-
-// =====================================================================
-// OVERLAY
-// =====================================================================
-
-@Composable
-private fun OverlayPreview() {
-
-    Card(
-        colors = CardDefaults.cardColors(
-            containerColor = Color(0xFF213040),
-        ),
-    ) {
-
-        Text(
-            modifier = Modifier.padding(8.dp),
-            text = "Overlay ativo sobre Uber / 99 / inDrive",
-            color = TextoPrincipal,
-            style = MaterialTheme.typography.labelSmall,
-        )
-    }
-}
-
-// =====================================================================
-// SELO FLUTUANTE
-// =====================================================================
-
-@Composable
-private fun SeloFlutuante(
-    offsetX: Float,
-    offsetY: Float,
-    monitorando: Boolean,
-    onReabrir: () -> Unit,
-    onPosicaoAlterada: (Float, Float) -> Unit,
-) {
-    var dragAcumulado by remember { mutableStateOf(0f) }
-
-    Card(
-        modifier = Modifier
-            .offset {
-                IntOffset(
-                    offsetX.roundToInt(),
-                    offsetY.roundToInt(),
-                )
-            }
-            .pointerInput(Unit) {
-                detectDragGestures(
-                    onDragStart = { dragAcumulado = 0f },
-                    onDrag = { change, dragAmount ->
-                        change.consume()
-                        dragAcumulado += kotlin.math.abs(dragAmount.x) + kotlin.math.abs(dragAmount.y)
-                        onPosicaoAlterada(
-                            offsetX + dragAmount.x,
-                            offsetY + dragAmount.y,
-                        )
-                    },
-                    onDragEnd = {
-                        if (dragAcumulado < 24f) {
-                            onReabrir()
-                        }
-                    },
-                )
-            },
-        colors = CardDefaults.cardColors(
-            containerColor = Color(0xFF2B3440),
-        ),
-    ) {
-        Column(
-            modifier = Modifier.padding(
-                horizontal = 12.dp,
-                vertical = 10.dp,
-            ),
-            horizontalAlignment = Alignment.CenterHorizontally,
-        ) {
-            Text(
-                text = "◉",
-                color = if (monitorando) Color(0xFF7CB342) else Color(0xFFC62828),
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.Bold,
-            )
-            Text(
-                text = if (monitorando) "Monitorando" else "Parado",
-                color = TextoPrincipal,
-                style = MaterialTheme.typography.labelSmall,
             )
         }
     }

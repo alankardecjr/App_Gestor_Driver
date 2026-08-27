@@ -77,6 +77,10 @@ data class AppState(
 
     val seloFlutuante: Boolean = false,
 
+    val compactaTemporaria: Boolean = false,
+
+    val corridaAntesDaOferta: AnaliseCorrida? = null,
+
     // ================================================================
     // MONITORAMENTO
     // ================================================================

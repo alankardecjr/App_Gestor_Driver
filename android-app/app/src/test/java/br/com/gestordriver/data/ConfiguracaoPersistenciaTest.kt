@@ -77,6 +77,8 @@ class ConfiguracaoPersistenciaTest {
         val analise = (evento as RideNotificationEvent.CorridaRecebida).analise
         assertEquals(1.6, analise.combustivelEstimado!!, 0.01)
         assertEquals(8.0, analise.custoCombustivel!!, 0.01)
+        assertEquals(30.0, analise.valorTotal - analise.custoCombustivel!!, 0.01)
+        assertEquals("1,88 /km", br.com.gestordriver.presentation.PresentationBuilder.formatarLiquidoPorKm(analise))
         assertEquals(Classificacao.REGULAR, analise.classificacao)
     }
 

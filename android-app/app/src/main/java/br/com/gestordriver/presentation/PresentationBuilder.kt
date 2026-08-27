@@ -70,7 +70,7 @@ object PresentationBuilder {
             modo = ModoApresentacao.COMPACTA,
             historicoVisivel = false,
             configuracoesVisivel = false,
-            interfaceOculta = true,
+            interfaceOculta = false,
             overlayAtivo = false,
             notificacaoDisponivel = false,
             seloFlutuante = false,
@@ -120,6 +120,8 @@ object PresentationBuilder {
         corridaAceita: Boolean = false,
         ultimaCorridaAceita: AnaliseCorrida? = null,
         ofertaAtiva: Boolean = analise != null && !corridaAceita,
+        compactaTemporaria: Boolean = false,
+        corridaAntesDaOferta: AnaliseCorrida? = null,
     ): AppState {
 
         val corrida =
@@ -173,6 +175,12 @@ object PresentationBuilder {
             seloFlutuante =
                 seloFlutuante,
 
+            compactaTemporaria =
+                compactaTemporaria,
+
+            corridaAntesDaOferta =
+                corridaAntesDaOferta,
+
             monitorando =
                 monitorando,
 
@@ -213,6 +221,14 @@ object PresentationBuilder {
             analise,
         )
 
+    fun formatarLiquidoPorKm(analise: AnaliseCorrida?): String {
+        val custo = analise?.custoCombustivel ?: return "—"
+        if (analise.kmTotal <= 0.0) {
+            return "—"
+        }
+        return formatDecimal((analise.valorTotal - custo) / analise.kmTotal, 2) + " /km"
+    }
+
     // =====================================================================
     // APRESENTAÇÃO DA CORRIDA
     // =====================================================================
@@ -231,8 +247,10 @@ object PresentationBuilder {
         val camposDetalhes = listOf(
             CampoApresentacao(id = "km_ate_passageiro", titulo = "Até o Passageiro", valor = "—"),
             CampoApresentacao(id = "km_viagem", titulo = "Até o destino", valor = "—"),
+            CampoApresentacao(id = "km_total_detalhe", titulo = "Total percorrido", valor = "—"),
             CampoApresentacao(id = "combustivel_estimado", titulo = "Combustível estimado", valor = "—"),
             CampoApresentacao(id = "custo_combustivel", titulo = "Gasto estimado", valor = "—"),
+            CampoApresentacao(id = "lucro_estimado", titulo = "Lucro estimado", valor = "—"),
             CampoApresentacao(id = "status_oferta", titulo = "Status", valor = "Aguardando oferta"),
         )
         return CorridaPresentation(
@@ -361,6 +379,12 @@ object PresentationBuilder {
                 ),
 
                 CampoApresentacao(
+                    id = "km_total_detalhe",
+                    titulo = "Total percorrido",
+                    valor = formatKm(analise.kmTotal),
+                ),
+
+                CampoApresentacao(
                     id = "endereco_embarque",
                     titulo = "Embarque",
                     valor = analise.corrida.enderecoEmbarque ?: "—",
@@ -413,16 +437,19 @@ object PresentationBuilder {
                 ),
 
                 CampoApresentacao(
-                    id = "recursos_avancados",
-                    titulo = "Recursos avançados",
+                    id = "lucro_estimado",
+                    titulo = "Lucro estimado",
                     valor =
-                        if (recursos.recursosAvancados) {
-                            "Ativo"
+                        if (recursos.exibeCustoCombustivel) {
+                            analise.custoCombustivel
+                                ?.let { custo ->
+                                    formatMoney(analise.valorTotal - custo)
+                                }
+                                ?: "—"
                         } else {
-                            "Bloqueado"
+                            "🔒"
                         },
-                    disponivel =
-                        recursos.recursosAvancados,
+                    disponivel = recursos.exibeCustoCombustivel,
                 ),
             )
 

@@ -30,12 +30,12 @@ O parser usa padrões de texto (R$, km, min) e frases de aceite. Formatos reais 
 Compacta (sobre o app de transporte):
 
 ```text
-R$/KM 2,38 │ R$ 38,00 │ 16 km │ 24 min │ nota │ ⓘ
+💵 R$/KM  2,38 │ 💰 R$ 38,00 │ 🛞 KM 16 │ 🕐 MIN 24 │ ⭐ NOTA │ ⓘ
 ```
 
-Detalhes: km até o passageiro, km da viagem, endereços (se vierem na notificação), combustível, gasto, Config, Maps/Waze, Ocultar, Fechar, Histórico.
+Toque no selo abre a **expandida em overlay (~1/3 da tela)**, sem cobrir o mapa. Expandida: mesmas métricas + **LÍQUIDO /km**, colunas Distâncias e Custos (combustível), botões **Config · Ocultar · Fechar · Histórico**. ⓘ retrai para a compacta.
 
-Sem oferta o app fica em monitoramento (selo). Ausência de notificação **não é erro**.
+No beta, **gasto** e **lucro estimado** usam só combustível (sem pneus, óleo ou manutenção). Sem oferta o app fica em monitoramento (selo). Ausência de notificação **não é erro**.
 
 ---
 

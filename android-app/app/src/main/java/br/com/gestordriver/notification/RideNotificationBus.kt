@@ -65,8 +65,10 @@ object RideNotificationBus {
     fun publish(
         event: RideNotificationEvent,
     ) {
-        scope.launch {
-            _events.emit(event)
+        if (!_events.tryEmit(event)) {
+            scope.launch {
+                _events.emit(event)
+            }
         }
     }
 }

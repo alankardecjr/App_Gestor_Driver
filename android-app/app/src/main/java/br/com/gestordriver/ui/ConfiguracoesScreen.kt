@@ -24,6 +24,11 @@ import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
@@ -33,6 +38,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import br.com.gestordriver.model.AppNavegacao
 import br.com.gestordriver.model.Combustivel
+import br.com.gestordriver.navigation.NavegacaoLauncher
 import br.com.gestordriver.permission.PermissoesMonitoramento
 
 private val FundoCard = Color(0xFF050809)
@@ -47,6 +53,8 @@ fun ConfiguracoesScreen(
     onVoltar: () -> Unit,
 ) {
     val configuracao = viewModel.configuracao
+    var aba by remember { mutableIntStateOf(0) }
+    val abas = listOf("Veículo", "Classificação", "App")
 
     Column(
         modifier = Modifier
@@ -76,142 +84,185 @@ fun ConfiguracoesScreen(
             )
         }
 
-        SecaoCard(titulo = "Ajustes do veículo") {
-            CampoTexto(
-                label = "Marca",
-                valor = configuracao.marcaVeiculo,
-                onValorChange = viewModel::atualizarMarca,
-            )
-            CampoTexto(
-                label = "Modelo",
-                valor = configuracao.modeloVeiculo,
-                onValorChange = viewModel::atualizarModelo,
-            )
-            CampoTexto(
-                label = "Versão",
-                valor = configuracao.versaoVeiculo,
-                onValorChange = viewModel::atualizarVersao,
-            )
-            CampoTexto(
-                label = "Ano",
-                valor = configuracao.anoVeiculo,
-                onValorChange = viewModel::atualizarAno,
-            )
-            CampoNumerico(
-                label = "Consumo gasolina (km/L)",
-                valor = configuracao.consumoGasolina,
-                onValorChange = viewModel::atualizarConsumoGasolina,
-            )
-            CampoNumerico(
-                label = "Consumo etanol (km/L)",
-                valor = configuracao.consumoEtanol,
-                onValorChange = viewModel::atualizarConsumoEtanol,
-            )
-
-            SubtituloSecao(texto = "Combustível")
-            SeletorCombustivel(
-                selecionado = configuracao.combustivel,
-                onSelecionar = viewModel::selecionarCombustivel,
-            )
-
-            CampoNumerico(
-                label = "Preço gasolina (R$)",
-                valor = configuracao.precoGasolina,
-                onValorChange = viewModel::atualizarPrecoGasolina,
-            )
-            CampoNumerico(
-                label = "Preço etanol (R$)",
-                valor = configuracao.precoEtanol,
-                onValorChange = viewModel::atualizarPrecoEtanol,
-            )
-        }
-
-        SecaoCard(titulo = "Ajustes do App") {
-            SubtituloSecao(texto = "Permissões")
-            val contexto = LocalContext.current
-            val overlayOk = PermissoesMonitoramento.overlayConcedida(contexto)
-            val listenerOk = PermissoesMonitoramento.listenerNotificacoesAtivo(contexto)
-            Text(
-                text = if (overlayOk && listenerOk) {
-                    "Permissões de overlay e notificações concedidas."
-                } else {
-                    "Conceda overlay e acesso a notificações para monitorar ofertas."
-                },
-                color = TextoSecundario,
-                style = MaterialTheme.typography.bodySmall,
-            )
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                TextButton(
-                    onClick = {
-                        contexto.startActivity(Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS))
-                    },
-                ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceEvenly,
+        ) {
+            abas.forEachIndexed { index, titulo ->
+                TextButton(onClick = { aba = index }) {
                     Text(
-                        text = if (listenerOk) "Notificações ✓" else "Notificações",
-                        color = if (listenerOk) DestaqueSelecionado else TextoPrincipal,
-                        style = MaterialTheme.typography.labelSmall,
-                    )
-                }
-                TextButton(
-                    onClick = {
-                        contexto.startActivity(
-                            Intent(
-                                Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
-                                android.net.Uri.parse("package:${contexto.packageName}"),
-                            ),
-                        )
-                    },
-                ) {
-                    Text(
-                        text = if (overlayOk) "Overlay ✓" else "Overlay",
-                        color = if (overlayOk) DestaqueSelecionado else TextoPrincipal,
-                        style = MaterialTheme.typography.labelSmall,
+                        text = titulo,
+                        color = if (aba == index) DestaqueSelecionado else TextoSecundario,
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = if (aba == index) FontWeight.SemiBold else FontWeight.Normal,
                     )
                 }
             }
+        }
 
-            Spacer(modifier = Modifier.height(4.dp))
+        when (aba) {
+            0 -> SecaoCard(titulo = "Ajustes do veículo") {
+                CampoTexto(
+                    label = "Marca",
+                    valor = configuracao.marcaVeiculo,
+                    onValorChange = viewModel::atualizarMarca,
+                )
+                CampoTexto(
+                    label = "Modelo",
+                    valor = configuracao.modeloVeiculo,
+                    onValorChange = viewModel::atualizarModelo,
+                )
+                CampoTexto(
+                    label = "Versão",
+                    valor = configuracao.versaoVeiculo,
+                    onValorChange = viewModel::atualizarVersao,
+                )
+                CampoTexto(
+                    label = "Ano",
+                    valor = configuracao.anoVeiculo,
+                    onValorChange = viewModel::atualizarAno,
+                )
+                CampoNumerico(
+                    label = "Consumo gasolina (km/L)",
+                    valor = configuracao.consumoGasolina,
+                    onValorChange = viewModel::atualizarConsumoGasolina,
+                )
+                CampoNumerico(
+                    label = "Consumo etanol (km/L)",
+                    valor = configuracao.consumoEtanol,
+                    onValorChange = viewModel::atualizarConsumoEtanol,
+                )
+                SubtituloSecao(texto = "Combustível")
+                SeletorCombustivel(
+                    selecionado = configuracao.combustivel,
+                    onSelecionar = viewModel::selecionarCombustivel,
+                )
+                CampoNumerico(
+                    label = "Preço gasolina (R$)",
+                    valor = configuracao.precoGasolina,
+                    onValorChange = viewModel::atualizarPrecoGasolina,
+                )
+                CampoNumerico(
+                    label = "Preço etanol (R$)",
+                    valor = configuracao.precoEtanol,
+                    onValorChange = viewModel::atualizarPrecoEtanol,
+                )
+            }
 
-            SubtituloSecao(texto = "Navegação")
-            SeletorNavegacao(
-                selecionado = configuracao.navegacao,
-                onSelecionar = viewModel::selecionarNavegacao,
-            )
+            1 -> SecaoCard(titulo = "Classificação (R$/km)") {
+                FaixaClassificacao(
+                    titulo = "Ruim",
+                    min = configuracao.limiteRuimMin,
+                    max = configuracao.limiteRuimMax,
+                    onMinChange = viewModel::atualizarLimiteRuimMin,
+                    onMaxChange = viewModel::atualizarLimiteRuimMax,
+                )
+                FaixaClassificacao(
+                    titulo = "Regular",
+                    min = configuracao.limiteRegularMin,
+                    max = configuracao.limiteRegularMax,
+                    onMinChange = viewModel::atualizarLimiteRegularMin,
+                    onMaxChange = viewModel::atualizarLimiteRegularMax,
+                )
+                FaixaClassificacao(
+                    titulo = "Boa",
+                    min = configuracao.limiteBoaMin,
+                    max = configuracao.limiteBoaMax,
+                    onMinChange = viewModel::atualizarLimiteBoaMin,
+                    onMaxChange = viewModel::atualizarLimiteBoaMax,
+                )
+                FaixaClassificacao(
+                    titulo = "Ótima",
+                    min = configuracao.limiteOtimaMin,
+                    max = configuracao.limiteOtimaMax,
+                    onMinChange = viewModel::atualizarLimiteOtimaMin,
+                    onMaxChange = viewModel::atualizarLimiteOtimaMax,
+                )
+            }
 
-            Spacer(modifier = Modifier.height(4.dp))
-
-            SubtituloSecao(texto = "Classificação")
-            FaixaClassificacao(
-                titulo = "Ruim",
-                min = configuracao.limiteRuimMin,
-                max = configuracao.limiteRuimMax,
-                onMinChange = viewModel::atualizarLimiteRuimMin,
-                onMaxChange = viewModel::atualizarLimiteRuimMax,
-            )
-            FaixaClassificacao(
-                titulo = "Regular",
-                min = configuracao.limiteRegularMin,
-                max = configuracao.limiteRegularMax,
-                onMinChange = viewModel::atualizarLimiteRegularMin,
-                onMaxChange = viewModel::atualizarLimiteRegularMax,
-            )
-            FaixaClassificacao(
-                titulo = "Boa",
-                min = configuracao.limiteBoaMin,
-                max = configuracao.limiteBoaMax,
-                onMinChange = viewModel::atualizarLimiteBoaMin,
-                onMaxChange = viewModel::atualizarLimiteBoaMax,
-            )
-            FaixaClassificacao(
-                titulo = "Ótima",
-                min = configuracao.limiteOtimaMin,
-                max = configuracao.limiteOtimaMax,
-                onMinChange = viewModel::atualizarLimiteOtimaMin,
-                onMaxChange = viewModel::atualizarLimiteOtimaMax,
-            )
+            else -> {
+                val contexto = LocalContext.current
+                val localizacaoOk = PermissoesMonitoramento.localizacaoConcedida(contexto)
+                val overlayOk = PermissoesMonitoramento.overlayConcedida(contexto)
+                val listenerOk = PermissoesMonitoramento.listenerNotificacoesAtivo(contexto)
+                SecaoCard(titulo = "Ajustes do App") {
+                    SubtituloSecao(texto = "Permissões")
+                    Text(
+                        text = if (overlayOk && listenerOk) {
+                            "Permissões de overlay e notificações concedidas."
+                        } else {
+                            "Conceda overlay e acesso a notificações para monitorar ofertas."
+                        },
+                        color = TextoSecundario,
+                        style = MaterialTheme.typography.bodySmall,
+                    )
+                    TextButton(
+                        onClick = {
+                            (contexto as? br.com.gestordriver.MainActivity)?.pedirLocalizacao()
+                        },
+                    ) {
+                        Text(
+                            text = if (localizacaoOk) "Localização ✓" else "Permitir localização",
+                            color = if (localizacaoOk) DestaqueSelecionado else TextoPrincipal,
+                            style = MaterialTheme.typography.labelSmall,
+                        )
+                    }
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        TextButton(
+                            onClick = {
+                                contexto.startActivity(Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS))
+                            },
+                        ) {
+                            Text(
+                                text = if (listenerOk) "Notificações ✓" else "Notificações",
+                                color = if (listenerOk) DestaqueSelecionado else TextoPrincipal,
+                                style = MaterialTheme.typography.labelSmall,
+                            )
+                        }
+                        TextButton(
+                            onClick = {
+                                contexto.startActivity(
+                                    Intent(
+                                        Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+                                        android.net.Uri.parse("package:${contexto.packageName}"),
+                                    ),
+                                )
+                            },
+                        ) {
+                            Text(
+                                text = if (overlayOk) "Overlay ✓" else "Overlay",
+                                color = if (overlayOk) DestaqueSelecionado else TextoPrincipal,
+                                style = MaterialTheme.typography.labelSmall,
+                            )
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(4.dp))
+                    SubtituloSecao(texto = "Navegação")
+                    SeletorNavegacao(
+                        selecionado = configuracao.navegacao,
+                        onSelecionar = viewModel::selecionarNavegacao,
+                    )
+                    TextButton(
+                        onClick = {
+                            NavegacaoLauncher.abrirAplicativo(contexto, configuracao.navegacao)
+                        },
+                    ) {
+                        Text(
+                            text = if (configuracao.navegacao == AppNavegacao.WAZE) {
+                                "Abrir Waze"
+                            } else {
+                                "Abrir Google Maps"
+                            },
+                            color = DestaqueSelecionado,
+                            style = MaterialTheme.typography.labelMedium,
+                            fontWeight = FontWeight.SemiBold,
+                        )
+                    }
+                }
+            }
         }
 
         Row(
@@ -333,12 +384,15 @@ private fun CampoNumerico(
     valor: Double,
     onValorChange: (Double) -> Unit,
 ) {
-    val texto = if (valor == 0.0) "" else formatarNumero(valor)
+    var texto by remember(valor) { mutableStateOf(DecimalInput.formatar(valor)) }
 
     OutlinedTextField(
         value = texto,
         onValueChange = { entrada ->
-            onValorChange(entrada.replace(',', '.').toDoubleOrNull() ?: 0.0)
+            if (entrada.isEmpty() || entrada.matches(Regex("^[0-9]*[.,]?[0-9]*$"))) {
+                texto = entrada
+                DecimalInput.parse(entrada)?.let(onValorChange)
+            }
         },
         modifier = Modifier.fillMaxWidth(),
         label = {
@@ -397,12 +451,15 @@ private fun CampoNumericoCompacto(
     onValorChange: (Double) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val texto = if (valor == 0.0) "" else formatarNumero(valor)
+    var texto by remember(valor) { mutableStateOf(DecimalInput.formatar(valor)) }
 
     OutlinedTextField(
         value = texto,
         onValueChange = { entrada ->
-            onValorChange(entrada.replace(',', '.').toDoubleOrNull() ?: 0.0)
+            if (entrada.isEmpty() || entrada.matches(Regex("^[0-9]*[.,]?[0-9]*$"))) {
+                texto = entrada
+                DecimalInput.parse(entrada)?.let(onValorChange)
+            }
         },
         modifier = modifier,
         label = {
@@ -499,11 +556,3 @@ private fun coresCampo() = OutlinedTextFieldDefaults.colors(
     focusedLabelColor = TextoSecundario,
     unfocusedLabelColor = TextoSecundario,
 )
-
-private fun formatarNumero(valor: Double): String {
-    return if (valor % 1.0 == 0.0) {
-        valor.toInt().toString()
-    } else {
-        valor.toString().replace('.', ',')
-    }
-}
