@@ -60,7 +60,7 @@ class PresentationModelTestCase(unittest.TestCase):
         self.assertFalse(modelo.campo_por_chave("valor_por_km").permitido)
         self.assertEqual(modelo.campo_por_chave("valor_por_km").texto_exibicao, "🔒")
         self.assertEqual(modelo.campo_por_chave("valor_total").texto_exibicao, "R$ 40,00")
-        self.assertEqual(modelo.campo_por_chave("km_total").texto_exibicao, "10 km")
+        self.assertEqual(modelo.campo_por_chave("km_total").texto_exibicao, "10,0 KM")
         self.assertEqual(modelo.campo_por_chave("nota_passageiro").texto_exibicao, "4,80")
 
     def test_beta_expande_e_libera_financeiro(self):

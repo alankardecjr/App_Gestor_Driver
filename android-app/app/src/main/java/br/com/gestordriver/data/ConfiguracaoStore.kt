@@ -28,6 +28,7 @@ fun ConfiguracaoUsuario.paraPreferencias(): Map<String, String> = mapOf(
     "modeloVeiculo" to modeloVeiculo,
     "versaoVeiculo" to versaoVeiculo,
     "anoVeiculo" to anoVeiculo,
+    "finalPlaca" to finalPlaca,
     "consumoGasolina" to consumoGasolina.toString(),
     "consumoEtanol" to consumoEtanol.toString(),
     "combustivel" to combustivel.name,
@@ -51,6 +52,7 @@ fun Map<String, String>.paraConfiguracaoUsuario(): ConfiguracaoUsuario {
         modeloVeiculo = this["modeloVeiculo"] ?: padrao.modeloVeiculo,
         versaoVeiculo = this["versaoVeiculo"] ?: padrao.versaoVeiculo,
         anoVeiculo = this["anoVeiculo"] ?: padrao.anoVeiculo,
+        finalPlaca = this["finalPlaca"] ?: padrao.finalPlaca,
         consumoGasolina = this["consumoGasolina"]?.toDoubleOrNull() ?: padrao.consumoGasolina,
         consumoEtanol = this["consumoEtanol"]?.toDoubleOrNull() ?: padrao.consumoEtanol,
         combustivel = this["combustivel"]?.let {

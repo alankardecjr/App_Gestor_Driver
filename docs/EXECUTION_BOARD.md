@@ -4,12 +4,12 @@ Board de acompanhamento. O README e o [Roadmap](Roadmap.md) descrevem o estado d
 
 ## To Do
 
-1. Calibrar parser e aceite com notificações reais (usar `notificacoes_diagnostico.txt`).
-2. Expandir testes do pipeline (textos truncados, variações regionais).
-3. Testes instrumentados no dispositivo.
-4. Observabilidade e consumo de bateria em uso real.
-5. Material de demo para portfólio (gravação de tela após calibração).
-6. RC1 quando o piloto no celular estiver estável.
+1. Calibrar parser e aceite com notificações reais (`notificacoes_diagnostico.txt`).
+2. Testes instrumentados no dispositivo (depois da calibração).
+3. **Pro** — custo operacional, R$ líquido, relatórios (depois do Beta estável).
+4. **Free na loja** — ocultar cálculos na UI e publicar.
+
+Não misturar Pro/Free com o piloto Beta.
 
 ## Doing
 

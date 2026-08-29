@@ -28,6 +28,12 @@ data class HistoricoItemPresentation(
     val data: String
         get() = dataHora
 
+    val dataLista: String
+        get() = dataHora.split(" ").getOrElse(0) { "—" }
+
+    val horaLista: String
+        get() = dataHora.split(" ").getOrElse(1) { "—" }
+
     val linhaHorizontal: String
         get() = HistoricoFormatacao.linhaHorizontal(
             valorPorKm = valorPorKm,
@@ -36,6 +42,26 @@ data class HistoricoItemPresentation(
             tempoEstimado = tempoEstimado,
             notaPassageiro = notaPassageiro,
         )
+
+    val linhaHistorico: String
+        get() = HistoricoFormatacao.linhaHistorico(
+            data = dataLista,
+            hora = horaLista,
+            valorPorKm = valorPorKm,
+            valorTotal = valorTotal,
+            kmTotal = kmTotal,
+            tempoEstimado = tempoEstimado,
+            notaPassageiro = notaPassageiro,
+        )
+
+    fun pertenceAba(aba: String): Boolean {
+        return when (aba.lowercase()) {
+            "uber" -> plataforma.contains("Uber", ignoreCase = true)
+            "99" -> plataforma.contains("99")
+            else -> plataforma.contains("inDrive", ignoreCase = true) ||
+                plataforma.contains("indrive", ignoreCase = true)
+        }
+    }
 
     fun paraAnalise(): AnaliseCorrida = AnaliseCorrida(
         corrida = Corrida(
@@ -98,26 +124,38 @@ object HistoricoFormatacao {
 
         return buildString {
             append(formatDecimal(valorPorKm, 2))
-            append(" │ R$ ")
+            append(" │ ")
             append(formatDecimal(valorTotal, 2))
             append(" │ ")
             append(formatKm(kmTotal))
             append(" │ ")
             append(tempo)
-            append(" min │ ")
+            append(" │ ")
             append(nota)
         }
+    }
+
+    fun linhaHistorico(
+        data: String,
+        hora: String,
+        valorPorKm: Double,
+        valorTotal: Double,
+        kmTotal: Double,
+        tempoEstimado: Int?,
+        notaPassageiro: Double?,
+    ): String {
+        return "$data │ $hora │ ${linhaHorizontal(
+            valorPorKm,
+            valorTotal,
+            kmTotal,
+            tempoEstimado,
+            notaPassageiro,
+        )}"
     }
 
     private fun formatDecimal(valor: Double, casas: Int): String =
         "%.${casas}f".format(Locale.US, valor).replace(".", ",")
 
-    private fun formatKm(valor: Double): String {
-        val texto = if (valor % 1.0 == 0.0) {
-            "%.0f".format(Locale.US, valor)
-        } else {
-            "%.1f".format(Locale.US, valor)
-        }
-        return "$texto km"
-    }
+    private fun formatKm(valor: Double): String =
+        "%.1f".format(Locale.US, valor).replace(".", ",") + " KM"
 }

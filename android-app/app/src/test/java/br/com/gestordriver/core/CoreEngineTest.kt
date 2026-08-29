@@ -8,8 +8,11 @@ class MotorClassificacaoTest {
 
     @Test
     fun deve_classificar_boa() {
-        assertEquals(Classificacao.BOA, motor.classificarPorValorKm(2.375))
-        assertEquals("#7CB342", motor.corDe(Classificacao.BOA))
+        assertEquals(Classificacao.EXCELENTE, motor.classificarPorValorKm(2.375))
+        assertEquals("#2E7D32", motor.corDe(Classificacao.BOA))
+        assertEquals("#1E88E5", motor.corDe(Classificacao.EXCELENTE))
+        assertEquals("#EF6C00", motor.corDe(Classificacao.REGULAR))
+        assertEquals("#EF6C00", motor.corDe(Classificacao.BAIXA))
     }
 
     @Test

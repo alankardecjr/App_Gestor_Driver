@@ -46,6 +46,12 @@ data class AppState(
     val historicoSelecionado:
         HistoricoItemPresentation? = null,
 
+    val abaHistorico: String = "Uber",
+
+    val abaConfiguracao: Int = 0,
+
+    val destacarPermissoes: Boolean = false,
+
     // ================================================================
     // ACEITE DA CORRIDA ATUAL
     //

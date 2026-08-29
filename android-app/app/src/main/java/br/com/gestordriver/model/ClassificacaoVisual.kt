@@ -10,6 +10,14 @@ enum class ClassificacaoVisual {
     RUIM,
     ;
 
+    val marcador: String
+        get() = when (this) {
+            EXCELENTE -> "🔵"
+            BOA -> "🟢"
+            REGULAR, BAIXA -> "🟠"
+            RUIM -> "🔴"
+        }
+
     companion object {
         fun from(classificacao: Classificacao): ClassificacaoVisual =
             valueOf(classificacao.name)

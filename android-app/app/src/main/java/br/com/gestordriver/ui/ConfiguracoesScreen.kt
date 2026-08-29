@@ -36,6 +36,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import br.com.gestordriver.core.FaixasClassificacao
 import br.com.gestordriver.model.AppNavegacao
 import br.com.gestordriver.model.Combustivel
 import br.com.gestordriver.navigation.NavegacaoLauncher
@@ -51,10 +52,15 @@ private val DestaqueSelecionado = Color(0xFF7CB342)
 fun ConfiguracoesScreen(
     viewModel: ConfiguracoesViewModel,
     onVoltar: () -> Unit,
+    abaInicial: Int = 0,
+    destacarPermissoes: Boolean = false,
 ) {
     val configuracao = viewModel.configuracao
-    var aba by remember { mutableIntStateOf(0) }
-    val abas = listOf("Veículo", "Classificação", "App")
+    var aba by remember { mutableIntStateOf(abaInicial) }
+    androidx.compose.runtime.LaunchedEffect(abaInicial) {
+        aba = abaInicial
+    }
+    val abas = listOf("VEÍCULO", "CLASSIFICAÇÃO", "APP")
 
     Column(
         modifier = Modifier
@@ -122,6 +128,11 @@ fun ConfiguracoesScreen(
                     valor = configuracao.anoVeiculo,
                     onValorChange = viewModel::atualizarAno,
                 )
+                CampoTexto(
+                    label = "Final da placa",
+                    valor = configuracao.finalPlaca,
+                    onValorChange = viewModel::atualizarFinalPlaca,
+                )
                 CampoNumerico(
                     label = "Consumo gasolina (km/L)",
                     valor = configuracao.consumoGasolina,
@@ -132,21 +143,26 @@ fun ConfiguracoesScreen(
                     valor = configuracao.consumoEtanol,
                     onValorChange = viewModel::atualizarConsumoEtanol,
                 )
-                SubtituloSecao(texto = "Combustível")
-                SeletorCombustivel(
-                    selecionado = configuracao.combustivel,
-                    onSelecionar = viewModel::selecionarCombustivel,
-                )
-                CampoNumerico(
-                    label = "Preço gasolina (R$)",
-                    valor = configuracao.precoGasolina,
-                    onValorChange = viewModel::atualizarPrecoGasolina,
-                )
-                CampoNumerico(
-                    label = "Preço etanol (R$)",
-                    valor = configuracao.precoEtanol,
-                    onValorChange = viewModel::atualizarPrecoEtanol,
-                )
+                SubtituloSecao(texto = "Combustível atual")
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    androidx.compose.material3.Checkbox(
+                        checked = configuracao.combustivel == Combustivel.GASOLINA,
+                        onCheckedChange = { marcado ->
+                            if (marcado) viewModel.selecionarCombustivel(Combustivel.GASOLINA)
+                        },
+                    )
+                    Text("GASOLINA", color = TextoPrincipal, modifier = Modifier.align(Alignment.CenterVertically))
+                    androidx.compose.material3.Checkbox(
+                        checked = configuracao.combustivel == Combustivel.ETANOL,
+                        onCheckedChange = { marcado ->
+                            if (marcado) viewModel.selecionarCombustivel(Combustivel.ETANOL)
+                        },
+                    )
+                    Text("ETANOL", color = TextoPrincipal, modifier = Modifier.align(Alignment.CenterVertically))
+                }
             }
 
             1 -> SecaoCard(titulo = "Classificação (R$/km)") {
@@ -154,6 +170,7 @@ fun ConfiguracoesScreen(
                     titulo = "Ruim",
                     min = configuracao.limiteRuimMin,
                     max = configuracao.limiteRuimMax,
+                    minFixo = "MIN",
                     onMinChange = viewModel::atualizarLimiteRuimMin,
                     onMaxChange = viewModel::atualizarLimiteRuimMax,
                 )
@@ -175,6 +192,7 @@ fun ConfiguracoesScreen(
                     titulo = "Ótima",
                     min = configuracao.limiteOtimaMin,
                     max = configuracao.limiteOtimaMax,
+                    maxFixo = "MAX",
                     onMinChange = viewModel::atualizarLimiteOtimaMin,
                     onMaxChange = viewModel::atualizarLimiteOtimaMax,
                 )
@@ -188,10 +206,10 @@ fun ConfiguracoesScreen(
                 SecaoCard(titulo = "Ajustes do App") {
                     SubtituloSecao(texto = "Permissões")
                     Text(
-                        text = if (overlayOk && listenerOk) {
-                            "Permissões de overlay e notificações concedidas."
+                        text = if (localizacaoOk && overlayOk && listenerOk) {
+                            "Permissões concedidas."
                         } else {
-                            "Conceda overlay e acesso a notificações para monitorar ofertas."
+                            "Conceda localização, notificações e sobressair para monitorar ofertas."
                         },
                         color = TextoSecundario,
                         style = MaterialTheme.typography.bodySmall,
@@ -202,8 +220,12 @@ fun ConfiguracoesScreen(
                         },
                     ) {
                         Text(
-                            text = if (localizacaoOk) "Localização ✓" else "Permitir localização",
-                            color = if (localizacaoOk) DestaqueSelecionado else TextoPrincipal,
+                            text = if (localizacaoOk) "LOCALIZAÇÃO ✓" else "LOCALIZAÇÃO — faltando",
+                            color = when {
+                                localizacaoOk -> DestaqueSelecionado
+                                destacarPermissoes -> Color(0xFFFFCDD2)
+                                else -> TextoPrincipal
+                            },
                             style = MaterialTheme.typography.labelSmall,
                         )
                     }
@@ -217,8 +239,12 @@ fun ConfiguracoesScreen(
                             },
                         ) {
                             Text(
-                                text = if (listenerOk) "Notificações ✓" else "Notificações",
-                                color = if (listenerOk) DestaqueSelecionado else TextoPrincipal,
+                                text = if (listenerOk) "NOTIFICAÇÕES ✓" else "NOTIFICAÇÕES — faltando",
+                                color = when {
+                                    listenerOk -> DestaqueSelecionado
+                                    destacarPermissoes -> Color(0xFFFFCDD2)
+                                    else -> TextoPrincipal
+                                },
                                 style = MaterialTheme.typography.labelSmall,
                             )
                         }
@@ -233,14 +259,37 @@ fun ConfiguracoesScreen(
                             },
                         ) {
                             Text(
-                                text = if (overlayOk) "Overlay ✓" else "Overlay",
-                                color = if (overlayOk) DestaqueSelecionado else TextoPrincipal,
+                                text = if (overlayOk) "SOBRESSAIR ✓" else "SOBRESSAIR — faltando",
+                                color = when {
+                                    overlayOk -> DestaqueSelecionado
+                                    destacarPermissoes -> Color(0xFFFFCDD2)
+                                    else -> TextoPrincipal
+                                },
                                 style = MaterialTheme.typography.labelSmall,
                             )
                         }
                     }
                     Spacer(modifier = Modifier.height(4.dp))
-                    SubtituloSecao(texto = "Navegação")
+                    SubtituloSecao(texto = "Valores combustível")
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        CampoNumericoCompacto(
+                            label = "GASOLINA",
+                            valor = configuracao.precoGasolina,
+                            onValorChange = viewModel::atualizarPrecoGasolina,
+                            modifier = Modifier.weight(1f),
+                        )
+                        CampoNumericoCompacto(
+                            label = "ETANOL",
+                            valor = configuracao.precoEtanol,
+                            onValorChange = viewModel::atualizarPrecoEtanol,
+                            modifier = Modifier.weight(1f),
+                        )
+                    }
+                    Spacer(modifier = Modifier.height(4.dp))
+                    SubtituloSecao(texto = "App de navegação")
                     SeletorNavegacao(
                         selecionado = configuracao.navegacao,
                         onSelecionar = viewModel::selecionarNavegacao,
@@ -413,6 +462,8 @@ private fun FaixaClassificacao(
     max: Double,
     onMinChange: (Double) -> Unit,
     onMaxChange: (Double) -> Unit,
+    minFixo: String? = null,
+    maxFixo: String? = null,
 ) {
     Column(
         verticalArrangement = Arrangement.spacedBy(4.dp),
@@ -428,20 +479,60 @@ private fun FaixaClassificacao(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            CampoNumericoCompacto(
-                label = "Mín",
-                valor = min,
-                onValorChange = onMinChange,
-                modifier = Modifier.weight(1f),
-            )
-            CampoNumericoCompacto(
-                label = "Máx",
-                valor = max,
-                onValorChange = onMaxChange,
-                modifier = Modifier.weight(1f),
-            )
+            if (minFixo != null) {
+                CampoFaixaFixa(
+                    label = "MIN",
+                    valor = minFixo,
+                    modifier = Modifier.weight(1f),
+                )
+            } else {
+                CampoNumericoCompacto(
+                    label = "MIN",
+                    valor = min,
+                    onValorChange = onMinChange,
+                    modifier = Modifier.weight(1f),
+                    duasCasas = true,
+                )
+            }
+            if (maxFixo != null) {
+                CampoFaixaFixa(
+                    label = "MAX",
+                    valor = maxFixo,
+                    modifier = Modifier.weight(1f),
+                )
+            } else {
+                CampoNumericoCompacto(
+                    label = "MAX",
+                    valor = max,
+                    onValorChange = onMaxChange,
+                    modifier = Modifier.weight(1f),
+                    duasCasas = true,
+                )
+            }
         }
     }
+}
+
+@Composable
+private fun CampoFaixaFixa(
+    label: String,
+    valor: String,
+    modifier: Modifier = Modifier,
+) {
+    OutlinedTextField(
+        value = valor,
+        onValueChange = {},
+        modifier = modifier,
+        label = {
+            Text(
+                text = label,
+                color = TextoSecundario,
+            )
+        },
+        enabled = false,
+        singleLine = true,
+        colors = coresCampo(),
+    )
 }
 
 @Composable
@@ -450,8 +541,13 @@ private fun CampoNumericoCompacto(
     valor: Double,
     onValorChange: (Double) -> Unit,
     modifier: Modifier = Modifier,
+    duasCasas: Boolean = false,
 ) {
-    var texto by remember(valor) { mutableStateOf(DecimalInput.formatar(valor)) }
+    var texto by remember(valor) {
+        mutableStateOf(
+            if (duasCasas) FaixasClassificacao.formatar(valor) else DecimalInput.formatar(valor),
+        )
+    }
 
     OutlinedTextField(
         value = texto,
@@ -507,13 +603,13 @@ private fun SeletorNavegacao(
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         OpcaoSelecionavel(
-            texto = "Google Maps",
+            texto = "MAPS",
             selecionado = selecionado == AppNavegacao.GOOGLE_MAPS,
             onClick = { onSelecionar(AppNavegacao.GOOGLE_MAPS) },
             modifier = Modifier.weight(1f),
         )
         OpcaoSelecionavel(
-            texto = "Waze",
+            texto = "WAZE",
             selecionado = selecionado == AppNavegacao.WAZE,
             onClick = { onSelecionar(AppNavegacao.WAZE) },
             modifier = Modifier.weight(1f),

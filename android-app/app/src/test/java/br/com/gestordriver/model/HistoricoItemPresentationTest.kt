@@ -31,14 +31,15 @@ class HistoricoItemPresentationTest {
         assertEquals(16.0, item.kmTotal, 0.001)
         assertEquals(24, item.tempoEstimado)
         assertEquals(4.98, item.notaPassageiro!!, 0.001)
-        assertEquals(ClassificacaoVisual.BOA, item.classificacao)
-        assertEquals("#7CB342", item.corClassificacao)
+        assertEquals(ClassificacaoVisual.EXCELENTE, item.classificacao)
+        assertEquals("🔵", item.classificacao.marcador)
+        assertEquals("#1E88E5", item.corClassificacao)
         assertEquals(3.2, item.kmAtePassageiro, 0.001)
         assertEquals(12.8, item.kmViagem, 0.001)
         assertEquals(1.28, item.combustivelEstimado!!, 0.01)
         assertEquals(7.9232, item.custoCombustivel!!, 0.01)
         assertEquals(
-            "2,38 │ R$ 38,00 │ 16 km │ 24 min │ 4,98",
+            "2,38 │ 38,00 │ 16,0 KM │ 24 │ 4,98",
             item.linhaHorizontal,
         )
     }

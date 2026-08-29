@@ -168,11 +168,20 @@ class MainActivity : ComponentActivity() {
             moveTaskToBack(true)
             return
         }
+        val pedirLocalizacao = intent?.getBooleanExtra(EXTRA_PEDIR_LOCALIZACAO, false) == true
+        if (pedirLocalizacao) {
+            intent?.removeExtra(EXTRA_PEDIR_LOCALIZACAO)
+            pedirLocalizacao()
+            OverlayService.iniciar(this)
+            moveTaskToBack(true)
+            return
+        }
         val abrirHistorico = intent?.getBooleanExtra(EXTRA_ABRIR_HISTORICO, false) == true
         if (abrirHistorico) {
             intent?.removeExtra(EXTRA_ABRIR_HISTORICO)
             viewModel.abrirHistoricoPeloOverlay()
             OverlayService.iniciar(this)
+            moveTaskToBack(true)
             return
         }
         val abrirConfig = intent?.getBooleanExtra(EXTRA_ABRIR_CONFIG, false) == true
@@ -180,6 +189,7 @@ class MainActivity : ComponentActivity() {
             intent?.removeExtra(EXTRA_ABRIR_CONFIG)
             viewModel.abrirConfiguracoes()
             OverlayService.iniciar(this)
+            moveTaskToBack(true)
             return
         }
         val confirmarFechar = intent?.getBooleanExtra(EXTRA_CONFIRMAR_FECHAR, false) == true
@@ -190,7 +200,12 @@ class MainActivity : ComponentActivity() {
             return
         }
         if (!PermissoesMonitoramento.todasConcedidas(this)) {
-            viewModel.abrirConfiguracoes()
+            val overlayOk = PermissoesMonitoramento.overlayConcedida(this)
+            viewModel.abrirConfiguracoes(destaquePermissao = true, usarOverlay = overlayOk)
+            if (overlayOk) {
+                OverlayService.iniciar(this)
+                moveTaskToBack(true)
+            }
             return
         }
         viewModel.iniciarMonitoramento()
@@ -243,5 +258,6 @@ class MainActivity : ComponentActivity() {
         const val EXTRA_ABRIR_HISTORICO = "abrir_historico"
         const val EXTRA_ABRIR_CONFIG = "abrir_config"
         const val EXTRA_CONFIRMAR_FECHAR = "confirmar_fechar"
+        const val EXTRA_PEDIR_LOCALIZACAO = "pedir_localizacao"
     }
 }

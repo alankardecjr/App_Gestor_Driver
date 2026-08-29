@@ -402,6 +402,21 @@ class AppViewModelTest {
         )
     }
 
+    @Test
+    fun cancelar_fechar_deve_permanecer_na_expandida() {
+        val viewModel = novoViewModel()
+        viewModel.iniciarMonitoramento()
+        viewModel.reabrirInterface()
+        viewModel.solicitarFecharApp()
+        viewModel.cancelarFecharApp()
+
+        assertFalse(viewModel.state.confirmacaoFecharVisivel)
+        assertTrue(viewModel.state.monitorando)
+        assertTrue(viewModel.state.interfaceOculta)
+        assertFalse(viewModel.state.seloFlutuante)
+        assertEquals(ModoApresentacao.DETALHES, viewModel.state.corrida.modo)
+    }
+
     // =====================================================================
     // CONFIRMAR FECHAMENTO
     // =====================================================================
@@ -482,6 +497,7 @@ class AppViewModelTest {
         assertTrue(viewModel.state.ofertaAtiva)
         assertTrue(viewModel.state.interfaceOculta)
         assertFalse(viewModel.state.seloFlutuante)
+        assertEquals(analise.corClassificacao, viewModel.state.corrida.corClassificacao)
     }
 
     @Test
@@ -492,6 +508,11 @@ class AppViewModelTest {
         assertEquals(1, viewModel.state.historico.size)
         assertTrue(viewModel.state.corridaAceita)
         assertFalse(viewModel.state.ofertaAtiva)
+        assertTrue(viewModel.state.seloFlutuante)
+        assertEquals(
+            viewModel.state.analiseAtual?.corClassificacao,
+            viewModel.state.corrida.corClassificacao,
+        )
     }
 
     @Test
@@ -506,6 +527,7 @@ class AppViewModelTest {
         assertEquals(1, viewModel.state.historico.size)
         assertEquals(40.0, viewModel.state.ultimaCorridaAceita?.valorTotal ?: 0.0, 0.001)
         assertFalse(viewModel.state.ofertaAtiva)
+        assertEquals(null, viewModel.state.analiseAtual)
     }
 
     @Test
@@ -535,7 +557,7 @@ class AppViewModelTest {
         viewModel.alternarDetalhes()
         assertTrue(viewModel.state.ofertaAtiva)
         assertTrue(viewModel.state.interfaceOculta)
-        assertFalse(viewModel.state.compactaTemporaria)
+        assertTrue(viewModel.state.compactaTemporaria)
         assertFalse(viewModel.state.seloFlutuante)
     }
 
@@ -571,9 +593,31 @@ class AppViewModelTest {
         assertEquals(22.0, viewModel.state.analiseAtual?.valorTotal ?: 0.0, 0.001)
         assertTrue(viewModel.state.interfaceOculta)
         viewModel.expirarOfertaAtual()
-        assertEquals(40.0, viewModel.state.analiseAtual?.valorTotal ?: 0.0, 0.001)
+        assertEquals(null, viewModel.state.analiseAtual)
         assertFalse(viewModel.state.ofertaAtiva)
         assertTrue(viewModel.state.interfaceOculta)
+    }
+
+    @Test
+    fun oferta_na_expandida_expira_restaura_historico_selecionado() {
+        val viewModel = novoViewModel()
+        viewModel.iniciarMonitoramento()
+        viewModel.reabrirInterface()
+        val aceita = analiseFake(valor = 40.0)
+        viewModel.aplicarNovaCorrida(aceita)
+        viewModel.registrarAceiteCorrida()
+        viewModel.reabrirInterface()
+        viewModel.alternarHistorico()
+        viewModel.selecionarHistorico(viewModel.state.historico.first())
+        viewModel.aplicarNovaCorrida(analiseFake(valor = 22.0))
+        assertEquals(22.0, viewModel.state.analiseAtual?.valorTotal ?: 0.0, 0.001)
+        viewModel.expirarOfertaAtual()
+        assertEquals(40.0, viewModel.state.analiseAtual?.valorTotal ?: 0.0, 0.001)
+        assertFalse(viewModel.state.ofertaAtiva)
+        assertEquals(
+            aceita.corClassificacao,
+            viewModel.state.corrida.corClassificacao,
+        )
     }
 
     @Test

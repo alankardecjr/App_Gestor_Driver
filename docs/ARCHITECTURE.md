@@ -9,7 +9,7 @@ Separar regras de negócio, persistência e integração com o sistema Android p
 | Camada | Onde | Papel |
 | --- | --- | --- |
 | Core / domínio | `core/` (Python) e `android-app/.../core/` (Kotlin) | Corrida, R$/KM, classificação, combustível |
-| Apresentação | `presentation/`, `model/`, Compose em `ui/` | Montar o que a tela mostra (inclui Free/Beta/Pro) |
+| Apresentação | `presentation/`, `model/`, overlay | O que a tela mostra; plano Beta agora (Free oculta cálculos no lançamento; Pro depois) |
 | Estado | `AppViewModel`, `ConfiguracoesViewModel` | Oferta atual, histórico, overlay, configuração |
 | Dados | `data/` | Room (histórico aceito), DataStore (config do motorista) |
 | Sistema | `notification/`, `overlay/` | Listener, parser, overlay, foreground service |
@@ -37,5 +37,6 @@ Overlay    Room (só no aceite)
 ## Diretrizes
 
 - O Gestor Driver não aceita a corrida; só observa a plataforma.
-- Histórico não recalcula corridas antigas se o preço do combustível mudar.
+- Custo da oferta usa combustível atual + km/L + preço do litro. Histórico não recalcula se o preço mudar depois.
+- Foco de produto: Beta → Pro → Free na loja.
 - Parser e aceite devem evoluir com o log diagnóstico, sem inventar corrida quando o texto não fecha.

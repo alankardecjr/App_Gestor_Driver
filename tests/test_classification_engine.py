@@ -17,7 +17,7 @@ class MotorClassificacaoTestCase(unittest.TestCase):
     def test_deve_classificar_com_baixa(self):
         self.assertEqual(
             self.motor.classificar_por_valor_km(1.30),
-            Classificacao.BAIXA,
+            Classificacao.REGULAR,
         )
 
     def test_deve_classificar_com_ruim(self):
@@ -39,8 +39,11 @@ class MotorClassificacaoTestCase(unittest.TestCase):
         self.assertEqual(motor.classificar_por_valor_km(2.10), Classificacao.REGULAR)
 
     def test_deve_retornar_cor_por_classificacao(self):
-        self.assertEqual(self.motor.cor_de(Classificacao.EXCELENTE), "#2E7D32")
+        self.assertEqual(self.motor.cor_de(Classificacao.EXCELENTE), "#1E88E5")
+        self.assertEqual(self.motor.cor_de(Classificacao.BOA), "#2E7D32")
+        self.assertEqual(self.motor.cor_de(Classificacao.REGULAR), "#EF6C00")
         self.assertEqual(self.motor.cor_de(Classificacao.RUIM), "#C62828")
+        self.assertEqual(self.motor.cor_de(Classificacao.BAIXA), "#EF6C00")
 
 
 class CalculadoraCorridaClassificacaoTestCase(unittest.TestCase):
@@ -57,7 +60,7 @@ class CalculadoraCorridaClassificacaoTestCase(unittest.TestCase):
         resultado = CalculadoraCorrida().calcular(corrida)
 
         self.assertIsInstance(resultado, AnaliseCorrida)
-        self.assertEqual(resultado.classificacao.name, "BAIXA")
+        self.assertEqual(resultado.classificacao.name, "REGULAR")
         self.assertEqual(resultado.cor_classificacao, "#EF6C00")
 
 

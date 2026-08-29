@@ -4,8 +4,8 @@
 **Projeto:** Gestor Driver  
 **Plataforma:** Android  
 **Documento:** Fluxograma funcional  
-**Status:** Aprovado  
-**Versão:** Fluxo principal
+**Documento oficial de regras:** [`docs/REGRAS_NEGOCIO.md`](REGRAS_NEGOCIO.md)  
+**Versão em foco:** Beta (cálculos visíveis). Pro depois. Free (cálculos ocultos) no lançamento.
 
 ---
 
@@ -23,11 +23,12 @@ O aplicativo:
 4. inicia o monitoramento;
 5. exibe o selo flutuante sobre o app de transporte;
 6. monitora notificações;
-7. na oferta, mostra a **barra compacta** no topo;
-8. no toque do selo, abre a **expandida em overlay (~1/3 da tela)**;
-9. Histórico e Configurações abrem a Activity do Gestor; ao sair ou tocar no selo, voltam ao overlay;
-10. Ocultar e expiração da oferta retornam ao selo na última posição;
-11. Fechar encerra o app após confirmação.
+7. na oferta, mostra a **barra compacta** no topo (só o cabeçalho);
+8. `⬇️` ou toque no selo abre a **expandida em overlay (~1/3 da tela)**;
+9. Histórico e Configuração abrem **embaixo da expandida** (painéis overlay, exclusivos);
+10. Recolher (`⬆️`) volta à compacta; **após 5 s** retorna ao selo. Aceite detectado também vai ao selo;
+11. Ocultar e expiração (sem item de histórico selecionado) retornam ao selo na última posição;
+12. Fechar encerra o app após confirmação.
 
 ---
 
@@ -94,10 +95,10 @@ O aplicativo:
        ▼          ▼           ▼
    HISTÓRICO  CONFIGURAÇÃO  ⓘ / OCULTAR
        │          │           │
-   (Activity) (Activity)      ▼
+   (overlay)  (overlay)       ▼
        │          │          SELO
        └──────────┘
-         ao sair → SELO
+     exclusivos; abaixo da expandida
 
 # 3. Fluxo de uma corrida
 
@@ -117,57 +118,18 @@ O aplicativo:
 ACEITE DETECTADO    RECUSA / EXPIRA
      │                   │
      ▼                   ▼
-  HISTÓRICO           DESCARTA
-     │
-     ▼
-ÚLTIMA CORRIDA ACEITA PERMANECE
+  HISTÓRICO + SELO    SELO (descarta)
 
-          NOTIFICAÇÃO
-               │
-               ▼
-          CORRIDA ATUAL
-               │
-               ▼
-          INTERFACE COMPACTA
-               │
-               ▼
-          USUÁRIO ANALISA
-               │
-               ├─────────────────┐
-               │                 │
-               ▼                 ▼
-          ACEITA            NÃO ACEITA
-               │                 │
-               ▼                 ▼
-          HISTÓRICO          DESCARTA
-               │
-               ▼
-          CORRIDA ACEITA
-               │
-               ▼
-          NOTIFICAÇÃO EXPIRA
-               │
-               ▼
-          ÚLTIMA CORRIDA ACEITA
-               │
-               ▼
-          NOVA NOTIFICAÇÃO?
-               │
-          ┌───┴────┐
-          │        │
-          NÃO      SIM
-          │        │
-          ▼        ▼
-     AGUARDA  NOVA CORRIDA
+Nova oferta substitui a corrida atual. Sem oferta = selo. Histórico só muda no aceite.
 
 
 # 4. Fluxo de minimização
 
           EXPANDIDA (overlay 1/3)
           │
-          ├── 📜 HISTÓRICO → Activity → ao sair / selo → overlay
-          ├── ⚙️ CONFIG → Activity → ao sair / selo → overlay
-          ├── ⓘ retrai para compacta (3 s sem oferta → selo)
+          ├── 📜 HISTÓRICO → painel overlay abaixo (⤴️ recolhe)
+          ├── ⚙️ CONFIG → painel overlay abaixo (abas VEÍCULO / CLASSIFICAÇÃO / APP)
+          ├── ⬆️ retrai para compacta (5 s → selo, mesmo com oferta)
           └── ❎ OCULTAR → selo (fecha histórico e config)
 
 #5. Fluxo de encerramento
@@ -183,3 +145,20 @@ ACEITE DETECTADO    RECUSA / EXPIRA
           │               │
           ▼               ▼
        NADA MUDA      ENCERRA
+
+# 6. Classificação visual (oficial)
+
+Fonte da verdade: R$/KM → faixa → classificação → cor. A interface não escolhe a cor.
+
+Corrida atual (borda grossa):
+
+- 🔴 Ruim = vermelho
+- 🟠 Regular = laranja
+- 🟢 Boa = verde
+- 🔵 Ótima = azul
+
+Histórico (borda neutra **somente nos itens das listas** Uber / 99 / inDrive): a classificação aparece no marcador colorido. Compacta/expandida com oferta ou item selecionado **mantém a borda colorida**.
+
+Custo (Beta): litros = km total ÷ km/L do combustível atual; gasto = litros × preço desse litro.
+
+Documento completo: `docs/REGRAS_NEGOCIO.md`.

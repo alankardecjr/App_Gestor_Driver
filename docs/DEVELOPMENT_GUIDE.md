@@ -12,7 +12,7 @@
 
 1. Branch por tarefa.
 2. Mudar o mínimo necessário; regras de domínio em `core/` (Kotlin) com teste.
-3. Validar unitários; no celular seguir [ROTEIRO_BETA.md](ROTEIRO_BETA.md).
+3. Validar unitários; no celular seguir [ROTEIRO_BETA.md](ROTEIRO_BETA.md). Não implementar Pro nem Free de loja até o Beta estar calibrado. Não implementar Pro nem Free de loja até o Beta estar calibrado.
 4. PR com o *porquê* da mudança.
 
 ## Convenções

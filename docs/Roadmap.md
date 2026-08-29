@@ -1,65 +1,31 @@
 # Roadmap
 
-Estado alinhado ao código em `android-app/` (Beta em calibração de campo).
+Estado alinhado ao código em `android-app/` e às regras em [`REGRAS_NEGOCIO.md`](REGRAS_NEGOCIO.md).
 
-## Núcleo
+**Ordem de produto:** Beta (agora) → Pro (depois) → Free no lançamento da loja (cálculos ocultos).
 
-- [x] Models
-- [x] Calculator
-- [x] Validator
-- [x] Classificação
-- [x] Analysis
-- [x] Testes automatizados (25 Python)
-- [x] Port para Kotlin (`android-app/.../core/`)
+## Agora — Beta
 
-## Custos
+- [x] Overlay: selo, compacta (cabeçalho), expandida (~1/3)
+- [x] Histórico e configuração como painéis overlay (exclusivos)
+- [x] Custo só de combustível atual (km/L + preço do litro)
+- [x] Faixas de classificação editáveis (padrão 1,19 / 1,20–1,59 / 1,60–1,99 / 2,00)
+- [x] Histórico só no aceite (Room) + DataStore de config
+- [x] Listener, parser genérico, log `notificacoes_diagnostico.txt`
+- [ ] Calibração de campo (parser / aceite com notificações reais)
 
-- [x] Integrar combustível
-- [x] Calcular litros estimados
-- [x] Calcular custo estimado
-- [x] Port combustível para Kotlin
-- [ ] Custo operacional completo (Pro)
+## Depois — Pro
 
-## Comportamento
+- [ ] Custo operacional (pneus, óleo, manutenção, depreciação)
+- [ ] R$/km líquido
+- [ ] Relatórios / estatísticas
+- [ ] Trajeto da corrida aceita no histórico (Maps/Waze)
 
-- [x] Estados do aplicativo
-- [x] Sem notificações = monitoramento, não erro
-- [x] Mais / menos detalhes
-- [x] Ocultar (selo) e fechar app
-- [x] Abrir rota no Maps ou Waze (quando há endereço na notificação)
+## Lançamento — Free
 
-## Histórico
+- [ ] Mesma app na loja, plano Free: valor, km, tempo, nota e cor **sem** R$/KM, litros, gasto e lucro
+- [ ] Publicação (Play Store)
 
-- [x] Modelo e persistência Python
-- [x] Interface (somente corridas aceitas)
-- [x] Room no Android
+## Fora do escopo imediato
 
-## Planos
-
-- [x] Contrato Free / Beta / Pro no código
-- [x] Controle de recursos na apresentação
-- [ ] Seletor de plano na UI (hoje a build inicia em Beta)
-
-## Android
-
-- [x] Compose + MVVM
-- [x] Room (histórico) + DataStore (configurações)
-- [x] Overlay real (`SYSTEM_ALERT_WINDOW`) + foreground service
-- [x] Selo flutuante (arrastar / reabrir)
-- [x] Tela de configurações persistida
-
-## Notificações
-
-- [x] NotificationListenerService
-- [x] Detector Uber / 99 / inDrive (package names)
-- [x] Parser genérico (R$, km, min) + extração de endereços quando o texto traz Origem/Destino
-- [x] Oferta vs aceite (padrões; calibrar com log real)
-- [x] Expiração sem gravar histórico
-- [x] Log diagnóstico local
-
-## Testes e release
-
-- [x] Unitários Python + Kotlin
-- [ ] Instrumentados com notificações reais
-- [ ] Calibração de campo (parser / aceite)
-- [ ] RC1 / publicação
+Testes instrumentados com notificações reais, múltiplos veículos, seletor de plano na UI (a build inicia em Beta).

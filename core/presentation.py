@@ -142,25 +142,25 @@ class PresentationModel:
             ),
             CampoApresentacao(
                 chave="valor_total",
-                rotulo="Valor total",
+                rotulo="VALOR",
                 valor_formatado=_formatar_moeda(self.analise.valor_total),
                 permitido=recursos.exibe_valor_total,
             ),
             CampoApresentacao(
                 chave="km_total",
-                rotulo="KM total",
+                rotulo="DIST.",
                 valor_formatado=_formatar_km(self.analise.km_total),
                 permitido=recursos.exibe_km_total,
             ),
             CampoApresentacao(
                 chave="tempo_estimado",
-                rotulo="Tempo",
+                rotulo="TEMPO",
                 valor_formatado=_formatar_tempo(self.analise.tempo_estimado),
                 permitido=recursos.exibe_tempo,
             ),
             CampoApresentacao(
                 chave="nota_passageiro",
-                rotulo="Nota",
+                rotulo="NOTA",
                 valor_formatado=_formatar_decimal_opcional(self.analise.nota_passageiro),
                 permitido=recursos.exibe_nota,
             ),
@@ -216,6 +216,18 @@ class HistoricoItemPresentation:
         )
         self.campos_horizontais = (
             CampoApresentacao(
+                chave="data",
+                rotulo="DATA",
+                valor_formatado=self.historico.data_hora.strftime("%d/%m"),
+                permitido=True,
+            ),
+            CampoApresentacao(
+                chave="hora",
+                rotulo="HORA",
+                valor_formatado=self.historico.data_hora.strftime("%H:%M"),
+                permitido=True,
+            ),
+            CampoApresentacao(
                 chave="valor_por_km",
                 rotulo="R$/KM",
                 valor_formatado=_formatar_decimal(self.historico.valor_por_km, 2),
@@ -224,25 +236,25 @@ class HistoricoItemPresentation:
             ),
             CampoApresentacao(
                 chave="valor_total",
-                rotulo="Valor total",
-                valor_formatado=_formatar_moeda(self.historico.valor_total),
+                rotulo="VALOR",
+                valor_formatado=_formatar_decimal(self.historico.valor_total, 2),
                 permitido=True,
             ),
             CampoApresentacao(
                 chave="km_total",
-                rotulo="KM total",
+                rotulo="KM",
                 valor_formatado=_formatar_km(self.historico.km_total),
                 permitido=True,
             ),
             CampoApresentacao(
                 chave="tempo_estimado",
-                rotulo="Tempo",
+                rotulo="TEMPO",
                 valor_formatado=_formatar_tempo(self.historico.tempo_estimado),
                 permitido=True,
             ),
             CampoApresentacao(
                 chave="nota_passageiro",
-                rotulo="Nota",
+                rotulo="NOTA",
                 valor_formatado=_formatar_decimal_opcional(self.historico.nota_passageiro),
                 permitido=True,
             ),
@@ -293,18 +305,14 @@ def _formatar_moeda_opcional(valor: float | None) -> str:
 
 
 def _formatar_km(valor: float) -> str:
-    texto = _formatar_decimal(valor, 1)
-    if texto.endswith(",0"):
-        texto = texto[:-2]
-
-    return f"{texto} km"
+    return f"{valor:.1f}".replace(".", ",") + " KM"
 
 
 def _formatar_tempo(valor: int | None) -> str:
     if valor is None:
         return "—"
 
-    return f"{valor} min"
+    return str(valor)
 
 
 def _formatar_litros_opcional(valor: float | None) -> str:

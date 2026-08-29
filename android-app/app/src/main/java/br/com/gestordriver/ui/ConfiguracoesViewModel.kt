@@ -4,6 +4,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
+import br.com.gestordriver.core.FaixasClassificacao
 import br.com.gestordriver.data.ConfiguracaoStore
 import br.com.gestordriver.data.MemoriaConfiguracaoStore
 import br.com.gestordriver.model.AppNavegacao
@@ -31,6 +32,10 @@ class ConfiguracoesViewModel(
 
     fun atualizarAno(valor: String) {
         aplicar(configuracao.copy(anoVeiculo = valor))
+    }
+
+    fun atualizarFinalPlaca(valor: String) {
+        aplicar(configuracao.copy(finalPlaca = valor))
     }
 
     fun atualizarConsumoGasolina(valor: Double) {
@@ -62,35 +67,35 @@ class ConfiguracoesViewModel(
     }
 
     fun atualizarLimiteRuimMin(valor: Double) {
-        aplicar(configuracao.copy(limiteRuimMin = valor))
+        aplicar(FaixasClassificacao.aplicar(configuracao, FaixasClassificacao.Campo.RUIM_MIN, valor))
     }
 
     fun atualizarLimiteRuimMax(valor: Double) {
-        aplicar(configuracao.copy(limiteRuimMax = valor))
+        aplicar(FaixasClassificacao.aplicar(configuracao, FaixasClassificacao.Campo.RUIM_MAX, valor))
     }
 
     fun atualizarLimiteRegularMin(valor: Double) {
-        aplicar(configuracao.copy(limiteRegularMin = valor))
+        aplicar(FaixasClassificacao.aplicar(configuracao, FaixasClassificacao.Campo.REGULAR_MIN, valor))
     }
 
     fun atualizarLimiteRegularMax(valor: Double) {
-        aplicar(configuracao.copy(limiteRegularMax = valor))
+        aplicar(FaixasClassificacao.aplicar(configuracao, FaixasClassificacao.Campo.REGULAR_MAX, valor))
     }
 
     fun atualizarLimiteBoaMin(valor: Double) {
-        aplicar(configuracao.copy(limiteBoaMin = valor))
+        aplicar(FaixasClassificacao.aplicar(configuracao, FaixasClassificacao.Campo.BOA_MIN, valor))
     }
 
     fun atualizarLimiteBoaMax(valor: Double) {
-        aplicar(configuracao.copy(limiteBoaMax = valor))
+        aplicar(FaixasClassificacao.aplicar(configuracao, FaixasClassificacao.Campo.BOA_MAX, valor))
     }
 
     fun atualizarLimiteOtimaMin(valor: Double) {
-        aplicar(configuracao.copy(limiteOtimaMin = valor))
+        aplicar(FaixasClassificacao.aplicar(configuracao, FaixasClassificacao.Campo.OTIMA_MIN, valor))
     }
 
     fun atualizarLimiteOtimaMax(valor: Double) {
-        aplicar(configuracao.copy(limiteOtimaMax = valor))
+        aplicar(FaixasClassificacao.aplicar(configuracao, FaixasClassificacao.Campo.OTIMA_MAX, valor))
     }
 
     fun salvar() {

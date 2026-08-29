@@ -217,7 +217,7 @@ class CalculadoraCorridaTest {
         assertEquals(2.375, resultado.valorPorKm, 0.001)
         assertEquals(1.28, resultado.combustivelEstimado!!, 0.01)
         assertEquals(7.9232, resultado.custoCombustivel!!, 0.01)
-        assertEquals(br.com.gestordriver.core.Classificacao.BOA, resultado.classificacao)
-        assertEquals("#7CB342", resultado.corClassificacao)
+        assertEquals(br.com.gestordriver.core.Classificacao.EXCELENTE, resultado.classificacao)
+        assertEquals("#1E88E5", resultado.corClassificacao)
     }
 }

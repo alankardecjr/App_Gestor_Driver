@@ -2,7 +2,7 @@
 
 Este documento descreve o escopo inicial do produto, seus objetivos, regras de negócio e critérios de aceitação para o MVP.
 
-**Implementação:** o app Android cobre o MVP/Beta (análise, overlay, histórico no aceite, configurações). Pro (custo operacional completo) permanece especificado aqui como evolução, não como código entregue. Estado do repositório: [README](../README.md) e [Roadmap](Roadmap.md).
+**Implementação atual: Beta.** Overlay, análise com cálculos visíveis, histórico no aceite, configurações. **Pro** (custo operacional) vem depois. **Free** (cálculos ocultos na UI) só no lançamento da loja. Regras oficiais: [REGRAS_NEGOCIO.md](REGRAS_NEGOCIO.md). Estado: [README](../README.md) e [Roadmap](Roadmap.md).
 
 ## 1. Objetivo do produto
 
@@ -24,8 +24,8 @@ O Gestor Driver **nunca aceita a corrida pelo usuário**. O aceite ocorre no Ube
 
 - calcular distância total;
 - calcular valor por quilômetro (R$/KM);
-- estimar consumo e custo operacional;
-- gerar uma classificação visual de rentabilidade.
+- estimar consumo e custo de **combustível atual** (Beta; operacional completo só no Pro);
+- gerar uma classificação visual de rentabilidade (borda).
 
 ### 4.2 Configurações do usuário
 
@@ -36,9 +36,9 @@ O Gestor Driver **nunca aceita a corrida pelo usuário**. O aceite ocorre no Ube
 
 ### 4.3 Interface
 
-- interface compacta com dados principais;
-- interface expandida com detalhes adicionais;
-- experiência simples, rápida e com foco em decisão imediata.
+- overlay compacto (cabeçalho) e expandido (~1/3 da tela) sobre o mapa;
+- histórico e configuração como painéis overlay abaixo da expandida;
+- experiência rápida, mapa da plataforma visível.
 
 ## 5. Estado e Comportamento do Aplicativo
 
@@ -99,7 +99,7 @@ A ausência de notificação não deverá ser apresentada como erro.
 
 A interface da corrida deverá ser compacta e horizontal para permitir que o motorista mantenha a visualização do aplicativo de transporte.
 
-A tela de configuração é uma exceção e poderá utilizar uma interface convencional.
+Histórico e configuração usam painéis overlay (não cobrem o mapa inteiro).
 
 ### Contrato visual da corrida
 
@@ -174,46 +174,27 @@ O histórico deve armazenar o resultado da análise, e não recalculá-lo quando
 
 ## 7. Planos Free / Beta / Pro
 
-O aplicativo deve controlar a apresentação de recursos sem alterar a análise, o histórico ou o motor de cálculo.
+O aplicativo controla o que a **interface mostra**, sem alterar a análise, o histórico ou o motor.
 
-### Free
+**Ordem:** Beta (desenvolvimento e testes) → Pro (depois) → Free no lançamento da loja.
 
-- Valor total: visível;
-- KM: visível;
-- Tempo: visível;
-- Nota: visível;
-- Classificação visual: visível;
-- Histórico: disponível;
-- R$/KM: oculto;
-- Combustível: oculto;
-- Gasto: oculto.
+### Free (lançamento)
 
-### Beta
+Mesma app; **não mostra os cálculos**: R$/KM, litros, gasto e lucro ocultos. Valor, km, tempo, nota, cor e histórico visíveis.
 
-- Tudo da Free;
-- R$/KM: visível;
-- Combustível: visível;
-- Gasto: visível;
-- Histórico financeiro: visível.
+### Beta (agora)
 
-### Pro
+Free + R$/KM, consumo estimado, gasto e lucro de combustível visíveis.
 
-- Tudo da Beta;
-- custos operacionais completos;
-- pneus;
-- óleo;
-- manutenção;
-- depreciação;
-- R$/KM líquido;
-- relatórios;
-- estatísticas;
-- recursos avançados.
+### Pro (depois)
+
+Beta + custos operacionais (pneus, óleo, manutenção, depreciação), R$/KM líquido, relatórios, estatísticas.
 
 ### Regra de acesso
 
-- o controle de plano não pode recalcular a análise;
-- o controle de plano não pode alterar o histórico salvo;
-- a interface Android apenas consulta o contrato de recursos do plano ativo.
+- o plano não recalcula a análise;
+- o plano não altera o histórico salvo;
+- a UI consulta o contrato de recursos do plano ativo. A build atual inicia em **Beta**.
 
 ## 8. Regras de negócio
 

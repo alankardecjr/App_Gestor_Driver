@@ -2,6 +2,7 @@ package br.com.gestordriver.presentation
 
 import br.com.gestordriver.core.AnaliseCorrida
 import br.com.gestordriver.core.CalculadoraCorrida
+import br.com.gestordriver.core.ClassificacaoConstantes
 import br.com.gestordriver.core.ConfiguracaoUsuario
 import br.com.gestordriver.core.Corrida
 import br.com.gestordriver.model.CampoApresentacao
@@ -105,6 +106,9 @@ object PresentationBuilder {
         plano: PlanoAcesso,
         historico: List<HistoricoItemPresentation> = emptyList(),
         historicoSelecionado: HistoricoItemPresentation? = null,
+        abaHistorico: String = "Uber",
+        abaConfiguracao: Int = 0,
+        destacarPermissoes: Boolean = false,
         modo: ModoApresentacao = ModoApresentacao.COMPACTA,
         historicoVisivel: Boolean = false,
         configuracoesVisivel: Boolean = false,
@@ -156,6 +160,15 @@ object PresentationBuilder {
 
             historicoSelecionado =
                 historicoSelecionado,
+
+            abaHistorico =
+                abaHistorico,
+
+            abaConfiguracao =
+                abaConfiguracao,
+
+            destacarPermissoes =
+                destacarPermissoes,
 
             historicoVisivel =
                 historicoVisivel,
@@ -229,6 +242,10 @@ object PresentationBuilder {
         return formatDecimal((analise.valorTotal - custo) / analise.kmTotal, 2) + " /km"
     }
 
+    fun formatarDecimalPublico(valor: Double): String = formatDecimal(valor, 2)
+
+    fun formatarKmPublico(valor: Double): String = formatKm(valor)
+
     // =====================================================================
     // APRESENTAÇÃO DA CORRIDA
     // =====================================================================
@@ -239,8 +256,8 @@ object PresentationBuilder {
     ): CorridaPresentation {
         val camposCompactos = listOf(
             CampoApresentacao(id = "valor_por_km", titulo = "R$/KM", valor = "—", destaque = true),
-            CampoApresentacao(id = "valor_total", titulo = "R$/TOTAL", valor = "—"),
-            CampoApresentacao(id = "km_total", titulo = "KM/TOTAL", valor = "—"),
+            CampoApresentacao(id = "valor_total", titulo = "VALOR", valor = "—"),
+            CampoApresentacao(id = "km_total", titulo = "DIST.", valor = "—"),
             CampoApresentacao(id = "tempo_estimado", titulo = "TEMPO", valor = "—"),
             CampoApresentacao(id = "nota_passageiro", titulo = "NOTA", valor = "—"),
         )
@@ -257,7 +274,7 @@ object PresentationBuilder {
             plano = plano,
             modo = modo,
             classificacao = ClassificacaoVisual.REGULAR,
-            corClassificacao = "#607D8B",
+            corClassificacao = ClassificacaoConstantes.COR_BORDA_NEUTRA,
             acaoDetalhes = if (modo == ModoApresentacao.DETALHES) "Menos detalhes" else "ⓘ",
             camposCompactos = camposCompactos,
             camposDetalhes = camposDetalhes,
@@ -283,7 +300,7 @@ object PresentationBuilder {
                     titulo = "R$/KM",
                     valor =
                         if (recursos.exibeValorPorKm) {
-                            formatDecimal(
+                            "R$ " + formatDecimal(
                                 analise.valorPorKm,
                                 2,
                             )
@@ -301,7 +318,7 @@ object PresentationBuilder {
 
                 CampoApresentacao(
                     id = "valor_total",
-                    titulo = "R$/TOTAL",
+                    titulo = "VALOR",
                     valor =
                         formatMoney(
                             analise.valorTotal,
@@ -314,7 +331,7 @@ object PresentationBuilder {
 
                 CampoApresentacao(
                     id = "km_total",
-                    titulo = "KM/TOTAL",
+                    titulo = "DIST.",
                     valor =
                         formatKm(
                             analise.kmTotal,
@@ -332,7 +349,7 @@ object PresentationBuilder {
                         analise.corrida
                             .tempoEstimado
                             ?.let { tempo ->
-                                "$tempo min"
+                                "$tempo MIN"
                             }
                             ?: "—",
                 ),
@@ -347,7 +364,7 @@ object PresentationBuilder {
                     valor =
                         analise.notaPassageiro
                             ?.let { nota ->
-                                "${formatDecimal(nota, 2)} ⭐"
+                                formatDecimal(nota, 2)
                             }
                             ?: "—",
                 ),
@@ -509,17 +526,8 @@ object PresentationBuilder {
 
     private fun formatKm(
         valor: Double,
-    ): String {
-
-        val texto =
-            if (valor % 1.0 == 0.0) {
-                "%.0f".format(Locale.US, valor)
-            } else {
-                "%.1f".format(Locale.US, valor)
-            }
-
-        return "$texto km"
-    }
+    ): String =
+        "%.1f".format(Locale.US, valor).replace(".", ",") + " KM"
 
     private fun formatLiters(
         valor: Double,

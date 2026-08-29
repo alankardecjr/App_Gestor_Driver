@@ -1,55 +1,57 @@
 # Roteiro Beta — Gestor Driver
 
-Objetivo: o app começar a funcionar no seu celular. Depois calibramos parser e aceite com o que o teste real mostrar.
+Objetivo: o app funcionar no celular de trabalho. Parser e aceite se calibram com o que o teste real mostrar.
 
-Versão alvo: **Beta** (R$/KM, combustível, gasto e lucro visíveis). Sem Pro, sem Play Store. Gasto e lucro usam **somente combustível**.
+**Versão alvo: Beta.** Cálculos visíveis (R$/KM, litros, gasto e lucro de combustível). Sem Pro. Sem Play Store / Free.
 
 ## O que entra agora
 
 1. Detectar oferta e **aceite** (Uber / 99 / inDrive).
 2. Gravar no **histórico só corrida aceita**.
-3. Abrir o **roteiro** no Maps ou Waze (o app escolhido em Configurações).
-4. **Configurações salvas** (veículo, preços, faixas, navegação).
-5. Log local das notificações para ajustar o parser sem adivinhar.
+3. Overlay: compacta → expandida; Config e Histórico **embaixo** da expandida.
+4. Custo pelo **combustível atual** + preços da aba APP.
+5. Log local das notificações para ajustar o parser.
 
 ## O que fica para depois
 
-Custo operacional Pro, estatísticas, múltiplos veículos, testes instrumentados, RC1.
+Pro (custo operacional, R$ líquido, relatórios). Free na loja (mesma UI, **sem** mostrar os cálculos). Testes instrumentados.
 
 ## Como testar (você)
 
 1. Instale o APK debug no celular que usa para dirigir.
-2. Abra o Gestor Driver → Configurações.
-3. Conceda **Notificações** e **Overlay**.
-4. No Android 13+, aceite a permissão de notificação do próprio Gestor.
-5. Desative otimização de bateria para o Gestor Driver (Senão o overlay some).
-6. Preencha consumo/preço e escolha Maps ou Waze. Volte — os valores precisam continuar iguais depois de fechar o app.
+2. Abra o Gestor Driver e conceda **Notificações**, **Sobressair** e **Localização**.
+3. No Android 13+, aceite a permissão de notificação do próprio Gestor.
+4. Desative otimização de bateria para o Gestor Driver (senão o overlay some).
+5. Aba VEÍCULO: consumo km/L e combustível atual. Aba APP: preços R$/L e Maps ou Waze.
+6. Feche e reabra — os valores precisam continuar iguais.
 7. Abra Uber Driver, 99 ou inDrive **logado**.
-8. Deixe o Gestor em segundo plano (selo/overlay visível sobre Uber/99).
+8. Deixe o Gestor em segundo plano (selo visível sobre o mapa).
 9. Espere uma oferta real.
 
 ### Sucesso mínimo desta sessão
 
 | Passo | Esperado |
 | --- | --- |
-| Oferta chega | Barra compacta no topo (R$/KM, valor, km, min, nota) |
-| Recusa / some a oferta | Volta ao selo na mesma posição, **não** entra no histórico |
-| Toque no selo | Expandida overlay ~1/3 da tela; o mapa da plataforma continua visível |
-| Aceita no app da plataforma | Histórico ganha **uma** linha |
-| Expandida | Distâncias + custos (combustível) + lucro; botões Config / Ocultar / Fechar / Histórico |
-| Fecha e reabre o Gestor | Configurações iguais às que você salvou |
+| Oferta chega | Compacta: R$/KM, VALOR, DIST., TEMPO, NOTA, borda da classificação |
+| Recusa / some a oferta | Volta ao selo, **não** entra no histórico |
+| `⬇️` ou toque no selo | Expandida ~1/3; Distâncias + Custos; mapa visível |
+| Config / Histórico | Painel abaixo da expandida (não tela cheia) |
+| Aceita na plataforma | Uma linha no histórico; interface vai ao **selo** |
+| Recolher (`⬆️`) | Compacta e, em 5 s, selo |
+| Fecha e reabre | Configurações iguais |
 
-Se a oferta **não aparecer**, o teste ainda vale: o arquivo `notificacoes_diagnostico.txt` (armazenamento interno do app) guarda o texto real. Com isso ajustamos o parser na próxima rodada.
+Se a oferta **não aparecer**, o teste ainda vale: `notificacoes_diagnostico.txt` guarda o texto real.
 
 ## Onde está o log
 
 `/data/data/br.com.gestordriver/files/notificacoes_diagnostico.txt`
 
-No Android Studio: Device File Explorer, ou `adb pull` desse caminho. Não precisa enviar dado de passageiro para ninguém — use só para calibrar.
+No Android Studio: Device File Explorer, ou `adb pull` desse caminho. Use só para calibrar.
 
 ## Ordem se algo falhar
 
 1. Overlay some → bateria / overlay / notificação permanente.
-2. Oferta não lê → mandar o trecho do log (package + título + texto).
-3. Aceite não grava histórico → mandar o texto da notificação **depois** de aceitar.
-4. Rota não abre → a notificação não veio com origem/destino; o botão avisa. Aí extraímos o formato no próximo ajuste.
+2. Oferta não lê → trecho do log (package + título + texto).
+3. Aceite não grava histórico → texto da notificação **depois** de aceitar.
+4. Custo estranho → conferir combustível atual, km/L e preços na aba APP.
+5. Rota / Maps → nesta versão só abre o app escolhido; endereço depende do texto da notificação.

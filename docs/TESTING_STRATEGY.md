@@ -35,3 +35,5 @@ No Windows: `gradlew.bat :app:testDebugUnitTest`.
 1. Regras de cálculo e aceite (unitário) — feito e deve permanecer verde.
 2. Fixtures com textos reais anonimizados — depois do piloto (ver `ROTEIRO_BETA.md`).
 3. Instrumentados — quando o parser estiver calibrado.
+4. Pro e Free de loja — fora desta fase de testes.
+4. Pro e Free de loja — fora desta fase de testes.

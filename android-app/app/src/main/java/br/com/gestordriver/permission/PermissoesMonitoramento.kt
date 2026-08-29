@@ -30,5 +30,7 @@ object PermissoesMonitoramento {
     }
 
     fun todasConcedidas(context: Context): Boolean =
-        overlayConcedida(context) && listenerNotificacoesAtivo(context)
+        overlayConcedida(context) &&
+            listenerNotificacoesAtivo(context) &&
+            localizacaoConcedida(context)
 }

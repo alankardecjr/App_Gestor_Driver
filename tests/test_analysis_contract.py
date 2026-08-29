@@ -46,8 +46,8 @@ class AnaliseCorridaContractTestCase(unittest.TestCase):
         self.assertAlmostEqual(resultado.valor_por_km, 2.375)
         self.assertAlmostEqual(resultado.combustivel_estimado, 1.28)
         self.assertAlmostEqual(resultado.custo_combustivel, 7.9232)
-        self.assertEqual(resultado.classificacao, Classificacao.BOA)
-        self.assertEqual(resultado.cor_classificacao, "#7CB342")
+        self.assertEqual(resultado.classificacao, Classificacao.EXCELENTE)
+        self.assertEqual(resultado.cor_classificacao, "#1E88E5")
         self.assertIsNotNone(resultado.data_hora)
         self.assertIsNone(resultado.nota_passageiro)
         self.assertIsNone(resultado.plataforma)
@@ -78,7 +78,7 @@ class AnaliseCorridaContractTestCase(unittest.TestCase):
 
         self.assertAlmostEqual(resultado.combustivel_estimado, 1.7777777778)
         self.assertAlmostEqual(resultado.custo_combustivel, 7.8044444444)
-        self.assertEqual(resultado.classificacao, Classificacao.BOA)
+        self.assertEqual(resultado.classificacao, Classificacao.EXCELENTE)
 
 
 if __name__ == "__main__":

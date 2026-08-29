@@ -53,19 +53,19 @@ class HistoricoPresentationTestCase(unittest.TestCase):
         self.assertEqual(len(apresentacao.itens), 2)
         self.assertEqual(
             apresentacao.linhas_horizontais[0],
-            "2,38 │ R$ 38,00 │ 16 km │ 24 min │ 4,98",
+            "03/08 │ 12:00 │ 2,38 │ 38,00 │ 16,0 KM │ 24 │ 4,98",
         )
         self.assertEqual(
             apresentacao.linhas_horizontais[1],
-            "2,65 │ R$ 22,50 │ 8,5 km │ 18 min │ —",
+            "03/08 │ 11:00 │ 2,65 │ 22,50 │ 8,5 KM │ 18 │ —",
         )
 
     def test_deve_expor_classificacao_visual_do_historico(self):
         item = HistoricoPresentation.criar([self.historico_recente]).itens[0]
 
         self.assertEqual(item.classificacao_visual.rotulo, "Boa")
-        self.assertEqual(item.classificacao_visual.cor, "#7CB342")
-        self.assertEqual(item.linha_horizontal, "2,38 │ R$ 38,00 │ 16 km │ 24 min │ 4,98")
+        self.assertEqual(item.classificacao_visual.cor, "#2E7D32")
+        self.assertEqual(item.linha_horizontal, "03/08 │ 12:00 │ 2,38 │ 38,00 │ 16,0 KM │ 24 │ 4,98")
 
 
 class PresentationModelContractTestCase(unittest.TestCase):

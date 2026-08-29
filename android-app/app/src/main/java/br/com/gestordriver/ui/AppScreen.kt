@@ -1,9 +1,8 @@
 package br.com.gestordriver.ui
 
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -14,11 +13,13 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.weight
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -41,7 +42,6 @@ import androidx.compose.ui.unit.dp
 import br.com.gestordriver.model.CampoApresentacao
 import br.com.gestordriver.model.HistoricoItemPresentation
 import br.com.gestordriver.model.ModoApresentacao
-import br.com.gestordriver.presentation.PresentationBuilder
 
 // =====================================================================
 // CORES DA INTERFACE
@@ -49,7 +49,6 @@ import br.com.gestordriver.presentation.PresentationBuilder
 
 private val FundoPrincipal = Color(0xFF10161D)
 private val FundoCard = Color(0xFF050809)
-private val FundoHistorico = Color(0xFF111821)
 
 private val TextoPrincipal = Color.White
 private val TextoSecundario = Color(0xFFB8C5D1)
@@ -124,6 +123,8 @@ fun AppScreen(
                     ConfiguracoesScreen(
                         viewModel = configuracoesViewModel,
                         onVoltar = viewModel::fecharConfiguracoes,
+                        abaInicial = state.abaConfiguracao,
+                        destacarPermissoes = state.destacarPermissoes,
                     )
                 } else {
                     ConteudoPrincipal(
@@ -155,6 +156,7 @@ private fun ConteudoPrincipal(
                         ),
                     ),
                 )
+                .verticalScroll(rememberScrollState())
                 .padding(
                     horizontal = 10.dp,
                     vertical = 8.dp,
@@ -181,14 +183,14 @@ private fun ConteudoPrincipal(
             // =========================================================
             // CORRIDA ATUAL
             //
-            // BORDA GROSSA = CORRIDA EM ANDAMENTO
+            // BORDA GROSSA = CLASSIFICAÇÃO DA CORRIDA ATUAL
             // =========================================================
 
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
                     .border(
-                        width = 3.dp,
+                        width = 5.dp,
                         color = parseColor(
                             state.corrida.corClassificacao,
                         ),
@@ -214,9 +216,6 @@ private fun ConteudoPrincipal(
                     CabecalhoCorrida(
                         campos = state.corrida.camposCompactos,
                         modo = state.corrida.modo,
-                        liquidoPorKm = PresentationBuilder.formatarLiquidoPorKm(
-                            state.analiseAtual ?: state.ultimaCorridaAceita,
-                        ),
                         onInformacao = viewModel::alternarDetalhes,
                         onAlternarDetalhes = viewModel::alternarDetalhes,
                     )
@@ -293,7 +292,6 @@ private fun ConteudoPrincipal(
 private fun CabecalhoCorrida(
     campos: List<CampoApresentacao>,
     modo: ModoApresentacao,
-    liquidoPorKm: String,
     onInformacao: () -> Unit,
     onAlternarDetalhes: () -> Unit,
 ) {
@@ -324,8 +322,6 @@ private fun CabecalhoCorrida(
 
                     CampoCabecalho(
                         campo = campo,
-                        modo = modo,
-                        liquidoPorKm = liquidoPorKm,
                     )
                 }
             }
@@ -405,15 +401,12 @@ private fun CabecalhoCorrida(
 @Composable
 private fun CampoCabecalho(
     campo: CampoApresentacao,
-    modo: ModoApresentacao,
-    liquidoPorKm: String,
 ) {
 
     when (campo.id) {
 
         "valor_por_km" -> {
 
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 CabecalhoSimples(
                     icone = "💵",
                     titulo = "R$/KM",
@@ -421,23 +414,13 @@ private fun CampoCabecalho(
                     destaque = campo.destaque,
                     corTitulo = TextoVerde,
                 )
-                if (modo == ModoApresentacao.DETALHES) {
-                    Text(
-                        text = "LÍQUIDO $liquidoPorKm",
-                        color = TextoVerde,
-                        style = MaterialTheme.typography.labelSmall,
-                        fontWeight = FontWeight.SemiBold,
-                        maxLines = 1,
-                    )
-                }
-            }
         }
 
         "valor_total" -> {
 
             CabecalhoSimples(
                 icone = "💰",
-                titulo = if (modo == ModoApresentacao.DETALHES) "VALOR" else "R$",
+                titulo = "VALOR",
                 valor = removerPrefixoReal(
                     campo.valor,
                 ),
@@ -450,7 +433,7 @@ private fun CampoCabecalho(
 
             CabecalhoSimples(
                 icone = "🛞",
-                titulo = if (modo == ModoApresentacao.DETALHES) "KM TOTAL" else "KM",
+                titulo = "DIST.",
                 valor = campo.valor,
                 destaque = campo.destaque,
                 corTitulo = TextoAzul,
@@ -461,7 +444,7 @@ private fun CampoCabecalho(
 
             CabecalhoSimples(
                 icone = "🕐",
-                titulo = if (modo == ModoApresentacao.DETALHES) "TEMPO" else "MIN",
+                titulo = "TEMPO",
                 valor = campo.valor,
                 destaque = campo.destaque,
                 corTitulo = TextoLaranja,
@@ -685,10 +668,18 @@ private fun ControlesInterface(
         verticalAlignment = Alignment.CenterVertically,
     ) {
 
+        TextButton(onClick = onFechar) {
+            Text(
+                text = "📴Fechar",
+                color = TextoAmarelo,
+                style = MaterialTheme.typography.labelSmall,
+            )
+        }
+
         TextButton(onClick = onConfig) {
             Text(
                 text = "⚙️Config",
-                color = TextoPrincipal,
+                color = TextoAmarelo,
                 style = MaterialTheme.typography.labelSmall,
             )
         }
@@ -696,15 +687,7 @@ private fun ControlesInterface(
         TextButton(onClick = onOcultar) {
             Text(
                 text = "❎Ocultar",
-                color = TextoPrincipal,
-                style = MaterialTheme.typography.labelSmall,
-            )
-        }
-
-        TextButton(onClick = onFechar) {
-            Text(
-                text = "📴Fechar",
-                color = TextoPrincipal,
+                color = TextoAmarelo,
                 style = MaterialTheme.typography.labelSmall,
             )
         }
@@ -716,7 +699,7 @@ private fun ControlesInterface(
                 } else {
                     "📜Histórico"
                 },
-                color = TextoPrincipal,
+                color = TextoAmarelo,
                 style = MaterialTheme.typography.labelSmall,
             )
         }
@@ -725,10 +708,9 @@ private fun ControlesInterface(
 
 // =====================================================================
 // SEÇÃO DE HISTÓRICO
-// =====================================================================
 //
-// O histórico é horizontal.
-// Cada corrida possui seu próprio cartão.
+// Listas por plataforma (esboço: Uber | 99, com setas).
+// Borda neutra em cada item; classificação = marcador.
 // =====================================================================
 
 @Composable
@@ -736,19 +718,21 @@ private fun HistoricoSection(
     state: AppState,
     onSelecionarHistorico: (HistoricoItemPresentation) -> Unit,
 ) {
-    val abas = listOf("Uber", "99", "inDrive")
-    var abaSelecionada by remember { mutableStateOf(0) }
-    val itens = state.historico.filter { item ->
-        when (abas[abaSelecionada]) {
-            "Uber" -> item.plataforma.contains("Uber", ignoreCase = true)
-            "99" -> item.plataforma.contains("99")
-            else -> item.plataforma.contains("inDrive", ignoreCase = true) ||
-                item.plataforma.contains("indrive", ignoreCase = true)
-        }
-    }
+    val plataformas = listOf("Uber", "99", "inDrive")
+    var aba by remember { mutableStateOf(state.abaHistorico) }
+    val itens = state.historico
+        .sortedByDescending { it.dataHoraRegistro ?: java.time.LocalDateTime.MIN }
+        .filter { it.pertenceAba(aba) }
 
     Column(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .border(
+                width = 2.dp,
+                color = Color(0xFF607D8B),
+                shape = CardDefaults.shape,
+            )
+            .padding(horizontal = 8.dp, vertical = 8.dp),
         verticalArrangement = Arrangement.spacedBy(6.dp),
     ) {
         Box(
@@ -756,7 +740,7 @@ private fun HistoricoSection(
             contentAlignment = Alignment.Center,
         ) {
             Text(
-                text = "Histórico",
+                text = "HISTÓRICO",
                 color = TextoPrincipal,
                 style = MaterialTheme.typography.titleSmall,
                 fontWeight = FontWeight.SemiBold,
@@ -767,144 +751,79 @@ private fun HistoricoSection(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceEvenly,
         ) {
-            abas.forEachIndexed { index, titulo ->
-                TextButton(onClick = { abaSelecionada = index }) {
-                    Text(
-                        text = titulo,
-                        color = if (abaSelecionada == index) Color(0xFF7CB342) else TextoSecundario,
-                        style = MaterialTheme.typography.labelMedium,
-                        fontWeight = if (abaSelecionada == index) FontWeight.SemiBold else FontWeight.Normal,
-                    )
-                }
+            plataformas.forEach { plataforma ->
+                Text(
+                    text = plataforma,
+                    color = if (aba.equals(plataforma, ignoreCase = true)) TextoVerde else TextoSecundario,
+                    style = MaterialTheme.typography.labelMedium,
+                    fontWeight = if (aba.equals(plataforma, ignoreCase = true)) FontWeight.SemiBold else FontWeight.Normal,
+                    modifier = Modifier.clickable { aba = plataforma },
+                )
             }
         }
 
         if (itens.isEmpty()) {
             Text(
-                text = "Nenhuma corrida aceita nesta plataforma.",
+                text = "Nenhuma corrida aceita.",
                 color = TextoSecundario,
                 style = MaterialTheme.typography.bodySmall,
             )
         } else {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .horizontalScroll(rememberScrollState()),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                itens.forEach { item ->
-                    HistoricoCard(
-                        item = item,
-                        seta = "➡️",
-                        onClick = { onSelecionarHistorico(item) },
-                    )
-                }
+            itens.forEach { item ->
+                HistoricoItemLista(
+                    item = item,
+                    onClick = { onSelecionarHistorico(item) },
+                )
             }
         }
     }
 }
 
 // =====================================================================
-// CARD DE HISTÓRICO
-// =====================================================================
+// ITEM DE LISTA DO HISTÓRICO
 //
-// BORDA FINA = CLASSIFICAÇÃO DA CORRIDA
-//
-// A cor vem de corClassificacao.
+// BORDA NEUTRA; CLASSIFICAÇÃO = MARCADOR
 // =====================================================================
 
 @Composable
-private fun HistoricoCard(
+private fun HistoricoItemLista(
     item: HistoricoItemPresentation,
-    seta: String,
     onClick: () -> Unit,
 ) {
-
-    Card(
+    Column(
         modifier = Modifier
-            .width(300.dp)
+            .fillMaxWidth()
             .clickable(onClick = onClick)
             .border(
                 width = 1.dp,
-                color = parseColor(
-                    item.corClassificacao,
-                ),
+                color = Color(0xFF3D4A57),
                 shape = CardDefaults.shape,
-            ),
-        colors = CardDefaults.cardColors(
-            containerColor = FundoHistorico,
-        ),
+            )
+            .padding(horizontal = 6.dp, vertical = 6.dp),
+        verticalArrangement = Arrangement.spacedBy(3.dp),
     ) {
-
-        Column(
-            modifier = Modifier.padding(
-                horizontal = 10.dp,
-                vertical = 8.dp,
-            ),
-            verticalArrangement = Arrangement.spacedBy(5.dp),
+        Text(
+            text = "DATA | HORA | R$/KM | VALOR | KM | TEMPO | NOTA | ⭐",
+            color = TextoHistorico,
+            style = MaterialTheme.typography.labelSmall,
+            maxLines = 1,
+        )
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween,
         ) {
-
-            // =========================================================
-            // PLATAFORMA
-            // =========================================================
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-
-                Box(
-                    modifier = Modifier.weight(1f),
-                    contentAlignment = Alignment.Center,
-                ) {
-
-                    Text(
-                        text = item.plataforma,
-                        color = TextoPrincipal,
-                        style = MaterialTheme.typography.labelLarge,
-                        fontWeight = FontWeight.SemiBold,
-                    )
-                }
-
-                Text(
-                    text = seta,
-                    color = TextoPrincipal,
-                    style = MaterialTheme.typography.labelSmall,
-                )
-            }
-
-            // =========================================================
-            // DATA / HORA
-            // =========================================================
-
             Text(
-                text = "📅Data/Hora: ${item.data}",
-                color = TextoHistorico,
-                style = MaterialTheme.typography.labelSmall,
-                maxLines = 1,
-            )
-
-            // =========================================================
-            // INDICADORES
-            // =========================================================
-
-
-            Text(
-                text = "R$/KM R$/TOTAL KM/TOTAL TEMPO NOTA",
-                color = TextoHistorico,
-                style = MaterialTheme.typography.labelSmall,
-                maxLines = 1,
-            )
-
-            // =========================================================
-            // VALORES
-            // =========================================================
-
-            Text(
-                text = item.linhaHorizontal,
+                text = item.linhaHistorico,
                 color = TextoPrincipal,
                 style = MaterialTheme.typography.labelSmall,
-                maxLines = 1,
+                maxLines = 2,
+                modifier = Modifier.weight(1f),
+            )
+            Text(
+                text = item.classificacao.marcador,
+                color = parseColor(item.corClassificacao),
+                style = MaterialTheme.typography.labelLarge,
             )
         }
     }

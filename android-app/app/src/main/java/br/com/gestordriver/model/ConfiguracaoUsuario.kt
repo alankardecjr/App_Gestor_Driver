@@ -5,6 +5,7 @@ data class ConfiguracaoUsuario(
     val modeloVeiculo: String = "",
     val versaoVeiculo: String = "",
     val anoVeiculo: String = "",
+    val finalPlaca: String = "",
 
     val consumoGasolina: Double = 0.0,
     val consumoEtanol: Double = 0.0,
@@ -48,12 +49,12 @@ data class ConfiguracaoUsuario(
             precoEtanol = 4.39,
             navegacao = AppNavegacao.GOOGLE_MAPS,
             limiteRuimMin = 0.0,
-            limiteRuimMax = 1.20,
-            limiteRegularMin = 1.50,
-            limiteRegularMax = 2.00,
-            limiteBoaMin = 2.00,
-            limiteBoaMax = 2.50,
-            limiteOtimaMin = 2.50,
+            limiteRuimMax = 1.19,
+            limiteRegularMin = 1.20,
+            limiteRegularMax = 1.59,
+            limiteBoaMin = 1.60,
+            limiteBoaMax = 1.99,
+            limiteOtimaMin = 2.00,
             limiteOtimaMax = 99.0,
         )
     }

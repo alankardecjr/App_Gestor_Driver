@@ -5,16 +5,18 @@ decisao do motorista sobre aceitar ou recusar corridas.
 """
 
 CLASSIFICACAO_LIMITES_R_POR_KM = {
-	"EXCELENTE": 2.50,
-	"BOA": 2.00,
-	"REGULAR": 1.50,
+	"EXCELENTE": 2.00,
+	"BOA": 1.60,
+	"REGULAR": 1.20,
 	"BAIXA": 1.20,
 }
 
 CLASSIFICACAO_CORES = {
-	"EXCELENTE": "#2E7D32",
-	"BOA": "#7CB342",
-	"REGULAR": "#F9A825",
+	"EXCELENTE": "#1E88E5",
+	"BOA": "#2E7D32",
+	"REGULAR": "#EF6C00",
 	"BAIXA": "#EF6C00",
 	"RUIM": "#C62828",
 }
+
+CLASSIFICACAO_COR_BORDA_NEUTRA = "#607D8B"
