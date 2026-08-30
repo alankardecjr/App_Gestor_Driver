@@ -7,6 +7,8 @@
 **Documento oficial de regras:** [`docs/REGRAS_NEGOCIO.md`](REGRAS_NEGOCIO.md)  
 **Versão em foco:** Beta (cálculos visíveis). Pro depois. Free (cálculos ocultos) no lançamento.
 
+**Interfaces congeladas** até a versão Pro (selo, compacta, expandida, histórico, configuração, confirmação de fechar). Sem novos ajustes visuais na Beta.
+
 ---
 
 # 1. Visão geral

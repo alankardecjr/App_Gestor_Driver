@@ -24,6 +24,7 @@ import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -31,9 +32,12 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import br.com.gestordriver.core.FaixasClassificacao
@@ -58,8 +62,16 @@ fun ConfiguracoesScreen(
 ) {
     val configuracao = viewModel.configuracao
     var aba by remember { mutableIntStateOf(abaInicial) }
-    androidx.compose.runtime.LaunchedEffect(abaInicial) {
+    val rolagem = rememberScrollState()
+    val foco = LocalFocusManager.current
+    val teclado = LocalSoftwareKeyboardController.current
+    LaunchedEffect(abaInicial) {
         aba = abaInicial
+    }
+    LaunchedEffect(aba) {
+        rolagem.scrollTo(0)
+        foco.clearFocus(force = true)
+        teclado?.hide()
     }
     val abas = listOf("VEÍCULO", "CUSTOS", "APP")
 
@@ -76,7 +88,8 @@ fun ConfiguracoesScreen(
                 ),
             )
             .padding(horizontal = 10.dp, vertical = 8.dp)
-            .verticalScroll(rememberScrollState()),
+            .deslizeHorizontalAbas(aba, abas.size) { aba = it }
+            .verticalScroll(rolagem),
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         Box(
@@ -172,19 +185,32 @@ fun ConfiguracoesScreen(
                         onCheckedChange = { marcado ->
                             if (marcado) viewModel.selecionarCombustivel(Combustivel.GASOLINA)
                         },
+                        modifier = Modifier.scale(0.82f),
                     )
-                    Text("GASOLINA", color = TextoPrincipal, modifier = Modifier.align(Alignment.CenterVertically))
+                    Text(
+                        "GASOLINA",
+                        color = TextoPrincipal,
+                        style = MaterialTheme.typography.labelSmall,
+                        modifier = Modifier.align(Alignment.CenterVertically),
+                    )
                     androidx.compose.material3.Checkbox(
                         checked = configuracao.combustivel == Combustivel.ETANOL,
                         onCheckedChange = { marcado ->
                             if (marcado) viewModel.selecionarCombustivel(Combustivel.ETANOL)
                         },
+                        modifier = Modifier.scale(0.82f),
+                    )
+                    Text(
+                        "ETANOL",
+                        color = TextoPrincipal,
+                        style = MaterialTheme.typography.labelSmall,
+                        modifier = Modifier.align(Alignment.CenterVertically),
                     )
                     Text("ETANOL", color = TextoPrincipal, modifier = Modifier.align(Alignment.CenterVertically))
                 }
             }
 
-            1 -> SecaoCard(titulo = "CUSTOS") {
+            1 -> SecaoCard(titulo = "CUSTOS", compacto = true) {
                 SubtituloSecao(texto = "VALOR DO COMBUSTÍVEL")
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -396,6 +422,7 @@ fun ConfiguracoesScreen(
 @Composable
 private fun SecaoCard(
     titulo: String,
+    compacto: Boolean = false,
     conteudo: @Composable ColumnScope.() -> Unit,
 ) {
     Column(
@@ -429,9 +456,9 @@ private fun SecaoCard(
             Column(
                 modifier = Modifier.padding(
                     horizontal = 10.dp,
-                    vertical = 8.dp,
+                    vertical = if (compacto) 4.dp else 8.dp,
                 ),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(if (compacto) 2.dp else 8.dp),
                 content = conteudo,
             )
         }

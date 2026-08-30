@@ -6,10 +6,15 @@ import android.graphics.Color
 import android.graphics.Typeface
 import android.graphics.drawable.GradientDrawable
 import android.provider.Settings
+import android.text.TextUtils
 import android.util.TypedValue
 import android.view.ContextThemeWrapper
+import android.view.GestureDetector
 import android.view.Gravity
+import android.view.MotionEvent
 import android.view.View
+import android.view.ViewGroup
+import android.view.inputmethod.InputMethodManager
 import android.widget.CheckBox
 import android.widget.EditText
 import android.widget.LinearLayout
@@ -26,9 +31,11 @@ import br.com.gestordriver.notification.Plataforma
 import br.com.gestordriver.notification.PlataformasMotorista
 import br.com.gestordriver.permission.PermissoesMonitoramento
 import br.com.gestordriver.ui.DecimalInput
+import kotlin.math.abs
 
 object OverlayPaineis {
     private var rascunho: ConfiguracaoUsuario? = null
+    private var abaMontada: Int = -1
     private const val FUNDO = "#F2050809"
     private const val TEXTO = "#FFFFFF"
     private const val SECUNDARIO = "#B8C5D1"
@@ -80,6 +87,11 @@ object OverlayPaineis {
             },
         )
         scroll.addView(coluna)
+        escutarFlingAbas(
+            scroll,
+            onProxima = { avancarAbaHistorico(1) },
+            onAnterior = { avancarAbaHistorico(-1) },
+        )
         return scroll
     }
 
@@ -170,6 +182,9 @@ object OverlayPaineis {
             orientation = LinearLayout.VERTICAL
             background = fundoNeutro(ctx)
             clipToOutline = true
+            descendantFocusability = ViewGroup.FOCUS_BEFORE_DESCENDANTS
+            isFocusable = true
+            isFocusableInTouchMode = true
             setPadding(dp(ctx, 10), dp(ctx, 8), dp(ctx, 10), dp(ctx, 8))
             tag = "config_coluna"
         }
@@ -194,6 +209,7 @@ object OverlayPaineis {
                     tag = "cfg_aba_$indice"
                     isClickable = true
                     isFocusable = true
+                    isFocusableInTouchMode = false
                     setTextColor(Color.parseColor(SECUNDARIO))
                     textSize = 12f
                     gravity = Gravity.CENTER
@@ -206,16 +222,19 @@ object OverlayPaineis {
         raiz.addView(abas)
         val scroll = ScrollView(ctx).apply {
             tag = "config_scroll"
+            descendantFocusability = ViewGroup.FOCUS_BEFORE_DESCENDANTS
+            isFillViewport = true
+            isFocusable = false
             layoutParams = LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT,
                 0,
                 1f,
             )
-            isFillViewport = true
         }
         scroll.addView(
             LinearLayout(ctx).apply {
                 orientation = LinearLayout.VERTICAL
+                descendantFocusability = ViewGroup.FOCUS_BEFORE_DESCENDANTS
                 tag = "config_conteudo"
             },
         )
@@ -250,12 +269,23 @@ object OverlayPaineis {
             },
         )
         raiz.addView(rodape)
+        escutarFlingAbas(
+            raiz,
+            onProxima = { avancarAbaConfig(1) },
+            onAnterior = { avancarAbaConfig(-1) },
+        )
+        escutarFlingAbas(
+            scroll,
+            onProxima = { avancarAbaConfig(1) },
+            onAnterior = { avancarAbaConfig(-1) },
+        )
         return raiz
     }
 
     fun atualizarConfig(view: View, snapshot: OverlaySnapshot) {
         if (!snapshot.configuracoesVisivel) {
             rascunho = null
+            abaMontada = -1
             return
         }
         atualizarConfigInterno(view, snapshot)
@@ -265,6 +295,24 @@ object OverlayPaineis {
         OverlayBridge.emitir(OverlayAcao.AbaConfiguracao(indice))
         val atual = OverlayBridge.snapshot.value
         OverlayBridge.publicar(atual.copy(abaConfiguracao = indice, configuracoesVisivel = true))
+    }
+
+    private fun avancarAbaConfig(direcao: Int) {
+        val atual = OverlayBridge.snapshot.value.abaConfiguracao
+        val novo = (atual + direcao).coerceIn(0, 2)
+        if (novo != atual) {
+            selecionarAbaConfig(novo)
+        }
+    }
+
+    private fun avancarAbaHistorico(direcao: Int) {
+        val abas = listOf("Uber", "99", "inDrive")
+        val atualNome = OverlayBridge.snapshot.value.historicoAba
+        val atual = abas.indexOfFirst { it.equals(atualNome, ignoreCase = true) }.coerceAtLeast(0)
+        val novo = (atual + direcao).coerceIn(0, abas.lastIndex)
+        if (novo != atual) {
+            OverlayBridge.emitir(OverlayAcao.AbaHistorico(abas[novo]))
+        }
     }
 
     private fun cancelarConfig() {
@@ -290,13 +338,17 @@ object OverlayPaineis {
             rotulo.setTextColor(Color.parseColor(if (selecionada) VERDE else SECUNDARIO))
             rotulo.typeface = if (selecionada) Typeface.DEFAULT_BOLD else Typeface.DEFAULT
         }
-        val conteudo = view.findViewWithTag<LinearLayout>("config_conteudo") ?: return
-        val app = view.context.applicationContext as? GestorDriverApp ?: return
+        val scroll = view.findViewWithTag<ScrollView>("config_scroll") ?: return
+        val conteudo = scroll.getChildAt(0) as? LinearLayout ?: return
+        conteudo.tag = "config_conteudo"
+        val app = view.context.applicationContext as? GestorDriverApp
+            ?: view.context as? GestorDriverApp
+            ?: return
         val store = app.configuracaoStore
         if (rascunho == null) {
             rascunho = store.carregar()
         }
-        val abaAtual = (conteudo.getTag() as? Int) ?: -1
+        val abaAtual = abaMontada
         if (conteudo.childCount > 0 && abaAtual >= 0 && abaAtual != snapshot.abaConfiguracao) {
             rascunho = colherAba(view, abaAtual, rascunho ?: store.carregar())
         }
@@ -307,15 +359,18 @@ object OverlayPaineis {
             return
         }
         conteudo.removeAllViews()
-        conteudo.setTag(snapshot.abaConfiguracao)
         val config = rascunho ?: store.carregar()
-        runCatching {
+        val montou = runCatching {
             when (snapshot.abaConfiguracao) {
                 0 -> montarVeiculo(conteudo, config)
                 1 -> montarCustos(conteudo, config)
                 else -> montarApp(conteudo, config, snapshot, view.context)
             }
-        }.onFailure {
+        }
+        if (montou.isSuccess) {
+            abaMontada = snapshot.abaConfiguracao
+        } else {
+            abaMontada = -1
             conteudo.addView(
                 TextView(view.context).apply {
                     text = "Não foi possível abrir esta aba."
@@ -325,6 +380,28 @@ object OverlayPaineis {
                 },
             )
         }
+        focarTopoSemCampo(view, scroll)
+    }
+
+    private fun focarTopoSemCampo(raiz: View, scroll: ScrollView) {
+        val grupo = raiz as? ViewGroup
+        grupo?.descendantFocusability = ViewGroup.FOCUS_BEFORE_DESCENDANTS
+        raiz.isFocusableInTouchMode = true
+        scroll.scrollTo(0, 0)
+        raiz.clearFocus()
+        raiz.requestFocus()
+        ocultarTeclado(raiz)
+        raiz.post {
+            scroll.scrollTo(0, 0)
+            raiz.clearFocus()
+            raiz.requestFocus()
+            ocultarTeclado(raiz)
+        }
+    }
+
+    private fun ocultarTeclado(view: View) {
+        val imm = view.context.getSystemService(Context.INPUT_METHOD_SERVICE) as? InputMethodManager
+        imm?.hideSoftInputFromWindow(view.windowToken, 0)
     }
 
     private fun criarItemHistorico(context: Context, item: OverlayHistoricoItem): View {
@@ -408,12 +485,20 @@ object OverlayPaineis {
             text = "GASOLINA"
             tag = "cfg_ck_gasolina"
             setTextColor(Color.WHITE)
+            textSize = 11f
+            scaleX = 0.82f
+            scaleY = 0.82f
+            isFocusableInTouchMode = false
             isChecked = config.combustivel == Combustivel.GASOLINA
         }
         val ckE = CheckBox(ctx).apply {
             text = "ETANOL"
             tag = "cfg_ck_etanol"
             setTextColor(Color.WHITE)
+            textSize = 11f
+            scaleX = 0.82f
+            scaleY = 0.82f
+            isFocusableInTouchMode = false
             isChecked = config.combustivel == Combustivel.ETANOL
         }
         ckG.setOnCheckedChangeListener { _, marcado ->
@@ -444,29 +529,29 @@ object OverlayPaineis {
                 campo(ctx, "LITRO ETANOL", DecimalInput.formatar(config.precoEtanol), "cfg_preco_e").first,
             ),
         )
-        destino.addView(rotulo(ctx, "🔒 TROCA DE ÓLEO (ÓLEO E FILTROS)"))
+        destino.addView(rotulo(ctx, "🔒 TROCA DE ÓLEO (ÓLEO E FILTROS)", compacto = true))
         destino.addView(
             linha(
                 ctx,
-                campo(ctx, "VALOR", DecimalInput.formatar(config.oleoValor), "cfg_oleo_valor", bloqueado = true).first,
-                campo(ctx, "KILOMETRAGEM", DecimalInput.formatar(config.oleoKilometragem), "cfg_oleo_km", bloqueado = true).first,
+                campo(ctx, "VALOR", DecimalInput.formatar(config.oleoValor), "cfg_oleo_valor", bloqueado = true, compacto = true).first,
+                campo(ctx, "KILOMETRAGEM", DecimalInput.formatar(config.oleoKilometragem), "cfg_oleo_km", bloqueado = true, compacto = true).first,
             ),
         )
-        destino.addView(rotulo(ctx, "🔒 CUSTO ESTIMADO DOS PNEUS"))
-        destino.addView(rotulo(ctx, "DIANTEIRO"))
+        destino.addView(rotulo(ctx, "🔒 CUSTO ESTIMADO DOS PNEUS", compacto = true))
+        destino.addView(rotulo(ctx, "DIANTEIRO", compacto = true))
         destino.addView(
             linha(
                 ctx,
-                campo(ctx, "VALOR", DecimalInput.formatar(config.pneuDianteiroValor), "cfg_pneu_d_valor", bloqueado = true).first,
-                campo(ctx, "RODAGEM", DecimalInput.formatar(config.pneuDianteiroRodagem), "cfg_pneu_d_km", bloqueado = true).first,
+                campo(ctx, "VALOR", DecimalInput.formatar(config.pneuDianteiroValor), "cfg_pneu_d_valor", bloqueado = true, compacto = true).first,
+                campo(ctx, "RODAGEM", DecimalInput.formatar(config.pneuDianteiroRodagem), "cfg_pneu_d_km", bloqueado = true, compacto = true).first,
             ),
         )
-        destino.addView(rotulo(ctx, "TRASEIRO"))
+        destino.addView(rotulo(ctx, "TRASEIRO", compacto = true))
         destino.addView(
             linha(
                 ctx,
-                campo(ctx, "VALOR", DecimalInput.formatar(config.pneuTraseiroValor), "cfg_pneu_t_valor", bloqueado = true).first,
-                campo(ctx, "RODAGEM", DecimalInput.formatar(config.pneuTraseiroRodagem), "cfg_pneu_t_km", bloqueado = true).first,
+                campo(ctx, "VALOR", DecimalInput.formatar(config.pneuTraseiroValor), "cfg_pneu_t_valor", bloqueado = true, compacto = true).first,
+                campo(ctx, "RODAGEM", DecimalInput.formatar(config.pneuTraseiroRodagem), "cfg_pneu_t_km", bloqueado = true, compacto = true).first,
             ),
         )
     }
@@ -537,12 +622,14 @@ object OverlayPaineis {
             text = "GOOGLE MAPS"
             tag = "cfg_ck_maps"
             setTextColor(Color.WHITE)
+            isFocusableInTouchMode = false
             isChecked = config.navegacao == AppNavegacao.GOOGLE_MAPS
         }
         val waze = CheckBox(context).apply {
             text = "WAZE"
             tag = "cfg_ck_waze"
             setTextColor(Color.WHITE)
+            isFocusableInTouchMode = false
             isChecked = config.navegacao == AppNavegacao.WAZE
         }
         maps.setOnCheckedChangeListener { _, marcado ->
@@ -759,42 +846,92 @@ object OverlayPaineis {
         valor: String,
         tag: String,
         bloqueado: Boolean = false,
+        compacto: Boolean = false,
     ): Pair<LinearLayout, EditText> {
         val bloco = LinearLayout(context).apply {
             orientation = LinearLayout.VERTICAL
-            setPadding(0, dp(context, 4), 0, dp(context, 4))
+            val pad = if (compacto) 0 else 4
+            setPadding(0, dp(context, pad), 0, dp(context, pad))
         }
-        bloco.addView(rotulo(context, if (bloqueado) "🔒 $label" else label))
+        bloco.addView(
+            rotulo(context, label, compacto = compacto).apply {
+                minHeight = dp(context, 14)
+                maxLines = 1
+                ellipsize = TextUtils.TruncateAt.END
+            },
+        )
         val campo = EditText(context).apply {
             this.tag = tag
             setText(valor)
             setTextColor(Color.WHITE)
             textSize = 13f
             isEnabled = !bloqueado
+            isCursorVisible = false
+            minHeight = dp(context, if (compacto) 32 else 36)
+            showSoftInputOnFocus = true
+            setOnFocusChangeListener { v, temFoco ->
+                (v as EditText).isCursorVisible = temFoco
+            }
             setHintTextColor(Color.parseColor(SECUNDARIO))
             setBackgroundColor(Color.parseColor("#33000000"))
-            setPadding(dp(context, 8), dp(context, 6), dp(context, 8), dp(context, 6))
+            val padV = if (compacto) 4 else 6
+            setPadding(dp(context, 8), dp(context, padV), dp(context, 8), dp(context, padV))
         }
         bloco.addView(campo)
         return bloco to campo
     }
 
-    private fun rotulo(context: Context, texto: String): TextView =
+    private fun rotulo(context: Context, texto: String, compacto: Boolean = false): TextView =
         TextView(context).apply {
             text = texto
             setTextColor(Color.parseColor(SECUNDARIO))
             textSize = 10f
-            setPadding(0, dp(context, 4), 0, dp(context, 2))
+            val padTopo = if (compacto) 1 else 4
+            val padBase = if (compacto) 0 else 2
+            setPadding(0, dp(context, padTopo), 0, dp(context, padBase))
         }
 
     private fun linha(context: Context, esquerda: View, direita: View): LinearLayout =
         LinearLayout(context).apply {
             orientation = LinearLayout.HORIZONTAL
-            esquerda.layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
-            direita.layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+            gravity = Gravity.TOP
+            val params = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+            params.gravity = Gravity.TOP
+            esquerda.layoutParams = LinearLayout.LayoutParams(params)
+            direita.layoutParams = LinearLayout.LayoutParams(params)
             addView(esquerda)
             addView(direita)
         }
+
+    private fun escutarFlingAbas(
+        view: View,
+        onProxima: () -> Unit,
+        onAnterior: () -> Unit,
+    ) {
+        val detector = GestureDetector(
+            view.context,
+            object : GestureDetector.SimpleOnGestureListener() {
+                override fun onDown(e: MotionEvent): Boolean = true
+
+                override fun onFling(
+                    e1: MotionEvent?,
+                    e2: MotionEvent,
+                    velocidadeX: Float,
+                    velocidadeY: Float,
+                ): Boolean {
+                    if (abs(velocidadeX) < 700f || abs(velocidadeX) < abs(velocidadeY) * 1.1f) {
+                        return false
+                    }
+                    if (velocidadeX < 0) onProxima() else onAnterior()
+                    return true
+                }
+            },
+        )
+        view.setOnTouchListener { _, evento ->
+            detector.onTouchEvent(evento)
+            false
+        }
+    }
 
     private fun fundoNeutro(context: Context): GradientDrawable =
         GradientDrawable().apply {

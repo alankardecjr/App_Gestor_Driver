@@ -12,6 +12,7 @@ Estado alinhado ao código em `android-app/` e às regras em [`REGRAS_NEGOCIO.md
 - [x] Faixas de classificação editáveis (padrão 1,19 / 1,20–1,59 / 1,60–1,99 / 2,00)
 - [x] Histórico só no aceite (Room) + DataStore de config
 - [x] Listener, parser genérico, log `notificacoes_diagnostico.txt`
+- [x] **Interfaces congeladas** (não alterar UI até o Pro)
 - [ ] Calibração de campo (parser / aceite com notificações reais)
 
 ## Depois — Pro

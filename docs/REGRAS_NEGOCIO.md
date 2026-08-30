@@ -7,6 +7,8 @@ FLUXOGRAMA_REGRAS_NEGOCIO.
 > **Esta especificação deve ser utilizada como regra-base para as próximas etapas de desenvolvimento.**
 >
 > **Versão em foco: Beta.** Pro vem depois. Free (cálculos ocultos) só no lançamento na loja. Ver seção 38.
+>
+> **Interfaces congeladas até a versão Pro.** Ver seção 43.
 
 ---
 
@@ -994,4 +996,21 @@ Eles estão declarados em `<queries>` no manifesto (Android 11+) para o Gestor p
 - Configuração (DataStore): falha ao carregar usa valores padrão; falha ao salvar não derruba o overlay.
 
 O aceite **não** é feito pelo Gestor. Duplicidade de histórico é bloqueada pela chave da corrida.
+
+43. Congelamento das interfaces (até a versão Pro)
+
+As telas da Beta estão **congeladas**. Não alterar layout, tamanhos, espaçamentos, cores, textos visíveis, abas ou gestos da interface até o início da versão Pro.
+
+Telas congeladas:
+
+- selo flutuante
+- compacta
+- expandida (cabeçalho, DISTÂNCIAS, CUSTOS (ESTIMADO), botões)
+- histórico (abas Uber / 99 / inDrive, deslize horizontal)
+- configuração (VEÍCULO / CUSTOS / APP, deslize horizontal, CANCELAR / SALVAR)
+- confirmação de fechar
+
+Permitido na Beta, sem mudar a UI: calibrar parser e aceite, correção de crash/bug de funcionamento, persistência e monitoramento.
+
+Mudança visual só volta no **Pro** (óleo, pneus, trajeto no histórico, R$ líquido, relatórios).
 

@@ -251,6 +251,7 @@ private fun ConteudoPrincipal(
                 HistoricoSection(
                     state = state,
                     onSelecionarHistorico = viewModel::selecionarHistorico,
+                    onAba = viewModel::selecionarAbaHistorico,
                 )
             }
         }
@@ -529,7 +530,7 @@ private fun DetalhesCorrida(
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(top = 2.dp),
+            .padding(top = 8.dp),
         verticalArrangement = Arrangement.spacedBy(6.dp),
     ) {
         Row(
@@ -545,7 +546,7 @@ private fun DetalhesCorrida(
             )
             ColunaDetalhes(
                 modifier = Modifier.weight(1f),
-                titulo = "CUSTOS (COMBUSTÍVEL)",
+                titulo = "CUSTOS (ESTIMADO)",
                 icone = "💰",
                 corTitulo = TextoVerde,
                 campos = custos,
@@ -698,9 +699,11 @@ private fun ControlesInterface(
 private fun HistoricoSection(
     state: AppState,
     onSelecionarHistorico: (HistoricoItemPresentation) -> Unit,
+    onAba: (String) -> Unit,
 ) {
     val plataformas = listOf("Uber", "99", "inDrive")
-    var aba by remember { mutableStateOf(state.abaHistorico) }
+    val aba = state.abaHistorico
+    val indice = plataformas.indexOfFirst { it.equals(aba, ignoreCase = true) }.coerceAtLeast(0)
     val itens = state.historico
         .sortedByDescending { it.dataHoraRegistro ?: java.time.LocalDateTime.MIN }
         .filter { it.pertenceAba(aba) }
@@ -708,6 +711,9 @@ private fun HistoricoSection(
     Column(
         modifier = Modifier
             .fillMaxWidth()
+            .deslizeHorizontalAbas(indice, plataformas.size) { novo ->
+                onAba(plataformas[novo])
+            }
             .border(
                 width = 2.dp,
                 color = Color(0xFF607D8B),
@@ -738,7 +744,7 @@ private fun HistoricoSection(
                     color = if (aba.equals(plataforma, ignoreCase = true)) TextoVerde else TextoSecundario,
                     style = MaterialTheme.typography.labelMedium,
                     fontWeight = if (aba.equals(plataforma, ignoreCase = true)) FontWeight.SemiBold else FontWeight.Normal,
-                    modifier = Modifier.clickable { aba = plataforma },
+                    modifier = Modifier.clickable { onAba(plataforma) },
                 )
             }
         }

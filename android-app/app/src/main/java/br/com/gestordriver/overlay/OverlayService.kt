@@ -147,7 +147,7 @@ class OverlayService : Service() {
     }
 
     private fun garantirSelo(snapshot: OverlaySnapshot) {
-        val tamanho = dp(64)
+        val tamanho = dp(SELO_DP)
         val params = seloParams ?: criarParams(
             snapshot.offsetX.toInt(),
             snapshot.offsetY.toInt(),
@@ -235,7 +235,7 @@ class OverlayService : Service() {
             historicoView = nova
         }
         OverlayPaineis.atualizarHistorico(view, snapshot)
-        atualizarPainel(view, params)
+        aplicarAlturaPainelSecundario(view, params)
     }
 
     private fun garantirConfig(snapshot: OverlaySnapshot) {
@@ -257,11 +257,9 @@ class OverlayService : Service() {
             configView = nova
         }
         OverlayPaineis.atualizarConfig(view, snapshot)
-        params.width = larguraPaineis()
-        params.height = alturaPainelConfig()
-        params.x = 0
-        params.y = yAbaixoExpandida()
-        runCatching { windowManager.updateViewLayout(view, params) }
+        params.softInputMode = WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_HIDDEN or
+            WindowManager.LayoutParams.SOFT_INPUT_ADJUST_PAN
+        aplicarAlturaPainelSecundario(view, params)
     }
 
     private fun garantirConfirmacao(@Suppress("UNUSED_PARAMETER") snapshot: OverlaySnapshot) {
@@ -289,7 +287,7 @@ class OverlayService : Service() {
     private fun criarExpandida(): LinearLayout {
         val coluna = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
-            setPadding(dp(8), dp(4), dp(8), dp(2))
+            setPadding(dp(8), dp(4), dp(8), 0)
             background = fundoPainel(ClassificacaoConstantes.COR_BORDA_NEUTRA, BORDA_COMPACTA_DP)
         }
         val metricas = LinearLayout(this).apply {
@@ -328,7 +326,7 @@ class OverlayService : Service() {
         coluna.addView(metricas)
         val corpo = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
-            setPadding(0, dp(2), 0, dp(0))
+            setPadding(0, dp(8), 0, dp(0))
         }
         corpo.addView(
             criarBlocoDetalhes("distancias").apply {
@@ -344,6 +342,7 @@ class OverlayService : Service() {
         val acoes = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
             tag = "acoes"
+            setPadding(0, (dp(16) - mm(3)).coerceAtLeast(dp(6)), 0, dp(2))
         }
         listOf(
             "📴 Fechar" to { OverlayBridge.emitir(OverlayAcao.Fechar) },
@@ -360,8 +359,8 @@ class OverlayService : Service() {
                     }
                     text = rotulo
                     setTextColor(Color.parseColor("#FFD54F"))
-                    textSize = 11f
-                    setPadding(dp(2), dp(2), dp(2), dp(2))
+                    textSize = 13f
+                    setPadding(dp(4), dp(8), dp(4), dp(8))
                     layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
                     gravity = Gravity.CENTER
                     setOnClickListener { acao() }
@@ -402,7 +401,7 @@ class OverlayService : Service() {
         adicionarLinhaDetalhe(distancias, "Total percorrido", snapshot.kmTotal)
         val custos = coluna.findViewWithTag<LinearLayout>("custos")
         custos.removeAllViews()
-        adicionarTituloBloco(custos, "💰 CUSTOS (COMBUSTÍVEL)", "#7CB342")
+        adicionarTituloBloco(custos, "💰 CUSTOS (ESTIMADO)", "#7CB342")
         adicionarLinhaDetalhe(custos, "Consumo estimado", snapshot.litrosEstimados)
         adicionarLinhaDetalhe(custos, "Gasto estimado", snapshot.gastoEstimado)
         adicionarLinhaDetalhe(custos, "Lucro estimado", snapshot.lucroEstimado)
@@ -410,7 +409,7 @@ class OverlayService : Service() {
     }
 
     private fun criarSelo(): ImageView {
-        val tamanho = dp(64)
+        val tamanho = dp(SELO_DP)
         return ImageView(this).apply {
             setPadding(0, 0, 0, 0)
             minimumWidth = tamanho
@@ -669,6 +668,13 @@ class OverlayService : Service() {
             resources.displayMetrics,
         ).toInt()
 
+    private fun mm(valor: Int): Int =
+        TypedValue.applyDimension(
+            TypedValue.COMPLEX_UNIT_MM,
+            valor.toFloat(),
+            resources.displayMetrics,
+        ).toInt()
+
     private fun larguraPaineis(): Int {
         val insets = insetsSeguros()
         val bounds = windowManager.currentWindowMetrics.bounds
@@ -682,7 +688,20 @@ class OverlayService : Service() {
     }
 
     private fun alturaPainelConfig(): Int =
-        alturaMaximaAbaixoExpandida().coerceAtMost(dp(268)).coerceAtLeast(dp(220))
+        alturaMaximaAbaixoExpandida()
+            .coerceAtMost(dp(268) + mm(20) + mm(1))
+            .coerceAtLeast((dp(220) + mm(20) + mm(1)).coerceAtMost(alturaMaximaAbaixoExpandida()))
+
+    private fun aplicarAlturaPainelSecundario(
+        view: View,
+        params: WindowManager.LayoutParams,
+    ) {
+        params.width = larguraPaineis()
+        params.height = alturaPainelConfig()
+        params.x = 0
+        params.y = yAbaixoExpandida()
+        runCatching { windowManager.updateViewLayout(view, params) }
+    }
 
     private fun yAbaixoExpandida(): Int {
         val insets = insetsSeguros()
@@ -725,16 +744,13 @@ class OverlayService : Service() {
             aplicarTamanhoDoConteudo(view, params, alturaMaxima)
         }
         if (snapshot.historicoVisivel) {
-            aplicar(historicoView, historicoParams)
+            historicoParams?.let { params ->
+                historicoView?.let { view -> aplicarAlturaPainelSecundario(view, params) }
+            }
         }
         if (snapshot.configuracoesVisivel) {
             configParams?.let { params ->
-                params.y = y
-                params.width = larguraPaineis()
-                params.height = alturaPainelConfig()
-                configView?.let { view ->
-                    runCatching { windowManager.updateViewLayout(view, params) }
-                }
+                configView?.let { view -> aplicarAlturaPainelSecundario(view, params) }
             }
         }
         if (snapshot.confirmacaoFecharVisivel) {
@@ -811,6 +827,7 @@ class OverlayService : Service() {
         private const val CANAL_ID = "gestor_driver_monitoramento"
         private const val NOTIFICACAO_ID = 7101
         private const val BORDA_COMPACTA_DP = 5
+        private const val SELO_DP = 52
         const val ACAO_PARAR = "br.com.gestordriver.overlay.PARAR"
 
         fun iniciar(context: Context) {
