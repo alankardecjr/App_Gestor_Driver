@@ -15,6 +15,13 @@ data class ConfiguracaoUsuario(
     val precoGasolina: Double = 0.0,
     val precoEtanol: Double = 0.0,
 
+    val oleoValor: Double = 0.0,
+    val oleoKilometragem: Double = 0.0,
+    val pneuDianteiroValor: Double = 0.0,
+    val pneuDianteiroRodagem: Double = 0.0,
+    val pneuTraseiroValor: Double = 0.0,
+    val pneuTraseiroRodagem: Double = 0.0,
+
     val navegacao: AppNavegacao = AppNavegacao.GOOGLE_MAPS,
 
     val limiteRuimMin: Double = 0.0,

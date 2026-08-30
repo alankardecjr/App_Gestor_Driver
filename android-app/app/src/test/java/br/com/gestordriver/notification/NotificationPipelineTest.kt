@@ -198,6 +198,19 @@ class PlatformDetectorTest {
             PlatformDetector.resolver("com.ubercab.driver"),
         )
     }
+
+    @Test
+    fun reconhece_indrive_e_99_alternativos() {
+        assertEquals(
+            Plataforma.INDRIVE,
+            PlatformDetector.resolver("sinet.startup.inDriver"),
+        )
+        assertEquals(
+            Plataforma.NOVE_NOVE,
+            PlatformDetector.resolver("com.taxis99"),
+        )
+        assertTrue(PlatformDetector.ehSuportada("com.sis.android.indriver"))
+    }
 }
 
 class CalculadoraCorridaTest {

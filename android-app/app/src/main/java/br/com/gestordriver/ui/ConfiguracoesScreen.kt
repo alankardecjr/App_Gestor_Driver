@@ -47,6 +47,7 @@ private val TextoPrincipal = Color.White
 private val TextoSecundario = Color(0xFFB8C5D1)
 private val BordaCampo = Color(0xFF2B3440)
 private val DestaqueSelecionado = Color(0xFF7CB342)
+private val TextoAmareloConfig = Color(0xFFFFD54F)
 
 @Composable
 fun ConfiguracoesScreen(
@@ -60,7 +61,7 @@ fun ConfiguracoesScreen(
     androidx.compose.runtime.LaunchedEffect(abaInicial) {
         aba = abaInicial
     }
-    val abas = listOf("VEÍCULO", "CLASSIFICAÇÃO", "APP")
+    val abas = listOf("VEÍCULO", "CUSTOS", "APP")
 
     Column(
         modifier = Modifier
@@ -83,7 +84,7 @@ fun ConfiguracoesScreen(
             contentAlignment = Alignment.Center,
         ) {
             Text(
-                text = "Configurações",
+                text = "CONFIGURAÇÃO",
                 color = TextoPrincipal,
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.SemiBold,
@@ -107,43 +108,61 @@ fun ConfiguracoesScreen(
         }
 
         when (aba) {
-            0 -> SecaoCard(titulo = "Ajustes do veículo") {
-                CampoTexto(
-                    label = "Marca",
-                    valor = configuracao.marcaVeiculo,
-                    onValorChange = viewModel::atualizarMarca,
-                )
-                CampoTexto(
-                    label = "Modelo",
-                    valor = configuracao.modeloVeiculo,
-                    onValorChange = viewModel::atualizarModelo,
-                )
-                CampoTexto(
-                    label = "Versão",
-                    valor = configuracao.versaoVeiculo,
-                    onValorChange = viewModel::atualizarVersao,
-                )
-                CampoTexto(
-                    label = "Ano",
-                    valor = configuracao.anoVeiculo,
-                    onValorChange = viewModel::atualizarAno,
-                )
-                CampoTexto(
-                    label = "Final da placa",
-                    valor = configuracao.finalPlaca,
-                    onValorChange = viewModel::atualizarFinalPlaca,
-                )
-                CampoNumerico(
-                    label = "Consumo gasolina (km/L)",
-                    valor = configuracao.consumoGasolina,
-                    onValorChange = viewModel::atualizarConsumoGasolina,
-                )
-                CampoNumerico(
-                    label = "Consumo etanol (km/L)",
-                    valor = configuracao.consumoEtanol,
-                    onValorChange = viewModel::atualizarConsumoEtanol,
-                )
-                SubtituloSecao(texto = "Combustível atual")
+            0 -> SecaoCard(titulo = "VEÍCULO") {
+                SubtituloSecao(texto = "DESCRIÇÃO")
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    CampoTextoCompacto(
+                        label = "MARCA",
+                        valor = configuracao.marcaVeiculo,
+                        onValorChange = viewModel::atualizarMarca,
+                        modifier = Modifier.weight(1f),
+                    )
+                    CampoTextoCompacto(
+                        label = "MODELO",
+                        valor = configuracao.modeloVeiculo,
+                        onValorChange = viewModel::atualizarModelo,
+                        modifier = Modifier.weight(1f),
+                    )
+                }
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    CampoTextoCompacto(
+                        label = "VERSÃO",
+                        valor = configuracao.versaoVeiculo,
+                        onValorChange = viewModel::atualizarVersao,
+                        modifier = Modifier.weight(1f),
+                    )
+                    CampoTextoCompacto(
+                        label = "ANO",
+                        valor = configuracao.anoVeiculo,
+                        onValorChange = viewModel::atualizarAno,
+                        modifier = Modifier.weight(1f),
+                    )
+                }
+                SubtituloSecao(texto = "CONSUMO KM")
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    CampoNumericoCompacto(
+                        label = "GASOLINA",
+                        valor = configuracao.consumoGasolina,
+                        onValorChange = viewModel::atualizarConsumoGasolina,
+                        modifier = Modifier.weight(1f),
+                    )
+                    CampoNumericoCompacto(
+                        label = "ETANOL",
+                        valor = configuracao.consumoEtanol,
+                        onValorChange = viewModel::atualizarConsumoEtanol,
+                        modifier = Modifier.weight(1f),
+                    )
+                }
+                SubtituloSecao(texto = "COMBUSTÍVEL ATUAL")
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -165,37 +184,50 @@ fun ConfiguracoesScreen(
                 }
             }
 
-            1 -> SecaoCard(titulo = "Classificação (R$/km)") {
-                FaixaClassificacao(
-                    titulo = "Ruim",
-                    min = configuracao.limiteRuimMin,
-                    max = configuracao.limiteRuimMax,
-                    minFixo = "MIN",
-                    onMinChange = viewModel::atualizarLimiteRuimMin,
-                    onMaxChange = viewModel::atualizarLimiteRuimMax,
-                )
-                FaixaClassificacao(
-                    titulo = "Regular",
-                    min = configuracao.limiteRegularMin,
-                    max = configuracao.limiteRegularMax,
-                    onMinChange = viewModel::atualizarLimiteRegularMin,
-                    onMaxChange = viewModel::atualizarLimiteRegularMax,
-                )
-                FaixaClassificacao(
-                    titulo = "Boa",
-                    min = configuracao.limiteBoaMin,
-                    max = configuracao.limiteBoaMax,
-                    onMinChange = viewModel::atualizarLimiteBoaMin,
-                    onMaxChange = viewModel::atualizarLimiteBoaMax,
-                )
-                FaixaClassificacao(
-                    titulo = "Ótima",
-                    min = configuracao.limiteOtimaMin,
-                    max = configuracao.limiteOtimaMax,
-                    maxFixo = "MAX",
-                    onMinChange = viewModel::atualizarLimiteOtimaMin,
-                    onMaxChange = viewModel::atualizarLimiteOtimaMax,
-                )
+            1 -> SecaoCard(titulo = "CUSTOS") {
+                SubtituloSecao(texto = "VALOR DO COMBUSTÍVEL")
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    CampoNumericoCompacto(
+                        label = "LITRO GASOLINA",
+                        valor = configuracao.precoGasolina,
+                        onValorChange = viewModel::atualizarPrecoGasolina,
+                        modifier = Modifier.weight(1f),
+                    )
+                    CampoNumericoCompacto(
+                        label = "LITRO ETANOL",
+                        valor = configuracao.precoEtanol,
+                        onValorChange = viewModel::atualizarPrecoEtanol,
+                        modifier = Modifier.weight(1f),
+                    )
+                }
+                SubtituloSecao(texto = "🔒 TROCA DE ÓLEO (ÓLEO E FILTROS)")
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    CampoFaixaFixa(label = "VALOR", valor = "🔒", modifier = Modifier.weight(1f))
+                    CampoFaixaFixa(label = "KILOMETRAGEM", valor = "🔒", modifier = Modifier.weight(1f))
+                }
+                SubtituloSecao(texto = "🔒 CUSTO ESTIMADO DOS PNEUS")
+                Text("DIANTEIRO", color = TextoPrincipal, style = MaterialTheme.typography.labelSmall)
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    CampoFaixaFixa(label = "VALOR", valor = "🔒", modifier = Modifier.weight(1f))
+                    CampoFaixaFixa(label = "RODAGEM", valor = "🔒", modifier = Modifier.weight(1f))
+                }
+                Text("TRASEIRO", color = TextoPrincipal, style = MaterialTheme.typography.labelSmall)
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    CampoFaixaFixa(label = "VALOR", valor = "🔒", modifier = Modifier.weight(1f))
+                    CampoFaixaFixa(label = "RODAGEM", valor = "🔒", modifier = Modifier.weight(1f))
+                }
             }
 
             else -> {
@@ -203,47 +235,38 @@ fun ConfiguracoesScreen(
                 val localizacaoOk = PermissoesMonitoramento.localizacaoConcedida(contexto)
                 val overlayOk = PermissoesMonitoramento.overlayConcedida(contexto)
                 val listenerOk = PermissoesMonitoramento.listenerNotificacoesAtivo(contexto)
-                SecaoCard(titulo = "Ajustes do App") {
-                    SubtituloSecao(texto = "Permissões")
-                    Text(
-                        text = if (localizacaoOk && overlayOk && listenerOk) {
-                            "Permissões concedidas."
-                        } else {
-                            "Conceda localização, notificações e sobressair para monitorar ofertas."
-                        },
-                        color = TextoSecundario,
-                        style = MaterialTheme.typography.bodySmall,
-                    )
-                    TextButton(
-                        onClick = {
-                            (contexto as? br.com.gestordriver.MainActivity)?.pedirLocalizacao()
-                        },
-                    ) {
-                        Text(
-                            text = if (localizacaoOk) "LOCALIZAÇÃO ✓" else "LOCALIZAÇÃO — faltando",
-                            color = when {
-                                localizacaoOk -> DestaqueSelecionado
-                                destacarPermissoes -> Color(0xFFFFCDD2)
-                                else -> TextoPrincipal
-                            },
-                            style = MaterialTheme.typography.labelSmall,
-                        )
-                    }
+                SecaoCard(titulo = "APP") {
+                    SubtituloSecao(texto = "PERMISSÕES")
                     Row(
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        horizontalArrangement = Arrangement.SpaceEvenly,
                     ) {
+                        TextButton(
+                            onClick = {
+                                (contexto as? br.com.gestordriver.MainActivity)?.pedirLocalizacao()
+                            },
+                        ) {
+                            Text(
+                                text = if (localizacaoOk) "LOCALIZAÇÃO 🆗" else "LOCALIZAÇÃO ❎",
+                                color = when {
+                                    localizacaoOk -> DestaqueSelecionado
+                                    destacarPermissoes -> Color(0xFFFFCDD2)
+                                    else -> TextoAmareloConfig
+                                },
+                                style = MaterialTheme.typography.labelSmall,
+                            )
+                        }
                         TextButton(
                             onClick = {
                                 contexto.startActivity(Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS))
                             },
                         ) {
                             Text(
-                                text = if (listenerOk) "NOTIFICAÇÕES ✓" else "NOTIFICAÇÕES — faltando",
+                                text = if (listenerOk) "NOTIFICAÇÕES 🆗" else "NOTIFICAÇÕES ❎",
                                 color = when {
                                     listenerOk -> DestaqueSelecionado
                                     destacarPermissoes -> Color(0xFFFFCDD2)
-                                    else -> TextoPrincipal
+                                    else -> TextoAmareloConfig
                                 },
                                 style = MaterialTheme.typography.labelSmall,
                             )
@@ -259,57 +282,76 @@ fun ConfiguracoesScreen(
                             },
                         ) {
                             Text(
-                                text = if (overlayOk) "SOBRESSAIR ✓" else "SOBRESSAIR — faltando",
+                                text = if (overlayOk) "SOBREPOR 🆗" else "SOBREPOR ❎",
                                 color = when {
                                     overlayOk -> DestaqueSelecionado
                                     destacarPermissoes -> Color(0xFFFFCDD2)
-                                    else -> TextoPrincipal
+                                    else -> TextoAmareloConfig
                                 },
                                 style = MaterialTheme.typography.labelSmall,
                             )
                         }
                     }
-                    Spacer(modifier = Modifier.height(4.dp))
-                    SubtituloSecao(texto = "Valores combustível")
+                    SubtituloSecao(texto = "APPS DE CORRIDA")
                     Row(
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        horizontalArrangement = Arrangement.SpaceEvenly,
                     ) {
-                        CampoNumericoCompacto(
-                            label = "GASOLINA",
-                            valor = configuracao.precoGasolina,
-                            onValorChange = viewModel::atualizarPrecoGasolina,
-                            modifier = Modifier.weight(1f),
-                        )
-                        CampoNumericoCompacto(
-                            label = "ETANOL",
-                            valor = configuracao.precoEtanol,
-                            onValorChange = viewModel::atualizarPrecoEtanol,
-                            modifier = Modifier.weight(1f),
-                        )
+                        listOf(
+                            br.com.gestordriver.notification.Plataforma.UBER to "UBER",
+                            br.com.gestordriver.notification.Plataforma.NOVE_NOVE to "99",
+                            br.com.gestordriver.notification.Plataforma.INDRIVE to "INDRIVE",
+                        ).forEach { (plataforma, titulo) ->
+                            val ok = br.com.gestordriver.notification.PlataformasMotorista.instalada(
+                                contexto,
+                                plataforma,
+                            )
+                            Text(
+                                text = if (ok) "$titulo 🆗" else "$titulo ❎",
+                                color = if (ok) DestaqueSelecionado else TextoAmareloConfig,
+                                style = MaterialTheme.typography.labelSmall,
+                            )
+                        }
                     }
-                    Spacer(modifier = Modifier.height(4.dp))
-                    SubtituloSecao(texto = "App de navegação")
+                    SubtituloSecao(texto = "NAVEGAÇÃO")
                     SeletorNavegacao(
                         selecionado = configuracao.navegacao,
-                        onSelecionar = viewModel::selecionarNavegacao,
-                    )
-                    TextButton(
-                        onClick = {
-                            NavegacaoLauncher.abrirAplicativo(contexto, configuracao.navegacao)
+                        onSelecionar = { app ->
+                            viewModel.selecionarNavegacao(app)
+                            NavegacaoLauncher.abrirAplicativo(contexto, app)
                         },
-                    ) {
-                        Text(
-                            text = if (configuracao.navegacao == AppNavegacao.WAZE) {
-                                "Abrir Waze"
-                            } else {
-                                "Abrir Google Maps"
-                            },
-                            color = DestaqueSelecionado,
-                            style = MaterialTheme.typography.labelMedium,
-                            fontWeight = FontWeight.SemiBold,
-                        )
-                    }
+                    )
+                    SubtituloSecao(texto = "CLASSIFICAÇÃO")
+                    FaixaClassificacao(
+                        titulo = "RUIM",
+                        min = configuracao.limiteRuimMin,
+                        max = configuracao.limiteRuimMax,
+                        minFixo = "MIN",
+                        onMinChange = viewModel::atualizarLimiteRuimMin,
+                        onMaxChange = viewModel::atualizarLimiteRuimMax,
+                    )
+                    FaixaClassificacao(
+                        titulo = "REGULAR",
+                        min = configuracao.limiteRegularMin,
+                        max = configuracao.limiteRegularMax,
+                        onMinChange = viewModel::atualizarLimiteRegularMin,
+                        onMaxChange = viewModel::atualizarLimiteRegularMax,
+                    )
+                    FaixaClassificacao(
+                        titulo = "BOA",
+                        min = configuracao.limiteBoaMin,
+                        max = configuracao.limiteBoaMax,
+                        onMinChange = viewModel::atualizarLimiteBoaMin,
+                        onMaxChange = viewModel::atualizarLimiteBoaMax,
+                    )
+                    FaixaClassificacao(
+                        titulo = "ÓTIMA",
+                        min = configuracao.limiteOtimaMin,
+                        max = configuracao.limiteOtimaMax,
+                        maxFixo = "MAX",
+                        onMinChange = viewModel::atualizarLimiteOtimaMin,
+                        onMaxChange = viewModel::atualizarLimiteOtimaMax,
+                    )
                 }
             }
         }
@@ -321,13 +363,13 @@ fun ConfiguracoesScreen(
         ) {
             TextButton(
                 onClick = {
-                    viewModel.salvar()
+                    viewModel.cancelar()
                     onVoltar()
                 },
             ) {
                 Text(
-                    text = "⬅️ Voltar",
-                    color = TextoPrincipal,
+                    text = "CANCELAR",
+                    color = TextoSecundario,
                     style = MaterialTheme.typography.labelMedium,
                 )
             }
@@ -339,7 +381,7 @@ fun ConfiguracoesScreen(
                 },
             ) {
                 Text(
-                    text = "💾 Salvar",
+                    text = "SALVAR",
                     color = DestaqueSelecionado,
                     style = MaterialTheme.typography.labelMedium,
                     fontWeight = FontWeight.SemiBold,
@@ -514,6 +556,28 @@ private fun FaixaClassificacao(
 }
 
 @Composable
+private fun CampoTextoCompacto(
+    label: String,
+    valor: String,
+    onValorChange: (String) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    OutlinedTextField(
+        value = valor,
+        onValueChange = onValorChange,
+        modifier = modifier,
+        label = {
+            Text(
+                text = label,
+                color = TextoSecundario,
+            )
+        },
+        singleLine = true,
+        colors = coresCampo(),
+    )
+}
+
+@Composable
 private fun CampoFaixaFixa(
     label: String,
     valor: String,
@@ -603,7 +667,7 @@ private fun SeletorNavegacao(
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         OpcaoSelecionavel(
-            texto = "MAPS",
+            texto = "GOOGLE MAPS",
             selecionado = selecionado == AppNavegacao.GOOGLE_MAPS,
             onClick = { onSelecionar(AppNavegacao.GOOGLE_MAPS) },
             modifier = Modifier.weight(1f),

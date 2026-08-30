@@ -178,7 +178,7 @@ permanece visível enquanto o monitoramento estiver ativo;
 pode ser arrastado pelo usuário;
 deve manter sua posição;
 pode ser tocado;
-ao ser tocado, abre a interface expandida ocupando 1/3 da tela do celular e sobrepor outros apps.
+ao ser tocado, abre a interface expandida **logo abaixo do topo**, com altura **ajustada ao conteúdo** (cabeçalho + distâncias/custos + botões). Não usa mais 1/3 fixo da tela, para não cobrir o mapa dos apps de corrida.
 
 Fluxo:
 
@@ -330,7 +330,7 @@ COMPACTA
    ↓
   ⬇️
    ↓
-EXPANDIDA (~1/3 da tela)
+EXPANDIDA (altura do conteúdo, overlay)
 
 Na expandida: Distâncias (até o passageiro, até o destino, total) e Custos (consumo estimado em litros, gasto, lucro) + botões Fechar · Config · Ocultar · Histórico.
 
@@ -958,7 +958,7 @@ Litros = km total ÷ km/L do **combustível atual**.
 Gasto = litros × **preço do litro** desse combustível.  
 Lucro estimado (Beta) = valor da corrida − gasto.
 
-Gasolina: litro mais caro, mais km/L. Etanol: litro mais barato, menos km/L. Os dois entram na conta via combustível marcado + preços da aba APP. Snapshot no momento da oferta; mudar preço depois não recalcula histórico.
+Gasolina: litro mais caro, mais km/L. Etanol: litro mais barato, menos km/L. Os dois entram na conta via combustível marcado + preços da aba **CUSTOS**. Snapshot no momento da oferta; mudar preço depois não recalcula histórico.
 
 40. Faixas padrão de classificação (R$/km)
 
@@ -971,5 +971,27 @@ Sem sobreposição, passo 0,01. Ruim MIN e Ótima MAX são rótulos fixos.
 | Boa | 1,60 | 1,99 | verde |
 | Ótima | 2,00 | MAX | azul |
 
-Editar um limite ajusta o vizinho. O motorista pode alterar as faixas na aba CLASSIFICAÇÃO.
+Editar um limite ajusta o vizinho. O motorista pode alterar as faixas na aba **APP**.
+
+41. Pacotes monitorados (Beta)
+
+O listener só processa notificações destes apps de **motorista** (não o app de passageiro):
+
+| Plataforma | Pacotes reconhecidos |
+| --- | --- |
+| Uber | `com.ubercab.driver` |
+| 99 | `com.app99.driver`, `com.taxis99.driver`, `com.taxis99` |
+| inDrive | `sinet.startup.inDriver`, `com.sis.android.indriver`, `com.indrive.android` |
+
+Eles estão declarados em `<queries>` no manifesto (Android 11+) para o Gestor poder **ver se estão instalados**. A aba APP mostra UBER / 99 / INDRIVE com 🆗 (instalado) ou ❎ (não encontrado). Sem o app de motorista instalado, não haverá ofertas.
+
+42. Tratamento de exceções (Beta)
+
+- Parser de notificação: falha vira “não reconhecida”, sem crash.
+- Mapper de extras da notificação: extras inválidos são ignorados.
+- Listener: qualquer falha ao processar uma postagem é registrada no log diagnóstico (`EXCECAO`) e o serviço segue.
+- Overlay: `addView` / `startForegroundService` / `stopService` em `runCatching`.
+- Configuração (DataStore): falha ao carregar usa valores padrão; falha ao salvar não derruba o overlay.
+
+O aceite **não** é feito pelo Gestor. Duplicidade de histórico é bloqueada pela chave da corrida.
 

@@ -9,7 +9,7 @@ Objetivo: o app funcionar no celular de trabalho. Parser e aceite se calibram co
 1. Detectar oferta e **aceite** (Uber / 99 / inDrive).
 2. Gravar no **histórico só corrida aceita**.
 3. Overlay: compacta → expandida; Config e Histórico **embaixo** da expandida.
-4. Custo pelo **combustível atual** + preços da aba APP.
+4. Custo pelo **combustível atual** + preços da aba **CUSTOS**.
 5. Log local das notificações para ajustar o parser.
 
 ## O que fica para depois
@@ -22,7 +22,7 @@ Pro (custo operacional, R$ líquido, relatórios). Free na loja (mesma UI, **sem
 2. Abra o Gestor Driver e conceda **Notificações**, **Sobressair** e **Localização**.
 3. No Android 13+, aceite a permissão de notificação do próprio Gestor.
 4. Desative otimização de bateria para o Gestor Driver (senão o overlay some).
-5. Aba VEÍCULO: consumo km/L e combustível atual. Aba APP: preços R$/L e Maps ou Waze.
+5. Aba VEÍCULO: consumo km/L e combustível atual. Aba CUSTOS: preços R$/L. Aba APP: permissões, Maps/Waze e faixas.
 6. Feche e reabra — os valores precisam continuar iguais.
 7. Abra Uber Driver, 99 ou inDrive **logado**.
 8. Deixe o Gestor em segundo plano (selo visível sobre o mapa).
@@ -34,7 +34,7 @@ Pro (custo operacional, R$ líquido, relatórios). Free na loja (mesma UI, **sem
 | --- | --- |
 | Oferta chega | Compacta: R$/KM, VALOR, DIST., TEMPO, NOTA, borda da classificação |
 | Recusa / some a oferta | Volta ao selo, **não** entra no histórico |
-| `⬇️` ou toque no selo | Expandida ~1/3; Distâncias + Custos; mapa visível |
+| `⬇️` ou toque no selo | Expandida com Distâncias + Custos; mapa visível atrás |
 | Config / Histórico | Painel abaixo da expandida (não tela cheia) |
 | Aceita na plataforma | Uma linha no histórico; interface vai ao **selo** |
 | Recolher (`⬆️`) | Compacta e, em 5 s, selo |

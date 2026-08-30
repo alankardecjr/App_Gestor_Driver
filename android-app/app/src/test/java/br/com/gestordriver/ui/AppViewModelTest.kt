@@ -2,6 +2,8 @@ package br.com.gestordriver.ui
 
 import br.com.gestordriver.model.ModoApresentacao
 import br.com.gestordriver.model.PlanoAcesso
+import br.com.gestordriver.overlay.OverlayAcao
+import br.com.gestordriver.overlay.OverlayBridge
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -145,6 +147,25 @@ class AppViewModelTest {
         assertFalse(
             viewModel.state.configuracoesVisivel,
         )
+    }
+
+    @Test
+    fun aba_custos_e_app_devem_atualizar_estado() {
+        val viewModel = novoViewModel()
+        viewModel.abrirConfiguracoes()
+        OverlayBridge.emitir(OverlayAcao.AbaConfiguracao(1))
+        assertEquals(1, viewModel.state.abaConfiguracao)
+        OverlayBridge.emitir(OverlayAcao.AbaConfiguracao(2))
+        assertEquals(2, viewModel.state.abaConfiguracao)
+    }
+
+    @Test
+    fun alternar_config_abre_e_fecha() {
+        val viewModel = novoViewModel()
+        viewModel.abrirConfiguracoes()
+        assertTrue(viewModel.state.configuracoesVisivel)
+        viewModel.alternarConfiguracoes()
+        assertFalse(viewModel.state.configuracoesVisivel)
     }
 
     // =====================================================================
@@ -370,6 +391,21 @@ class AppViewModelTest {
         )
     }
 
+    @Test
+    fun solicitar_fechar_deve_manter_expandida_e_abrir_painel_abaixo() {
+        val viewModel = novoViewModel()
+        viewModel.iniciarMonitoramento()
+        viewModel.reabrirInterface()
+        viewModel.solicitarFecharApp()
+
+        assertTrue(viewModel.state.confirmacaoFecharVisivel)
+        assertTrue(viewModel.state.interfaceOculta)
+        assertFalse(viewModel.state.historicoVisivel)
+        assertFalse(viewModel.state.configuracoesVisivel)
+        assertFalse(viewModel.state.seloFlutuante)
+        assertEquals(ModoApresentacao.DETALHES, viewModel.state.corrida.modo)
+    }
+
     // =====================================================================
     // CANCELAR FECHAMENTO
     // =====================================================================
@@ -562,13 +598,14 @@ class AppViewModelTest {
     }
 
     @Test
-    fun recolher_ao_sair_volta_ao_selo() {
+    fun recolher_ao_sair_nao_fecha_overlay_ja_visivel() {
         val viewModel = novoViewModel()
         viewModel.reabrirInterface()
         viewModel.abrirHistoricoPeloOverlay()
         viewModel.recolherAoSairDoApp()
         assertTrue(viewModel.state.interfaceOculta)
-        assertTrue(viewModel.state.seloFlutuante)
+        assertTrue(viewModel.state.historicoVisivel)
+        assertFalse(viewModel.state.seloFlutuante)
     }
 
     @Test

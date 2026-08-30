@@ -33,7 +33,22 @@ class RideNotificationListenerService : NotificationListenerService() {
         if (!PlatformDetector.ehSuportada(sbn.packageName.orEmpty())) {
             return
         }
+        runCatching {
+            processarNotificacao(sbn)
+        }.onFailure {
+            diagnostico.registrar(
+                NotificationData(
+                    packageName = sbn.packageName.orEmpty(),
+                    title = "erro",
+                    text = it.message.orEmpty(),
+                    key = sbn.key,
+                ),
+                "EXCECAO",
+            )
+        }
+    }
 
+    private fun processarNotificacao(sbn: StatusBarNotification) {
         val notification = NotificationMapper.de(sbn)
         if (notification.fullText.isBlank()) {
             diagnostico.registrar(notification, "VAZIA")

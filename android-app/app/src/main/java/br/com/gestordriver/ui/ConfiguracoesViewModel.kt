@@ -104,11 +104,9 @@ class ConfiguracoesViewModel(
 
     private fun aplicar(nova: ConfiguracaoUsuario) {
         configuracao = nova
-        store.salvar(nova)
     }
 
-    override fun onCleared() {
-        store.salvar(configuracao)
-        super.onCleared()
+    fun cancelar() {
+        configuracao = store.carregar()
     }
 }

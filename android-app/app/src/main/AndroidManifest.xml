@@ -12,6 +12,13 @@
     <queries>
         <package android:name="com.google.android.apps.maps" />
         <package android:name="com.waze" />
+        <package android:name="com.ubercab.driver" />
+        <package android:name="com.app99.driver" />
+        <package android:name="com.taxis99.driver" />
+        <package android:name="com.taxis99" />
+        <package android:name="sinet.startup.inDriver" />
+        <package android:name="com.sis.android.indriver" />
+        <package android:name="com.indrive.android" />
     </queries>
 
     <application

@@ -60,7 +60,7 @@ object NotificationMapper {
             if (chave in extrasIgnoradas) {
                 continue
             }
-            when (val valor = extras.get(chave)) {
+            when (val valor = runCatching { extras.get(chave) }.getOrNull()) {
                 is CharSequence -> {
                     val texto = valor.toString().trim()
                     if (texto.isNotBlank() && texto.length < 400) {

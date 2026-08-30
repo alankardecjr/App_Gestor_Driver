@@ -5,6 +5,7 @@ import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import br.com.gestordriver.model.ConfiguracaoUsuario
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 
@@ -13,17 +14,21 @@ private val Context.configuracaoDataStore by preferencesDataStore(name = "gestor
 class PreferencesConfiguracaoStore(
     private val context: Context,
 ) : ConfiguracaoStore {
-    override fun carregar(): ConfiguracaoUsuario = runBlocking {
-        val prefs = context.configuracaoDataStore.data.first()
-        val mapa = prefs.asMap().mapKeys { it.key.name }.mapValues { it.value.toString() }
-        if (mapa.isEmpty()) ConfiguracaoUsuario.padrao() else mapa.paraConfiguracaoUsuario()
-    }
+    override fun carregar(): ConfiguracaoUsuario = runCatching {
+        runBlocking(Dispatchers.IO) {
+            val prefs = context.configuracaoDataStore.data.first()
+            val mapa = prefs.asMap().mapKeys { it.key.name }.mapValues { it.value.toString() }
+            if (mapa.isEmpty()) ConfiguracaoUsuario.padrao() else mapa.paraConfiguracaoUsuario()
+        }
+    }.getOrDefault(ConfiguracaoUsuario.padrao())
 
     override fun salvar(configuracao: ConfiguracaoUsuario) {
-        runBlocking {
-            context.configuracaoDataStore.edit { prefs ->
-                configuracao.paraPreferencias().forEach { (chave, valor) ->
-                    prefs[stringPreferencesKey(chave)] = valor
+        runCatching {
+            runBlocking(Dispatchers.IO) {
+                context.configuracaoDataStore.edit { prefs ->
+                    configuracao.paraPreferencias().forEach { (chave, valor) ->
+                        prefs[stringPreferencesKey(chave)] = valor
+                    }
                 }
             }
         }

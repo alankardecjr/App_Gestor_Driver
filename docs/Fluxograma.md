@@ -24,7 +24,7 @@ O aplicativo:
 5. exibe o selo flutuante sobre o app de transporte;
 6. monitora notificações;
 7. na oferta, mostra a **barra compacta** no topo (só o cabeçalho);
-8. `⬇️` ou toque no selo abre a **expandida em overlay (~1/3 da tela)**;
+8. `⬇️` ou toque no selo abre a **expandida em overlay** (altura do conteúdo, não 1/3 fixo);
 9. Histórico e Configuração abrem **embaixo da expandida** (painéis overlay, exclusivos);
 10. Recolher (`⬆️`) volta à compacta; **após 5 s** retorna ao selo. Aceite detectado também vai ao selo;
 11. Ocultar e expiração (sem item de histórico selecionado) retornam ao selo na última posição;
@@ -83,7 +83,7 @@ O aplicativo:
         │                │
         ▼                ▼
 ┌───────────────┐  ┌───────────────┐
-│ EXPANDIDA 1/3 │  │ BARRA COMPACTA│
+│ EXPANDIDA     │  │ BARRA COMPACTA│
 │   (overlay)   │  │   (overlay)   │
 └───────┬───────┘  └───────┬───────┘
         │                  │
@@ -125,7 +125,7 @@ Nova oferta substitui a corrida atual. Sem oferta = selo. Histórico só muda no
 
 # 4. Fluxo de minimização
 
-          EXPANDIDA (overlay 1/3)
+          EXPANDIDA (overlay, altura do conteúdo)
           │
           ├── 📜 HISTÓRICO → painel overlay abaixo (⤴️ recolhe)
           ├── ⚙️ CONFIG → painel overlay abaixo (abas VEÍCULO / CLASSIFICAÇÃO / APP)

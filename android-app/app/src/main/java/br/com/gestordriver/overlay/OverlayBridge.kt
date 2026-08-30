@@ -29,6 +29,7 @@ data class OverlaySnapshot(
     val expandidaVisivel: Boolean = false,
     val historicoVisivel: Boolean = false,
     val configuracoesVisivel: Boolean = false,
+    val confirmacaoFecharVisivel: Boolean = false,
     val historicoAba: String = "Uber",
     val historicoItens: List<OverlayHistoricoItem> = emptyList(),
     val destacarPermissoes: Boolean = false,
@@ -59,9 +60,13 @@ sealed class OverlayAcao {
     data class MoverSelo(val offsetX: Float, val offsetY: Float) : OverlayAcao()
     data object AbrirHistorico : OverlayAcao()
     data object AbrirConfig : OverlayAcao()
+    data object SalvarConfig : OverlayAcao()
+    data object CancelarConfig : OverlayAcao()
     data object Ocultar : OverlayAcao()
     data object Retratil : OverlayAcao()
     data object Fechar : OverlayAcao()
+    data object CancelarFechar : OverlayAcao()
+    data object ConfirmarFechar : OverlayAcao()
     data class SelecionarHistorico(val chave: String) : OverlayAcao()
     data class AbaHistorico(val aba: String) : OverlayAcao()
     data class AbaConfiguracao(val indice: Int) : OverlayAcao()

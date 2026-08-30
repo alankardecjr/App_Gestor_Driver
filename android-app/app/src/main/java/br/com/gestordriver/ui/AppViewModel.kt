@@ -125,10 +125,14 @@ class AppViewModel(
                     is OverlayAcao.Reabrir -> reabrirInterface(acao.origemCompacta)
                     is OverlayAcao.MoverSelo -> atualizarPosicaoSelo(acao.offsetX, acao.offsetY)
                     OverlayAcao.AbrirHistorico -> alternarHistorico()
-                    OverlayAcao.AbrirConfig -> abrirConfiguracoes()
+                    OverlayAcao.AbrirConfig -> alternarConfiguracoes()
+                    OverlayAcao.SalvarConfig -> fecharConfiguracoes()
+                    OverlayAcao.CancelarConfig -> fecharConfiguracoes()
                     OverlayAcao.Ocultar -> ocultarInterface()
                     OverlayAcao.Retratil -> retrairParaCompactaTemporaria()
                     OverlayAcao.Fechar -> solicitarFecharApp()
+                    OverlayAcao.CancelarFechar -> cancelarFecharApp()
+                    OverlayAcao.ConfirmarFechar -> confirmarFecharApp()
                     is OverlayAcao.SelecionarHistorico -> selecionarHistoricoPorChave(acao.chave)
                     is OverlayAcao.AbaHistorico -> selecionarAbaHistorico(acao.aba)
                     is OverlayAcao.AbaConfiguracao -> {
@@ -274,6 +278,14 @@ class AppViewModel(
     // ================================================================
     // CONFIGURAÇÕES
     // ================================================================
+
+    fun alternarConfiguracoes(destaquePermissao: Boolean = false, usarOverlay: Boolean = true) {
+        if (state.configuracoesVisivel && !destaquePermissao) {
+            fecharConfiguracoes()
+            return
+        }
+        abrirConfiguracoes(destaquePermissao, usarOverlay)
+    }
 
     fun abrirConfiguracoes(destaquePermissao: Boolean = false, usarOverlay: Boolean = true) {
         state = state.copy(
@@ -486,10 +498,18 @@ class AppViewModel(
         estadoAntesFechar = state
         state = state.copy(
             confirmacaoFecharVisivel = true,
-            interfaceOculta = false,
+            historicoVisivel = false,
+            configuracoesVisivel = false,
             seloFlutuante = false,
+            corrida = state.corrida.copy(
+                modo = ModoApresentacao.DETALHES,
+                acaoDetalhes = "Menos detalhes",
+            ),
         )
         publicarOverlay()
+        if (state.interfaceOculta) {
+            _irParaSegundoPlano.tryEmit(Unit)
+        }
     }
 
     fun cancelarFecharApp() {
@@ -728,6 +748,7 @@ class AppViewModel(
                 expandidaVisivel = expandidaVisivel,
                 historicoVisivel = expandidaVisivel && state.historicoVisivel,
                 configuracoesVisivel = expandidaVisivel && state.configuracoesVisivel,
+                confirmacaoFecharVisivel = expandidaVisivel && state.confirmacaoFecharVisivel,
                 historicoAba = state.abaHistorico,
                 historicoItens = itensHistorico,
                 destacarPermissoes = state.destacarPermissoes,

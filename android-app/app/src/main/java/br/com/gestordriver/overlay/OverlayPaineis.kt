@@ -7,6 +7,7 @@ import android.graphics.Typeface
 import android.graphics.drawable.GradientDrawable
 import android.provider.Settings
 import android.util.TypedValue
+import android.view.ContextThemeWrapper
 import android.view.Gravity
 import android.view.View
 import android.widget.CheckBox
@@ -21,10 +22,13 @@ import br.com.gestordriver.model.AppNavegacao
 import br.com.gestordriver.model.Combustivel
 import br.com.gestordriver.model.ConfiguracaoUsuario
 import br.com.gestordriver.navigation.NavegacaoLauncher
+import br.com.gestordriver.notification.Plataforma
+import br.com.gestordriver.notification.PlataformasMotorista
 import br.com.gestordriver.permission.PermissoesMonitoramento
 import br.com.gestordriver.ui.DecimalInput
 
 object OverlayPaineis {
+    private var rascunho: ConfiguracaoUsuario? = null
     private const val FUNDO = "#F2050809"
     private const val TEXTO = "#FFFFFF"
     private const val SECUNDARIO = "#B8C5D1"
@@ -34,6 +38,7 @@ object OverlayPaineis {
     fun criarHistorico(context: Context): ScrollView {
         val scroll = ScrollView(context)
         scroll.background = fundoNeutro(context)
+        scroll.clipToOutline = true
         val coluna = LinearLayout(context).apply {
             orientation = LinearLayout.VERTICAL
             setPadding(dp(context, 10), dp(context, 8), dp(context, 10), dp(context, 8))
@@ -78,6 +83,60 @@ object OverlayPaineis {
         return scroll
     }
 
+    fun criarConfirmacaoFechar(context: Context): LinearLayout {
+        val coluna = LinearLayout(context).apply {
+            orientation = LinearLayout.VERTICAL
+            background = fundoNeutro(context)
+            setPadding(dp(context, 12), dp(context, 10), dp(context, 12), dp(context, 10))
+        }
+        coluna.addView(
+            TextView(context).apply {
+                text = "FECHAR GESTOR DRIVER"
+                setTextColor(Color.WHITE)
+                textSize = 13f
+                gravity = Gravity.CENTER
+                setPadding(0, 0, 0, dp(context, 8))
+            },
+        )
+        coluna.addView(
+            TextView(context).apply {
+                text = "Deseja encerrar o aplicativo e parar o monitoramento de corridas?"
+                setTextColor(Color.parseColor(SECUNDARIO))
+                textSize = 12f
+                gravity = Gravity.CENTER
+                setPadding(0, 0, 0, dp(context, 10))
+            },
+        )
+        val acoes = LinearLayout(context).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER
+        }
+        acoes.addView(
+            TextView(context).apply {
+                text = "Cancelar"
+                setTextColor(Color.parseColor(SECUNDARIO))
+                textSize = 13f
+                gravity = Gravity.CENTER
+                setPadding(dp(context, 16), dp(context, 8), dp(context, 16), dp(context, 8))
+                layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+                setOnClickListener { OverlayBridge.emitir(OverlayAcao.CancelarFechar) }
+            },
+        )
+        acoes.addView(
+            TextView(context).apply {
+                text = "Fechar"
+                setTextColor(Color.parseColor(AMARELO))
+                textSize = 13f
+                gravity = Gravity.CENTER
+                setPadding(dp(context, 16), dp(context, 8), dp(context, 16), dp(context, 8))
+                layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+                setOnClickListener { OverlayBridge.emitir(OverlayAcao.ConfirmarFechar) }
+            },
+        )
+        coluna.addView(acoes)
+        return coluna
+    }
+
     fun atualizarHistorico(view: View, snapshot: OverlaySnapshot) {
         val coluna = (view as ScrollView).getChildAt(0) as LinearLayout
         val abas = coluna.findViewWithTag<LinearLayout>("historico_abas")
@@ -105,76 +164,166 @@ object OverlayPaineis {
         }
     }
 
-    fun criarConfig(context: Context): ScrollView {
-        val scroll = ScrollView(context)
-        scroll.background = fundoNeutro(context)
-        val coluna = LinearLayout(context).apply {
+    fun criarConfig(context: Context): LinearLayout {
+        val ctx = ContextThemeWrapper(context, android.R.style.Theme_DeviceDefault)
+        val raiz = LinearLayout(ctx).apply {
             orientation = LinearLayout.VERTICAL
-            setPadding(dp(context, 10), dp(context, 8), dp(context, 10), dp(context, 8))
+            background = fundoNeutro(ctx)
+            clipToOutline = true
+            setPadding(dp(ctx, 10), dp(ctx, 8), dp(ctx, 10), dp(ctx, 8))
             tag = "config_coluna"
         }
-        coluna.addView(
-            TextView(context).apply {
+        raiz.addView(
+            TextView(ctx).apply {
                 text = "CONFIGURAÇÃO"
                 setTextColor(Color.WHITE)
                 textSize = 13f
                 gravity = Gravity.CENTER
+                setPadding(0, 0, 0, dp(ctx, 6))
             },
         )
-        val abas = LinearLayout(context).apply {
+        val abas = LinearLayout(ctx).apply {
             orientation = LinearLayout.HORIZONTAL
             tag = "config_abas"
             gravity = Gravity.CENTER
         }
-        listOf("VEÍCULO", "CLASSIFICAÇÃO", "APP").forEachIndexed { indice, titulo ->
+        listOf("VEÍCULO", "CUSTOS", "APP").forEachIndexed { indice, titulo ->
             abas.addView(
-                TextView(context).apply {
+                TextView(ctx).apply {
                     text = titulo
                     tag = "cfg_aba_$indice"
+                    isClickable = true
+                    isFocusable = true
                     setTextColor(Color.parseColor(SECUNDARIO))
-                    textSize = 11f
+                    textSize = 12f
                     gravity = Gravity.CENTER
-                    setPadding(dp(context, 6), dp(context, 6), dp(context, 6), dp(context, 6))
+                    setPadding(dp(ctx, 6), dp(ctx, 4), dp(ctx, 6), dp(ctx, 4))
                     layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
-                    setOnClickListener { OverlayBridge.emitir(OverlayAcao.AbaConfiguracao(indice)) }
+                    setOnClickListener { selecionarAbaConfig(indice) }
                 },
             )
         }
-        coluna.addView(abas)
-        coluna.addView(
-            LinearLayout(context).apply {
+        raiz.addView(abas)
+        val scroll = ScrollView(ctx).apply {
+            tag = "config_scroll"
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                0,
+                1f,
+            )
+            isFillViewport = true
+        }
+        scroll.addView(
+            LinearLayout(ctx).apply {
                 orientation = LinearLayout.VERTICAL
                 tag = "config_conteudo"
             },
         )
-        scroll.addView(coluna)
-        return scroll
+        raiz.addView(scroll)
+        val rodape = LinearLayout(ctx).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER
+            setPadding(0, dp(ctx, 6), 0, 0)
+        }
+        rodape.addView(
+            TextView(ctx).apply {
+                text = "CANCELAR"
+                setTextColor(Color.parseColor(SECUNDARIO))
+                textSize = 13f
+                gravity = Gravity.CENTER
+                isClickable = true
+                setPadding(dp(ctx, 8), dp(ctx, 8), dp(ctx, 8), dp(ctx, 8))
+                layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+                setOnClickListener { cancelarConfig() }
+            },
+        )
+        rodape.addView(
+            TextView(ctx).apply {
+                text = "SALVAR"
+                setTextColor(Color.parseColor(VERDE))
+                textSize = 13f
+                gravity = Gravity.CENTER
+                isClickable = true
+                setPadding(dp(ctx, 8), dp(ctx, 8), dp(ctx, 8), dp(ctx, 8))
+                layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+                setOnClickListener { salvarConfig(raiz, ctx) }
+            },
+        )
+        raiz.addView(rodape)
+        return raiz
     }
 
     fun atualizarConfig(view: View, snapshot: OverlaySnapshot) {
-        val coluna = (view as ScrollView).getChildAt(0) as LinearLayout
-        val abas = coluna.findViewWithTag<LinearLayout>("config_abas")
+        if (!snapshot.configuracoesVisivel) {
+            rascunho = null
+            return
+        }
+        atualizarConfigInterno(view, snapshot)
+    }
+
+    private fun selecionarAbaConfig(indice: Int) {
+        OverlayBridge.emitir(OverlayAcao.AbaConfiguracao(indice))
+        val atual = OverlayBridge.snapshot.value
+        OverlayBridge.publicar(atual.copy(abaConfiguracao = indice, configuracoesVisivel = true))
+    }
+
+    private fun cancelarConfig() {
+        rascunho = null
+        OverlayBridge.emitir(OverlayAcao.CancelarConfig)
+    }
+
+    private fun salvarConfig(raiz: View, context: Context) {
+        val app = context.applicationContext as? GestorDriverApp ?: return
+        val aba = OverlayBridge.snapshot.value.abaConfiguracao
+        val base = rascunho ?: app.configuracaoStore.carregar()
+        val final = colherAba(raiz, aba, base)
+        runCatching { app.configuracaoStore.salvar(final) }
+        rascunho = null
+        OverlayBridge.emitir(OverlayAcao.SalvarConfig)
+    }
+
+    private fun atualizarConfigInterno(view: View, snapshot: OverlaySnapshot) {
+        val abas = view.findViewWithTag<LinearLayout>("config_abas") ?: return
         repeat(3) { indice ->
-            val rotulo = abas.findViewWithTag<TextView>("cfg_aba_$indice")
+            val rotulo = abas.findViewWithTag<TextView>("cfg_aba_$indice") ?: return@repeat
             val selecionada = snapshot.abaConfiguracao == indice
             rotulo.setTextColor(Color.parseColor(if (selecionada) VERDE else SECUNDARIO))
             rotulo.typeface = if (selecionada) Typeface.DEFAULT_BOLD else Typeface.DEFAULT
         }
-        val conteudo = coluna.findViewWithTag<LinearLayout>("config_conteudo")
-        if (conteudo.childCount > 0 && conteudo.tag == snapshot.abaConfiguracao) {
+        val conteudo = view.findViewWithTag<LinearLayout>("config_conteudo") ?: return
+        val app = view.context.applicationContext as? GestorDriverApp ?: return
+        val store = app.configuracaoStore
+        if (rascunho == null) {
+            rascunho = store.carregar()
+        }
+        val abaAtual = (conteudo.getTag() as? Int) ?: -1
+        if (conteudo.childCount > 0 && abaAtual >= 0 && abaAtual != snapshot.abaConfiguracao) {
+            rascunho = colherAba(view, abaAtual, rascunho ?: store.carregar())
+        }
+        if (conteudo.childCount > 0 && abaAtual == snapshot.abaConfiguracao) {
             if (snapshot.abaConfiguracao == 2) {
                 atualizarPermissoes(conteudo, snapshot, view.context)
             }
             return
         }
         conteudo.removeAllViews()
-        conteudo.tag = snapshot.abaConfiguracao
-        val store = (view.context.applicationContext as GestorDriverApp).configuracaoStore
-        val config = store.carregar()
-        when (snapshot.abaConfiguracao) {
-            0 -> montarVeiculo(conteudo, config, store)
-            1 -> montarClassificacao(conteudo, config, store)
-            else -> montarApp(conteudo, config, store, snapshot, view.context)
+        conteudo.setTag(snapshot.abaConfiguracao)
+        val config = rascunho ?: store.carregar()
+        runCatching {
+            when (snapshot.abaConfiguracao) {
+                0 -> montarVeiculo(conteudo, config)
+                1 -> montarCustos(conteudo, config)
+                else -> montarApp(conteudo, config, snapshot, view.context)
+            }
+        }.onFailure {
+            conteudo.addView(
+                TextView(view.context).apply {
+                    text = "Não foi possível abrir esta aba."
+                    setTextColor(Color.parseColor(AMARELO))
+                    textSize = 12f
+                    setPadding(0, dp(view.context, 8), 0, 0)
+                },
+            )
         }
     }
 
@@ -229,237 +378,335 @@ object OverlayPaineis {
     private fun montarVeiculo(
         destino: LinearLayout,
         config: ConfiguracaoUsuario,
-        store: br.com.gestordriver.data.ConfiguracaoStore,
     ) {
         val ctx = destino.context
-        val marca = campo(ctx, "MARCA", config.marcaVeiculo)
-        val modelo = campo(ctx, "MODELO", config.modeloVeiculo)
-        val versao = campo(ctx, "VERSÃO", config.versaoVeiculo)
-        val ano = campo(ctx, "ANO", config.anoVeiculo)
-        val placa = campo(ctx, "FINAL DA PLACA", config.finalPlaca)
-        val gasolina = campo(ctx, "GASOLINA (km/L)", DecimalInput.formatar(config.consumoGasolina))
-        val etanol = campo(ctx, "ETANOL (km/L)", DecimalInput.formatar(config.consumoEtanol))
-        listOf(marca, modelo, versao, ano, placa).forEach { destino.addView(it.first) }
-        destino.addView(rotulo(ctx, "CONSUMO"))
-        destino.addView(linha(ctx, gasolina.first, etanol.first))
+        destino.addView(rotulo(ctx, "DESCRIÇÃO"))
+        destino.addView(
+            linha(
+                ctx,
+                campo(ctx, "MARCA", config.marcaVeiculo, "cfg_marca").first,
+                campo(ctx, "MODELO", config.modeloVeiculo, "cfg_modelo").first,
+            ),
+        )
+        destino.addView(
+            linha(
+                ctx,
+                campo(ctx, "VERSÃO", config.versaoVeiculo, "cfg_versao").first,
+                campo(ctx, "ANO", config.anoVeiculo, "cfg_ano").first,
+            ),
+        )
+        destino.addView(rotulo(ctx, "CONSUMO KM"))
+        destino.addView(
+            linha(
+                ctx,
+                campo(ctx, "GASOLINA", DecimalInput.formatar(config.consumoGasolina), "cfg_consumo_g").first,
+                campo(ctx, "ETANOL", DecimalInput.formatar(config.consumoEtanol), "cfg_consumo_e").first,
+            ),
+        )
         destino.addView(rotulo(ctx, "COMBUSTÍVEL ATUAL"))
         val ckG = CheckBox(ctx).apply {
             text = "GASOLINA"
+            tag = "cfg_ck_gasolina"
             setTextColor(Color.WHITE)
             isChecked = config.combustivel == Combustivel.GASOLINA
         }
         val ckE = CheckBox(ctx).apply {
             text = "ETANOL"
+            tag = "cfg_ck_etanol"
             setTextColor(Color.WHITE)
             isChecked = config.combustivel == Combustivel.ETANOL
         }
         ckG.setOnCheckedChangeListener { _, marcado ->
             if (marcado) {
                 ckE.isChecked = false
-                salvar(store, store.carregar().copy(combustivel = Combustivel.GASOLINA))
+                rascunho = (rascunho ?: config).copy(combustivel = Combustivel.GASOLINA)
             }
         }
         ckE.setOnCheckedChangeListener { _, marcado ->
             if (marcado) {
                 ckG.isChecked = false
-                salvar(store, store.carregar().copy(combustivel = Combustivel.ETANOL))
+                rascunho = (rascunho ?: config).copy(combustivel = Combustivel.ETANOL)
             }
         }
         destino.addView(linha(ctx, ckG, ckE))
-        fun persistir() {
-            val atual = store.carregar()
-            salvar(
-                store,
-                atual.copy(
-                    marcaVeiculo = marca.second.text.toString(),
-                    modeloVeiculo = modelo.second.text.toString(),
-                    versaoVeiculo = versao.second.text.toString(),
-                    anoVeiculo = ano.second.text.toString(),
-                    finalPlaca = placa.second.text.toString(),
-                    consumoGasolina = DecimalInput.parse(gasolina.second.text.toString()) ?: atual.consumoGasolina,
-                    consumoEtanol = DecimalInput.parse(etanol.second.text.toString()) ?: atual.consumoEtanol,
-                ),
-            )
-        }
-        listOf(marca, modelo, versao, ano, placa, gasolina, etanol).forEach { par ->
-            par.second.setOnFocusChangeListener { _, temFoco -> if (!temFoco) persistir() }
-        }
     }
 
-    private fun montarClassificacao(
+    private fun montarCustos(
         destino: LinearLayout,
         config: ConfiguracaoUsuario,
-        store: br.com.gestordriver.data.ConfiguracaoStore,
     ) {
         val ctx = destino.context
-        data class Faixa(
-            val titulo: String,
-            val min: Double,
-            val max: Double,
-            val minFixo: String?,
-            val maxFixo: String?,
-            val campoMin: br.com.gestordriver.core.FaixasClassificacao.Campo,
-            val campoMax: br.com.gestordriver.core.FaixasClassificacao.Campo,
-        )
-        val faixas = listOf(
-            Faixa(
-                "RUIM",
-                config.limiteRuimMin,
-                config.limiteRuimMax,
-                "MIN",
-                null,
-                br.com.gestordriver.core.FaixasClassificacao.Campo.RUIM_MIN,
-                br.com.gestordriver.core.FaixasClassificacao.Campo.RUIM_MAX,
-            ),
-            Faixa(
-                "REGULAR",
-                config.limiteRegularMin,
-                config.limiteRegularMax,
-                null,
-                null,
-                br.com.gestordriver.core.FaixasClassificacao.Campo.REGULAR_MIN,
-                br.com.gestordriver.core.FaixasClassificacao.Campo.REGULAR_MAX,
-            ),
-            Faixa(
-                "BOA",
-                config.limiteBoaMin,
-                config.limiteBoaMax,
-                null,
-                null,
-                br.com.gestordriver.core.FaixasClassificacao.Campo.BOA_MIN,
-                br.com.gestordriver.core.FaixasClassificacao.Campo.BOA_MAX,
-            ),
-            Faixa(
-                "ÓTIMA",
-                config.limiteOtimaMin,
-                config.limiteOtimaMax,
-                null,
-                "MAX",
-                br.com.gestordriver.core.FaixasClassificacao.Campo.OTIMA_MIN,
-                br.com.gestordriver.core.FaixasClassificacao.Campo.OTIMA_MAX,
+        destino.addView(rotulo(ctx, "VALOR DO COMBUSTÍVEL"))
+        destino.addView(
+            linha(
+                ctx,
+                campo(ctx, "LITRO GASOLINA", DecimalInput.formatar(config.precoGasolina), "cfg_preco_g").first,
+                campo(ctx, "LITRO ETANOL", DecimalInput.formatar(config.precoEtanol), "cfg_preco_e").first,
             ),
         )
-        faixas.forEach { faixa ->
-            destino.addView(rotulo(ctx, faixa.titulo))
-            val min = campo(
+        destino.addView(rotulo(ctx, "🔒 TROCA DE ÓLEO (ÓLEO E FILTROS)"))
+        destino.addView(
+            linha(
                 ctx,
-                "MIN",
-                faixa.minFixo ?: br.com.gestordriver.core.FaixasClassificacao.formatar(faixa.min),
-            )
-            val max = campo(
+                campo(ctx, "VALOR", DecimalInput.formatar(config.oleoValor), "cfg_oleo_valor", bloqueado = true).first,
+                campo(ctx, "KILOMETRAGEM", DecimalInput.formatar(config.oleoKilometragem), "cfg_oleo_km", bloqueado = true).first,
+            ),
+        )
+        destino.addView(rotulo(ctx, "🔒 CUSTO ESTIMADO DOS PNEUS"))
+        destino.addView(rotulo(ctx, "DIANTEIRO"))
+        destino.addView(
+            linha(
                 ctx,
-                "MAX",
-                faixa.maxFixo ?: br.com.gestordriver.core.FaixasClassificacao.formatar(faixa.max),
-            )
-            min.second.isEnabled = faixa.minFixo == null
-            max.second.isEnabled = faixa.maxFixo == null
-            destino.addView(linha(ctx, min.first, max.first))
-            val remount = {
-                destino.removeAllViews()
-                montarClassificacao(destino, store.carregar(), store)
-            }
-            min.second.setOnFocusChangeListener { _, temFoco ->
-                if (!temFoco && faixa.minFixo == null) {
-                    val nMin = DecimalInput.parse(min.second.text.toString()) ?: faixa.min
-                    salvar(store, br.com.gestordriver.core.FaixasClassificacao.aplicar(store.carregar(), faixa.campoMin, nMin))
-                    remount()
-                }
-            }
-            max.second.setOnFocusChangeListener { _, temFoco ->
-                if (!temFoco && faixa.maxFixo == null) {
-                    val nMax = DecimalInput.parse(max.second.text.toString()) ?: faixa.max
-                    salvar(store, br.com.gestordriver.core.FaixasClassificacao.aplicar(store.carregar(), faixa.campoMax, nMax))
-                    remount()
-                }
-            }
-        }
+                campo(ctx, "VALOR", DecimalInput.formatar(config.pneuDianteiroValor), "cfg_pneu_d_valor", bloqueado = true).first,
+                campo(ctx, "RODAGEM", DecimalInput.formatar(config.pneuDianteiroRodagem), "cfg_pneu_d_km", bloqueado = true).first,
+            ),
+        )
+        destino.addView(rotulo(ctx, "TRASEIRO"))
+        destino.addView(
+            linha(
+                ctx,
+                campo(ctx, "VALOR", DecimalInput.formatar(config.pneuTraseiroValor), "cfg_pneu_t_valor", bloqueado = true).first,
+                campo(ctx, "RODAGEM", DecimalInput.formatar(config.pneuTraseiroRodagem), "cfg_pneu_t_km", bloqueado = true).first,
+            ),
+        )
     }
 
     private fun montarApp(
         destino: LinearLayout,
         config: ConfiguracaoUsuario,
-        store: br.com.gestordriver.data.ConfiguracaoStore,
         snapshot: OverlaySnapshot,
         context: Context,
     ) {
         destino.addView(rotulo(context, "PERMISSÕES"))
-        destino.addView(linhaPermissao(context, "LOCALIZAÇÃO", PermissoesMonitoramento.localizacaoConcedida(context), snapshot.destacarPermissoes) {
-            context.startActivity(
-                Intent(context, MainActivity::class.java)
-                    .putExtra(MainActivity.EXTRA_PEDIR_LOCALIZACAO, true)
-                    .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP),
-            )
-        })
-        destino.addView(linhaPermissao(context, "NOTIFICAÇÕES", PermissoesMonitoramento.listenerNotificacoesAtivo(context), snapshot.destacarPermissoes) {
-            context.startActivity(Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
-        })
-        destino.addView(linhaPermissao(context, "SOBRESSAIR", PermissoesMonitoramento.overlayConcedida(context), snapshot.destacarPermissoes) {
-            context.startActivity(
-                Intent(
-                    Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
-                    android.net.Uri.parse("package:${context.packageName}"),
-                ).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
-            )
-        })
-        destino.addView(rotulo(context, "VALORES COMBUSTÍVEL"))
-        val precoG = campo(context, "GASOLINA", DecimalInput.formatar(config.precoGasolina))
-        val precoE = campo(context, "ETANOL", DecimalInput.formatar(config.precoEtanol))
-        destino.addView(linha(context, precoG.first, precoE.first))
-        fun persistirPrecos() {
-            val atual = store.carregar()
-            salvar(
-                store,
-                atual.copy(
-                    precoGasolina = DecimalInput.parse(precoG.second.text.toString()) ?: atual.precoGasolina,
-                    precoEtanol = DecimalInput.parse(precoE.second.text.toString()) ?: atual.precoEtanol,
-                ),
+        val perms = LinearLayout(context).apply {
+            orientation = LinearLayout.HORIZONTAL
+        }
+        perms.addView(
+            linhaPermissao(context, "LOCALIZAÇÃO", PermissoesMonitoramento.localizacaoConcedida(context), snapshot.destacarPermissoes) {
+                context.startActivity(
+                    Intent(context, MainActivity::class.java)
+                        .putExtra(MainActivity.EXTRA_PEDIR_LOCALIZACAO, true)
+                        .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP),
+                )
+            }.apply {
+                layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+            },
+        )
+        perms.addView(
+            linhaPermissao(context, "NOTIFICAÇÕES", PermissoesMonitoramento.listenerNotificacoesAtivo(context), snapshot.destacarPermissoes) {
+                context.startActivity(Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+            }.apply {
+                layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+            },
+        )
+        perms.addView(
+            linhaPermissao(context, "SOBREPOR", PermissoesMonitoramento.overlayConcedida(context), snapshot.destacarPermissoes) {
+                context.startActivity(
+                    Intent(
+                        Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+                        android.net.Uri.parse("package:${context.packageName}"),
+                    ).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
+                )
+            }.apply {
+                layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+            },
+        )
+        destino.addView(perms)
+        destino.addView(rotulo(context, "APPS DE CORRIDA"))
+        val apps = LinearLayout(context).apply { orientation = LinearLayout.HORIZONTAL }
+        listOf(
+            Plataforma.UBER to "UBER",
+            Plataforma.NOVE_NOVE to "99",
+            Plataforma.INDRIVE to "INDRIVE",
+        ).forEach { (plataforma, titulo) ->
+            val ok = PlataformasMotorista.instalada(context, plataforma)
+            apps.addView(
+                TextView(context).apply {
+                    text = if (ok) "$titulo  🆗" else "$titulo  ❎"
+                    setTextColor(Color.parseColor(if (ok) VERDE else AMARELO))
+                    textSize = 11f
+                    gravity = Gravity.CENTER
+                    setPadding(0, dp(context, 4), 0, dp(context, 4))
+                    layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+                },
             )
         }
-        precoG.second.setOnFocusChangeListener { _, temFoco -> if (!temFoco) persistirPrecos() }
-        precoE.second.setOnFocusChangeListener { _, temFoco -> if (!temFoco) persistirPrecos() }
-        destino.addView(rotulo(context, "APP DE NAVEGAÇÃO"))
+        destino.addView(apps)
+        destino.addView(rotulo(context, "NAVEGAÇÃO"))
         val maps = CheckBox(context).apply {
-            text = "MAPS"
+            text = "GOOGLE MAPS"
+            tag = "cfg_ck_maps"
             setTextColor(Color.WHITE)
             isChecked = config.navegacao == AppNavegacao.GOOGLE_MAPS
         }
         val waze = CheckBox(context).apply {
             text = "WAZE"
+            tag = "cfg_ck_waze"
             setTextColor(Color.WHITE)
             isChecked = config.navegacao == AppNavegacao.WAZE
         }
         maps.setOnCheckedChangeListener { _, marcado ->
             if (marcado) {
                 waze.isChecked = false
-                salvar(store, store.carregar().copy(navegacao = AppNavegacao.GOOGLE_MAPS))
+                rascunho = (rascunho ?: config).copy(navegacao = AppNavegacao.GOOGLE_MAPS)
+                NavegacaoLauncher.abrirAplicativo(context, AppNavegacao.GOOGLE_MAPS)
             }
         }
         waze.setOnCheckedChangeListener { _, marcado ->
             if (marcado) {
                 maps.isChecked = false
-                salvar(store, store.carregar().copy(navegacao = AppNavegacao.WAZE))
+                rascunho = (rascunho ?: config).copy(navegacao = AppNavegacao.WAZE)
+                NavegacaoLauncher.abrirAplicativo(context, AppNavegacao.WAZE)
             }
         }
         destino.addView(linha(context, maps, waze))
         destino.addView(
             TextView(context).apply {
-                text = "Abrir app selecionado"
-                setTextColor(Color.parseColor(AMARELO))
-                textSize = 12f
-                setPadding(0, dp(context, 8), 0, 0)
-                setOnClickListener {
-                    NavegacaoLauncher.abrirAplicativo(context, store.carregar().navegacao)
-                }
-            },
-        )
-        destino.addView(
-            TextView(context).apply {
-                text = "Nesta versão apenas abre o app. No Pro o trajeto da corrida aceita poderá ser visto no histórico."
+                text = "Nesta versão abre o app. No Pro o trajeto da corrida aceita poderá ser visto no histórico."
                 setTextColor(Color.parseColor(SECUNDARIO))
                 textSize = 9f
-                setPadding(0, dp(context, 6), 0, 0)
+                setPadding(0, dp(context, 4), 0, dp(context, 6))
             },
         )
+        destino.addView(rotulo(context, "CLASSIFICAÇÃO"))
+        montarFaixas(destino, config)
+    }
+
+    private fun montarFaixas(destino: LinearLayout, config: ConfiguracaoUsuario) {
+        val ctx = destino.context
+        data class Faixa(
+            val titulo: String,
+            val minTexto: String,
+            val maxTexto: String,
+            val tagMin: String?,
+            val tagMax: String?,
+        )
+        val faixas = listOf(
+            Faixa("RUIM", "MIN", br.com.gestordriver.core.FaixasClassificacao.formatar(config.limiteRuimMax), null, "cfg_ruim_max"),
+            Faixa(
+                "REGULAR",
+                br.com.gestordriver.core.FaixasClassificacao.formatar(config.limiteRegularMin),
+                br.com.gestordriver.core.FaixasClassificacao.formatar(config.limiteRegularMax),
+                "cfg_reg_min",
+                "cfg_reg_max",
+            ),
+            Faixa(
+                "BOA",
+                br.com.gestordriver.core.FaixasClassificacao.formatar(config.limiteBoaMin),
+                br.com.gestordriver.core.FaixasClassificacao.formatar(config.limiteBoaMax),
+                "cfg_boa_min",
+                "cfg_boa_max",
+            ),
+            Faixa(
+                "ÓTIMA",
+                br.com.gestordriver.core.FaixasClassificacao.formatar(config.limiteOtimaMin),
+                "MAX",
+                "cfg_otima_min",
+                null,
+            ),
+        )
+        faixas.forEach { faixa ->
+            destino.addView(rotulo(ctx, faixa.titulo))
+            destino.addView(
+                linha(
+                    ctx,
+                    campo(ctx, "MIN", faixa.minTexto, faixa.tagMin ?: "cfg_${faixa.titulo}_min_fixo", bloqueado = faixa.tagMin == null).first,
+                    campo(ctx, "MAX", faixa.maxTexto, faixa.tagMax ?: "cfg_${faixa.titulo}_max_fixo", bloqueado = faixa.tagMax == null).first,
+                ),
+            )
+        }
+    }
+
+    private fun colherAba(raiz: View, aba: Int, base: ConfiguracaoUsuario): ConfiguracaoUsuario {
+        fun txt(tag: String): String? = raiz.findViewWithTag<EditText>(tag)?.text?.toString()
+        fun num(tag: String, atual: Double): Double = DecimalInput.parse(txt(tag) ?: "") ?: atual
+        return when (aba) {
+            0 -> {
+                val gasolinaMarcada = raiz.findViewWithTag<CheckBox>("cfg_ck_gasolina")?.isChecked
+                base.copy(
+                    marcaVeiculo = txt("cfg_marca") ?: base.marcaVeiculo,
+                    modeloVeiculo = txt("cfg_modelo") ?: base.modeloVeiculo,
+                    versaoVeiculo = txt("cfg_versao") ?: base.versaoVeiculo,
+                    anoVeiculo = txt("cfg_ano") ?: base.anoVeiculo,
+                    consumoGasolina = num("cfg_consumo_g", base.consumoGasolina),
+                    consumoEtanol = num("cfg_consumo_e", base.consumoEtanol),
+                    combustivel = when (gasolinaMarcada) {
+                        true -> Combustivel.GASOLINA
+                        false -> Combustivel.ETANOL
+                        null -> base.combustivel
+                    },
+                )
+            }
+            1 -> base.copy(
+                precoGasolina = num("cfg_preco_g", base.precoGasolina),
+                precoEtanol = num("cfg_preco_e", base.precoEtanol),
+            )
+            else -> {
+                val maps = raiz.findViewWithTag<CheckBox>("cfg_ck_maps")?.isChecked
+                var atual = base.copy(
+                    navegacao = when (maps) {
+                        true -> AppNavegacao.GOOGLE_MAPS
+                        false -> AppNavegacao.WAZE
+                        null -> base.navegacao
+                    },
+                )
+                txt("cfg_ruim_max")?.let {
+                    DecimalInput.parse(it)?.let { n ->
+                        atual = br.com.gestordriver.core.FaixasClassificacao.aplicar(
+                            atual,
+                            br.com.gestordriver.core.FaixasClassificacao.Campo.RUIM_MAX,
+                            n,
+                        )
+                    }
+                }
+                txt("cfg_reg_min")?.let {
+                    DecimalInput.parse(it)?.let { n ->
+                        atual = br.com.gestordriver.core.FaixasClassificacao.aplicar(
+                            atual,
+                            br.com.gestordriver.core.FaixasClassificacao.Campo.REGULAR_MIN,
+                            n,
+                        )
+                    }
+                }
+                txt("cfg_reg_max")?.let {
+                    DecimalInput.parse(it)?.let { n ->
+                        atual = br.com.gestordriver.core.FaixasClassificacao.aplicar(
+                            atual,
+                            br.com.gestordriver.core.FaixasClassificacao.Campo.REGULAR_MAX,
+                            n,
+                        )
+                    }
+                }
+                txt("cfg_boa_min")?.let {
+                    DecimalInput.parse(it)?.let { n ->
+                        atual = br.com.gestordriver.core.FaixasClassificacao.aplicar(
+                            atual,
+                            br.com.gestordriver.core.FaixasClassificacao.Campo.BOA_MIN,
+                            n,
+                        )
+                    }
+                }
+                txt("cfg_boa_max")?.let {
+                    DecimalInput.parse(it)?.let { n ->
+                        atual = br.com.gestordriver.core.FaixasClassificacao.aplicar(
+                            atual,
+                            br.com.gestordriver.core.FaixasClassificacao.Campo.BOA_MAX,
+                            n,
+                        )
+                    }
+                }
+                txt("cfg_otima_min")?.let {
+                    DecimalInput.parse(it)?.let { n ->
+                        atual = br.com.gestordriver.core.FaixasClassificacao.aplicar(
+                            atual,
+                            br.com.gestordriver.core.FaixasClassificacao.Campo.OTIMA_MIN,
+                            n,
+                        )
+                    }
+                }
+                atual
+            }
+        }
     }
 
     private fun atualizarPermissoes(conteudo: LinearLayout, snapshot: OverlaySnapshot, context: Context) {
@@ -472,8 +719,8 @@ object OverlayPaineis {
         conteudo.findViewWithTag<TextView>("perm_NOTIFICAÇÕES")?.let {
             colorirPermissao(it, "NOTIFICAÇÕES", notificacoes, snapshot.destacarPermissoes)
         }
-        conteudo.findViewWithTag<TextView>("perm_SOBRESSAIR")?.let {
-            colorirPermissao(it, "SOBRESSAIR", overlay, snapshot.destacarPermissoes)
+        conteudo.findViewWithTag<TextView>("perm_SOBREPOR")?.let {
+            colorirPermissao(it, "SOBREPOR", overlay, snapshot.destacarPermissoes)
         }
     }
 
@@ -494,7 +741,7 @@ object OverlayPaineis {
     }
 
     private fun colorirPermissao(view: TextView, titulo: String, ok: Boolean, destacar: Boolean) {
-        view.text = if (ok) "$titulo  ✓" else "$titulo  — faltando"
+        view.text = if (ok) "$titulo  🆗" else "$titulo  ❎"
         view.setTextColor(
             Color.parseColor(
                 when {
@@ -506,16 +753,24 @@ object OverlayPaineis {
         )
     }
 
-    private fun campo(context: Context, label: String, valor: String): Pair<LinearLayout, EditText> {
+    private fun campo(
+        context: Context,
+        label: String,
+        valor: String,
+        tag: String,
+        bloqueado: Boolean = false,
+    ): Pair<LinearLayout, EditText> {
         val bloco = LinearLayout(context).apply {
             orientation = LinearLayout.VERTICAL
             setPadding(0, dp(context, 4), 0, dp(context, 4))
         }
-        bloco.addView(rotulo(context, label))
+        bloco.addView(rotulo(context, if (bloqueado) "🔒 $label" else label))
         val campo = EditText(context).apply {
+            this.tag = tag
             setText(valor)
             setTextColor(Color.WHITE)
             textSize = 13f
+            isEnabled = !bloqueado
             setHintTextColor(Color.parseColor(SECUNDARIO))
             setBackgroundColor(Color.parseColor("#33000000"))
             setPadding(dp(context, 8), dp(context, 6), dp(context, 8), dp(context, 6))
@@ -540,10 +795,6 @@ object OverlayPaineis {
             addView(esquerda)
             addView(direita)
         }
-
-    private fun salvar(store: br.com.gestordriver.data.ConfiguracaoStore, config: ConfiguracaoUsuario) {
-        store.salvar(config)
-    }
 
     private fun fundoNeutro(context: Context): GradientDrawable =
         GradientDrawable().apply {

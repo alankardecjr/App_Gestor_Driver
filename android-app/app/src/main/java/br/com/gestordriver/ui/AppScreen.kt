@@ -8,19 +8,16 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.weight
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
@@ -39,6 +36,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import br.com.gestordriver.model.CampoApresentacao
 import br.com.gestordriver.model.HistoricoItemPresentation
 import br.com.gestordriver.model.ModoApresentacao
@@ -70,34 +68,14 @@ fun AppScreen(
 ) {
 
     val state = viewModel.state
-    val janelaCheia = state.historicoVisivel || state.configuracoesVisivel
+    val janelaCheia = state.historicoVisivel ||
+        state.configuracoesVisivel ||
+        state.confirmacaoFecharVisivel
     val activity = LocalContext.current as? br.com.gestordriver.MainActivity
     androidx.compose.runtime.SideEffect {
         activity?.aplicarJanela(
             oculta = state.interfaceOculta,
             cheia = janelaCheia,
-        )
-    }
-
-    if (state.confirmacaoFecharVisivel) {
-        AlertDialog(
-            onDismissRequest = viewModel::cancelarFecharApp,
-            title = { Text("Fechar Gestor Driver") },
-            text = {
-                Text(
-                    "Deseja encerrar o aplicativo e parar o monitoramento de corridas?",
-                )
-            },
-            confirmButton = {
-                TextButton(onClick = viewModel::confirmarFecharApp) {
-                    Text("Fechar")
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = viewModel::cancelarFecharApp) {
-                    Text("Cancelar")
-                }
-            },
         )
     }
 
@@ -158,10 +136,10 @@ private fun ConteudoPrincipal(
                 )
                 .verticalScroll(rememberScrollState())
                 .padding(
-                    horizontal = 10.dp,
+                    horizontal = 12.dp,
                     vertical = 8.dp,
                 ),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
+            verticalArrangement = Arrangement.spacedBy(6.dp),
         ) {
 
             // =========================================================
@@ -203,10 +181,10 @@ private fun ConteudoPrincipal(
 
                 Column(
                     modifier = Modifier.padding(
-                        horizontal = 10.dp,
-                        vertical = 8.dp,
+                        horizontal = 8.dp,
+                        vertical = 6.dp,
                     ),
-                    verticalArrangement = Arrangement.spacedBy(7.dp),
+                    verticalArrangement = Arrangement.spacedBy(4.dp),
                 ) {
 
                     // =================================================
@@ -235,19 +213,10 @@ private fun ConteudoPrincipal(
                             campos = state.corrida.camposDetalhes,
                         )
 
-                        Spacer(
-                            modifier = Modifier.height(2.dp),
-                        )
-
-                        // =================================================
-                        // CONTROLES
-                        //
-                        // SOMENTE NA TELA EXPANDIDA
-                        // =================================================
-
                         ControlesInterface(
                             historicoVisivel = state.historicoVisivel,
-                            onConfig = viewModel::abrirConfiguracoes,
+                            configuracoesVisivel = state.configuracoesVisivel,
+                            onConfig = viewModel::alternarConfiguracoes,
                             onOcultar = viewModel::ocultarInterface,
                             onFechar = viewModel::solicitarFecharApp,
                             onAlternarHistorico = viewModel::alternarHistorico,
@@ -261,6 +230,17 @@ private fun ConteudoPrincipal(
             //
             // SOMENTE NA TELA EXPANDIDA
             // =========================================================
+
+            if (
+                state.confirmacaoFecharVisivel &&
+                state.corrida.modo ==
+                ModoApresentacao.DETALHES
+            ) {
+                ConfirmacaoFecharSection(
+                    onCancelar = viewModel::cancelarFecharApp,
+                    onConfirmar = viewModel::confirmarFecharApp,
+                )
+            }
 
             if (
                 state.historicoVisivel &&
@@ -494,8 +474,8 @@ private fun CabecalhoSimples(
         Text(
             text = titulo,
             color = corTitulo,
-            style = MaterialTheme.typography.labelSmall,
-            fontWeight = FontWeight.Medium,
+            fontSize = 12.sp,
+            fontWeight = FontWeight.SemiBold,
             maxLines = 1,
         )
 
@@ -508,7 +488,7 @@ private fun CabecalhoSimples(
 
                 Text(
                     text = icone,
-                    style = MaterialTheme.typography.bodyMedium,
+                    fontSize = 14.sp,
                     maxLines = 1,
                 )
             }
@@ -516,11 +496,7 @@ private fun CabecalhoSimples(
             Text(
                 text = valor,
                 color = TextoPrincipal,
-                style = if (destaque) {
-                    MaterialTheme.typography.titleMedium
-                } else {
-                    MaterialTheme.typography.bodyMedium
-                },
+                fontSize = if (destaque) 16.sp else 14.sp,
                 fontWeight = FontWeight.SemiBold,
                 maxLines = 1,
             )
@@ -656,6 +632,7 @@ private fun LinhaDetalhe(
 @Composable
 private fun ControlesInterface(
     historicoVisivel: Boolean,
+    configuracoesVisivel: Boolean,
     onConfig: () -> Unit,
     onOcultar: () -> Unit,
     onFechar: () -> Unit,
@@ -678,7 +655,11 @@ private fun ControlesInterface(
 
         TextButton(onClick = onConfig) {
             Text(
-                text = "⚙️Config",
+                text = if (configuracoesVisivel) {
+                    "⤴️Config"
+                } else {
+                    "⚙️Config"
+                },
                 color = TextoAmarelo,
                 style = MaterialTheme.typography.labelSmall,
             )
@@ -773,6 +754,55 @@ private fun HistoricoSection(
                 HistoricoItemLista(
                     item = item,
                     onClick = { onSelecionarHistorico(item) },
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun ConfirmacaoFecharSection(
+    onCancelar: () -> Unit,
+    onConfirmar: () -> Unit,
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .border(
+                width = 2.dp,
+                color = Color(0xFF607D8B),
+                shape = CardDefaults.shape,
+            )
+            .padding(horizontal = 12.dp, vertical = 10.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        Text(
+            text = "FECHAR GESTOR DRIVER",
+            color = TextoPrincipal,
+            style = MaterialTheme.typography.titleSmall,
+            fontWeight = FontWeight.SemiBold,
+        )
+        Text(
+            text = "Deseja encerrar o aplicativo e parar o monitoramento de corridas?",
+            color = TextoSecundario,
+            style = MaterialTheme.typography.bodySmall,
+        )
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceEvenly,
+        ) {
+            TextButton(onClick = onCancelar) {
+                Text(
+                    text = "Cancelar",
+                    color = TextoSecundario,
+                )
+            }
+            TextButton(onClick = onConfirmar) {
+                Text(
+                    text = "Fechar",
+                    color = TextoAmarelo,
+                    fontWeight = FontWeight.SemiBold,
                 )
             }
         }

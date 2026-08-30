@@ -6,7 +6,7 @@ Estado alinhado ao código em `android-app/` e às regras em [`REGRAS_NEGOCIO.md
 
 ## Agora — Beta
 
-- [x] Overlay: selo, compacta (cabeçalho), expandida (~1/3)
+- [x] Overlay: selo, compacta (cabeçalho), expandida (altura do conteúdo)
 - [x] Histórico e configuração como painéis overlay (exclusivos)
 - [x] Custo só de combustível atual (km/L + preço do litro)
 - [x] Faixas de classificação editáveis (padrão 1,19 / 1,20–1,59 / 1,60–1,99 / 2,00)

@@ -12,7 +12,10 @@ object PlatformDetector {
         "com.ubercab.driver" to Plataforma.UBER,
         "com.app99.driver" to Plataforma.NOVE_NOVE,
         "com.taxis99.driver" to Plataforma.NOVE_NOVE,
+        "com.taxis99" to Plataforma.NOVE_NOVE,
         "sinet.startup.inDriver" to Plataforma.INDRIVE,
+        "com.sis.android.indriver" to Plataforma.INDRIVE,
+        "com.indrive.android" to Plataforma.INDRIVE,
     )
 
     fun resolver(packageName: String): Plataforma {
