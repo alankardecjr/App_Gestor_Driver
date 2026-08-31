@@ -73,7 +73,7 @@ fun ConfiguracoesScreen(
         foco.clearFocus(force = true)
         teclado?.hide()
     }
-    val abas = listOf("VEÍCULO", "CUSTOS", "APP")
+    val abas = listOf("VEÍCULO", "CUSTOS", "CLASSIFICAÇÃO", "APP")
 
     Column(
         modifier = Modifier
@@ -175,6 +175,14 @@ fun ConfiguracoesScreen(
                         modifier = Modifier.weight(1f),
                     )
                 }
+                SubtituloSecao(texto = "🔒 ABASTECIMENTO")
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    CampoFaixaFixa(label = "VALOR", valor = "🔒", modifier = Modifier.weight(1f))
+                    CampoFaixaFixa(label = "LITROS", valor = "🔒", modifier = Modifier.weight(1f))
+                }
                 SubtituloSecao(texto = "COMBUSTÍVEL ATUAL")
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -206,7 +214,6 @@ fun ConfiguracoesScreen(
                         style = MaterialTheme.typography.labelSmall,
                         modifier = Modifier.align(Alignment.CenterVertically),
                     )
-                    Text("ETANOL", color = TextoPrincipal, modifier = Modifier.align(Alignment.CenterVertically))
                 }
             }
 
@@ -235,7 +242,8 @@ fun ConfiguracoesScreen(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     CampoFaixaFixa(label = "VALOR", valor = "🔒", modifier = Modifier.weight(1f))
-                    CampoFaixaFixa(label = "KILOMETRAGEM", valor = "🔒", modifier = Modifier.weight(1f))
+                    CampoFaixaFixa(label = "KM", valor = "🔒", modifier = Modifier.weight(1f))
+                    CampoFaixaFixa(label = "DATA", valor = "🔒", modifier = Modifier.weight(1f))
                 }
                 SubtituloSecao(texto = "🔒 CUSTO ESTIMADO DOS PNEUS")
                 Text("DIANTEIRO", color = TextoPrincipal, style = MaterialTheme.typography.labelSmall)
@@ -245,6 +253,7 @@ fun ConfiguracoesScreen(
                 ) {
                     CampoFaixaFixa(label = "VALOR", valor = "🔒", modifier = Modifier.weight(1f))
                     CampoFaixaFixa(label = "RODAGEM", valor = "🔒", modifier = Modifier.weight(1f))
+                    CampoFaixaFixa(label = "DATA", valor = "🔒", modifier = Modifier.weight(1f))
                 }
                 Text("TRASEIRO", color = TextoPrincipal, style = MaterialTheme.typography.labelSmall)
                 Row(
@@ -253,15 +262,51 @@ fun ConfiguracoesScreen(
                 ) {
                     CampoFaixaFixa(label = "VALOR", valor = "🔒", modifier = Modifier.weight(1f))
                     CampoFaixaFixa(label = "RODAGEM", valor = "🔒", modifier = Modifier.weight(1f))
+                    CampoFaixaFixa(label = "DATA", valor = "🔒", modifier = Modifier.weight(1f))
                 }
+            }
+
+            2 -> SecaoCard(titulo = "CLASSIFICAÇÃO") {
+                FaixaClassificacao(
+                    titulo = "RUIM",
+                    min = configuracao.limiteRuimMin,
+                    max = configuracao.limiteRuimMax,
+                    minFixo = "MIN",
+                    onMinChange = viewModel::atualizarLimiteRuimMin,
+                    onMaxChange = viewModel::atualizarLimiteRuimMax,
+                )
+                FaixaClassificacao(
+                    titulo = "REGULAR",
+                    min = configuracao.limiteRegularMin,
+                    max = configuracao.limiteRegularMax,
+                    onMinChange = viewModel::atualizarLimiteRegularMin,
+                    onMaxChange = viewModel::atualizarLimiteRegularMax,
+                )
+                FaixaClassificacao(
+                    titulo = "BOA",
+                    min = configuracao.limiteBoaMin,
+                    max = configuracao.limiteBoaMax,
+                    onMinChange = viewModel::atualizarLimiteBoaMin,
+                    onMaxChange = viewModel::atualizarLimiteBoaMax,
+                )
+                FaixaClassificacao(
+                    titulo = "ÓTIMA",
+                    min = configuracao.limiteOtimaMin,
+                    max = configuracao.limiteOtimaMax,
+                    maxFixo = "MAX",
+                    onMinChange = viewModel::atualizarLimiteOtimaMin,
+                    onMaxChange = viewModel::atualizarLimiteOtimaMax,
+                )
             }
 
             else -> {
                 val contexto = LocalContext.current
+                var dialogoConta by remember { mutableStateOf(false) }
                 val localizacaoOk = PermissoesMonitoramento.localizacaoConcedida(contexto)
                 val overlayOk = PermissoesMonitoramento.overlayConcedida(contexto)
                 val listenerOk = PermissoesMonitoramento.listenerNotificacoesAtivo(contexto)
-                SecaoCard(titulo = "APP") {
+                Box {
+                    SecaoCard(titulo = "APP") {
                     SubtituloSecao(texto = "PERMISSÕES")
                     Row(
                         modifier = Modifier.fillMaxWidth(),
@@ -318,7 +363,7 @@ fun ConfiguracoesScreen(
                             )
                         }
                     }
-                    SubtituloSecao(texto = "APPS DE CORRIDA")
+                    SubtituloSecao(texto = "APP DE CORRIDA")
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceEvenly,
@@ -347,37 +392,58 @@ fun ConfiguracoesScreen(
                             NavegacaoLauncher.abrirAplicativo(contexto, app)
                         },
                     )
-                    SubtituloSecao(texto = "CLASSIFICAÇÃO")
-                    FaixaClassificacao(
-                        titulo = "RUIM",
-                        min = configuracao.limiteRuimMin,
-                        max = configuracao.limiteRuimMax,
-                        minFixo = "MIN",
-                        onMinChange = viewModel::atualizarLimiteRuimMin,
-                        onMaxChange = viewModel::atualizarLimiteRuimMax,
-                    )
-                    FaixaClassificacao(
-                        titulo = "REGULAR",
-                        min = configuracao.limiteRegularMin,
-                        max = configuracao.limiteRegularMax,
-                        onMinChange = viewModel::atualizarLimiteRegularMin,
-                        onMaxChange = viewModel::atualizarLimiteRegularMax,
-                    )
-                    FaixaClassificacao(
-                        titulo = "BOA",
-                        min = configuracao.limiteBoaMin,
-                        max = configuracao.limiteBoaMax,
-                        onMinChange = viewModel::atualizarLimiteBoaMin,
-                        onMaxChange = viewModel::atualizarLimiteBoaMax,
-                    )
-                    FaixaClassificacao(
-                        titulo = "ÓTIMA",
-                        min = configuracao.limiteOtimaMin,
-                        max = configuracao.limiteOtimaMax,
-                        maxFixo = "MAX",
-                        onMinChange = viewModel::atualizarLimiteOtimaMin,
-                        onMaxChange = viewModel::atualizarLimiteOtimaMax,
-                    )
+                    SubtituloSecao(texto = "CONECTAR CONTA")
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceEvenly,
+                    ) {
+                        TextButton(onClick = { dialogoConta = true }) {
+                            Text("CONTA GOOGLE", color = TextoAmareloConfig, style = MaterialTheme.typography.labelSmall)
+                        }
+                        TextButton(onClick = { dialogoConta = true }) {
+                            Text("CONTA EMAIL", color = TextoAmareloConfig, style = MaterialTheme.typography.labelSmall)
+                        }
+                    }
+                    }
+                    if (dialogoConta) {
+                        Card(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(8.dp)
+                                .align(Alignment.Center),
+                            colors = CardDefaults.cardColors(containerColor = FundoCard),
+                        ) {
+                            Column(
+                                modifier = Modifier.padding(12.dp),
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                            ) {
+                                Text(
+                                    "CONECTAR CONTA",
+                                    color = TextoPrincipal,
+                                    style = MaterialTheme.typography.titleSmall,
+                                    fontWeight = FontWeight.SemiBold,
+                                )
+                                Spacer(modifier = Modifier.height(8.dp))
+                                Text(
+                                    "Conecte uma conta Google ou e-mail para sincronizar o aplicativo.",
+                                    color = TextoSecundario,
+                                    style = MaterialTheme.typography.bodySmall,
+                                )
+                                Spacer(modifier = Modifier.height(10.dp))
+                                Row(horizontalArrangement = Arrangement.SpaceEvenly, modifier = Modifier.fillMaxWidth()) {
+                                    TextButton(onClick = { dialogoConta = false }) {
+                                        Text("Cancelar", color = TextoSecundario)
+                                    }
+                                    TextButton(onClick = { dialogoConta = false }) {
+                                        Text("Google", color = TextoAmareloConfig)
+                                    }
+                                    TextButton(onClick = { dialogoConta = false }) {
+                                        Text("E-mail", color = TextoAmareloConfig)
+                                    }
+                                }
+                            }
+                        }
+                    }
                 }
             }
         }
@@ -547,35 +613,26 @@ private fun FaixaClassificacao(
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.CenterVertically,
         ) {
             if (minFixo != null) {
-                CampoFaixaFixa(
-                    label = "MIN",
-                    valor = minFixo,
-                    modifier = Modifier.weight(1f),
-                )
+                CampoStepperFixo(label = "MIN", valor = minFixo, modifier = Modifier.weight(1f))
             } else {
-                CampoNumericoCompacto(
+                CampoStepper(
                     label = "MIN",
                     valor = min,
                     onValorChange = onMinChange,
                     modifier = Modifier.weight(1f),
-                    duasCasas = true,
                 )
             }
             if (maxFixo != null) {
-                CampoFaixaFixa(
-                    label = "MAX",
-                    valor = maxFixo,
-                    modifier = Modifier.weight(1f),
-                )
+                CampoStepperFixo(label = "MAX", valor = maxFixo, modifier = Modifier.weight(1f))
             } else {
-                CampoNumericoCompacto(
+                CampoStepper(
                     label = "MAX",
                     valor = max,
                     onValorChange = onMaxChange,
                     modifier = Modifier.weight(1f),
-                    duasCasas = true,
                 )
             }
         }
@@ -602,6 +659,63 @@ private fun CampoTextoCompacto(
         singleLine = true,
         colors = coresCampo(),
     )
+}
+
+@Composable
+private fun CampoStepper(
+    label: String,
+    valor: Double,
+    onValorChange: (Double) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Column(modifier = modifier) {
+        Text(text = label, color = TextoSecundario, style = MaterialTheme.typography.labelSmall)
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceEvenly,
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            TextButton(
+                onClick = {
+                    onValorChange((valor - FaixasClassificacao.PASSO).coerceAtLeast(FaixasClassificacao.MIN_ABSOLUTO))
+                },
+            ) {
+                Text("-", color = TextoAmareloConfig)
+            }
+            Text(
+                text = FaixasClassificacao.formatar(valor),
+                color = TextoPrincipal,
+                style = MaterialTheme.typography.labelMedium,
+            )
+            TextButton(
+                onClick = {
+                    onValorChange((valor + FaixasClassificacao.PASSO).coerceAtMost(FaixasClassificacao.MAX_ABSOLUTO))
+                },
+            ) {
+                Text("+", color = TextoAmareloConfig)
+            }
+        }
+    }
+}
+
+@Composable
+private fun CampoStepperFixo(
+    label: String,
+    valor: String,
+    modifier: Modifier = Modifier,
+) {
+    Column(modifier = modifier) {
+        Text(text = label, color = TextoSecundario, style = MaterialTheme.typography.labelSmall)
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceEvenly,
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            Text("-", color = TextoSecundario)
+            Text(text = valor, color = TextoPrincipal, style = MaterialTheme.typography.labelMedium)
+            Text("+", color = TextoSecundario)
+        }
+    }
 }
 
 @Composable

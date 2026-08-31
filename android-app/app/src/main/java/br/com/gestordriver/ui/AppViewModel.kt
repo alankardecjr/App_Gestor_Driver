@@ -138,7 +138,11 @@ class AppViewModel(
                     is OverlayAcao.SelecionarHistorico -> selecionarHistoricoPorChave(acao.chave)
                     is OverlayAcao.AbaHistorico -> selecionarAbaHistorico(acao.aba)
                     is OverlayAcao.AbaConfiguracao -> {
-                        state = state.copy(abaConfiguracao = acao.indice)
+                        state = state.copy(
+                            abaConfiguracao = acao.indice.coerceIn(0, 3),
+                            historicoVisivel = false,
+                            configuracoesVisivel = true,
+                        )
                         publicarOverlay()
                     }
                 }
@@ -300,7 +304,7 @@ class AppViewModel(
             historico = state.historico,
             historicoSelecionado = null,
             abaHistorico = state.abaHistorico,
-            abaConfiguracao = if (destaquePermissao) 2 else 0,
+                    abaConfiguracao = if (destaquePermissao) 3 else 0,
             destacarPermissoes = destaquePermissao,
             modo = ModoApresentacao.DETALHES,
             historicoVisivel = false,

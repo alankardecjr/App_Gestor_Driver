@@ -24,7 +24,7 @@ O motorista precisa aceitar ou recusar em poucos segundos, com valor, distância
 - Análise (Beta): R$/KM, valor, distância, tempo, nota; custos pelo **combustível atual** (km/L + preço do litro desse combustível).
 - Classificação pela **borda da corrida atual** (🔴 ruim, 🟠 regular, 🟢 boa, 🔵 ótima). Padrão: Ruim até 1,19 · Regular 1,20–1,59 · Boa 1,60–1,99 · Ótima a partir de 2,00. Histórico: borda neutra + marcador colorido.
 - Histórico **somente** de corridas cujo aceite foi detectado (Room), com abas Uber / 99 / inDrive.
-- Configurações persistidas: veículo, consumo, combustível atual, preços (aba APP), faixas, Maps ou Waze. Abre o app de navegação escolhido (no Pro o trajeto da corrida aceita poderá aparecer no histórico).
+- Configurações persistidas: veículo, consumo, combustível atual, preços (aba CUSTOS), faixas R$/km na aba CLASSIFICAÇÃO (**−**/**+** de 0,01, min/max encadeados), Maps ou Waze. Abre o app de navegação escolhido (no Pro o trajeto da corrida aceita poderá aparecer no histórico).
 - A build inicia em **Beta**. Pro e Free existem no código de planos; Free só entra no lançamento.
 
 O parser usa padrões de texto (R$, km, min) e frases de aceite. Formatos reais das plataformas ainda precisam de calibração com o log local `notificacoes_diagnostico.txt`.

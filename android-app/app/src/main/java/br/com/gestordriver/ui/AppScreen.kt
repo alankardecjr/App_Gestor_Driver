@@ -659,9 +659,9 @@ private fun ControlesInterface(
         TextButton(onClick = onConfig) {
             Text(
                 text = if (configuracoesVisivel) {
-                    "⤴️Config"
+                    "⤴️CONFIG"
                 } else {
-                    "⚙️Config"
+                    "⚙️CONFIG"
                 },
                 color = TextoAmarelo,
                 style = MaterialTheme.typography.labelSmall,

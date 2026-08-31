@@ -130,7 +130,7 @@ Nova oferta substitui a corrida atual. Sem oferta = selo. Histórico só muda no
           EXPANDIDA (overlay, altura do conteúdo)
           │
           ├── 📜 HISTÓRICO → painel overlay abaixo (⤴️ recolhe)
-          ├── ⚙️ CONFIG → painel overlay abaixo (abas VEÍCULO / CLASSIFICAÇÃO / APP)
+          ├── ⚙️ CONFIG → painel overlay abaixo (abas VEÍCULO / CUSTOS / CLASSIFICAÇÃO / APP)
           ├── ⬆️ retrai para compacta (toque fora → selo imediato; senão 5 s → selo, mesmo com oferta)
           └── ❎ OCULTAR → selo (fecha histórico e config)
 

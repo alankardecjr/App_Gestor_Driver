@@ -34,6 +34,18 @@ object FaixasClassificacao {
     fun campoEditavel(campo: Campo): Boolean =
         campo != Campo.RUIM_MIN && campo != Campo.OTIMA_MAX
 
+    fun valorDe(atual: ConfiguracaoUsuario, campo: Campo): Double =
+        when (campo) {
+            Campo.RUIM_MIN -> atual.limiteRuimMin
+            Campo.RUIM_MAX -> atual.limiteRuimMax
+            Campo.REGULAR_MIN -> atual.limiteRegularMin
+            Campo.REGULAR_MAX -> atual.limiteRegularMax
+            Campo.BOA_MIN -> atual.limiteBoaMin
+            Campo.BOA_MAX -> atual.limiteBoaMax
+            Campo.OTIMA_MIN -> atual.limiteOtimaMin
+            Campo.OTIMA_MAX -> atual.limiteOtimaMax
+        }
+
     fun aplicar(
         atual: ConfiguracaoUsuario,
         campo: Campo,
@@ -48,7 +60,7 @@ object FaixasClassificacao {
         var boaMin = atual.limiteBoaMin
         var boaMax = atual.limiteBoaMax
         var otimaMin = atual.limiteOtimaMin
-        val v = arredondar(valor).coerceAtLeast(MIN_ABSOLUTO)
+        val v = arredondar(valor).coerceIn(MIN_ABSOLUTO, MAX_ABSOLUTO)
 
         when (campo) {
             Campo.RUIM_MAX -> ruimMax = v
@@ -141,6 +153,58 @@ object FaixasClassificacao {
             limiteBoaMin = arredondar(boaMin),
             limiteBoaMax = arredondar(boaMax),
             limiteOtimaMin = arredondar(otimaMin),
+            limiteOtimaMax = MAX_ABSOLUTO,
+        )
+    }
+
+    fun normalizar(atual: ConfiguracaoUsuario): ConfiguracaoUsuario {
+        var ruimMax = arredondar(atual.limiteRuimMax.coerceAtLeast(MIN_ABSOLUTO))
+        var regularMin = arredondar(atual.limiteRegularMin)
+        var regularMax = arredondar(atual.limiteRegularMax)
+        var boaMin = arredondar(atual.limiteBoaMin)
+        var boaMax = arredondar(atual.limiteBoaMax)
+        var otimaMin = arredondar(atual.limiteOtimaMin)
+        if (regularMin < seguinte(ruimMax)) {
+            regularMin = seguinte(ruimMax)
+        }
+        if (regularMax < regularMin) {
+            regularMax = regularMin
+        }
+        if (boaMin < seguinte(regularMax)) {
+            boaMin = seguinte(regularMax)
+        }
+        if (boaMax < boaMin) {
+            boaMax = boaMin
+        }
+        if (otimaMin < seguinte(boaMax)) {
+            otimaMin = seguinte(boaMax)
+        }
+        if (otimaMin > MAX_ABSOLUTO) {
+            otimaMin = MAX_ABSOLUTO
+        }
+        if (boaMax > anterior(otimaMin) && otimaMin > MIN_ABSOLUTO) {
+            boaMax = anterior(otimaMin)
+            if (boaMax < boaMin) {
+                boaMin = boaMax
+            }
+        }
+        if (regularMax > anterior(boaMin)) {
+            regularMax = anterior(boaMin)
+            if (regularMax < regularMin) {
+                regularMin = regularMax
+            }
+        }
+        if (ruimMax > anterior(regularMin)) {
+            ruimMax = anterior(regularMin)
+        }
+        return atual.copy(
+            limiteRuimMin = MIN_ABSOLUTO,
+            limiteRuimMax = ruimMax,
+            limiteRegularMin = regularMin,
+            limiteRegularMax = regularMax,
+            limiteBoaMin = boaMin,
+            limiteBoaMax = boaMax,
+            limiteOtimaMin = otimaMin,
             limiteOtimaMax = MAX_ABSOLUTO,
         )
     }

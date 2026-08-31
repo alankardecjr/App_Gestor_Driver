@@ -91,4 +91,62 @@ class FaixasClassificacaoTest {
         assertEquals("MIN", FaixasClassificacao.rotuloMin(FaixasClassificacao.Campo.RUIM_MIN, 0.0))
         assertEquals("MAX", FaixasClassificacao.rotuloMax(FaixasClassificacao.Campo.OTIMA_MAX, 99.0))
     }
+
+    @Test
+    fun passo_mais_no_campo_amarra_min_seguinte() {
+        val origem = ConfiguracaoUsuario.padrao()
+        val atualizada = FaixasClassificacao.aplicar(
+            origem,
+            FaixasClassificacao.Campo.RUIM_MAX,
+            origem.limiteRuimMax + FaixasClassificacao.PASSO,
+        )
+        assertEquals(1.20, atualizada.limiteRuimMax, 0.0)
+        assertEquals(1.21, atualizada.limiteRegularMin, 0.0)
+        assertEquals(
+            atualizada.limiteRegularMin,
+            atualizada.limiteRuimMax + FaixasClassificacao.PASSO,
+            0.0001,
+        )
+        assertEquals(
+            atualizada.limiteBoaMin,
+            atualizada.limiteRegularMax + FaixasClassificacao.PASSO,
+            0.0001,
+        )
+        assertEquals(
+            atualizada.limiteOtimaMin,
+            atualizada.limiteBoaMax + FaixasClassificacao.PASSO,
+            0.0001,
+        )
+    }
+
+    @Test
+    fun passo_menos_no_min_puxa_max_anterior() {
+        val origem = ConfiguracaoUsuario.padrao()
+        val atualizada = FaixasClassificacao.aplicar(
+            origem,
+            FaixasClassificacao.Campo.REGULAR_MIN,
+            origem.limiteRegularMin - FaixasClassificacao.PASSO,
+        )
+        assertEquals(1.19, atualizada.limiteRegularMin, 0.0)
+        assertEquals(1.18, atualizada.limiteRuimMax, 0.0)
+        assertEquals(
+            atualizada.limiteRegularMin,
+            atualizada.limiteRuimMax + FaixasClassificacao.PASSO,
+            0.0001,
+        )
+    }
+
+    @Test
+    fun normalizar_corrige_min_menor_que_max_da_faixa_anterior() {
+        val quebrada = ConfiguracaoUsuario.padrao().copy(
+            limiteRuimMax = 1.80,
+            limiteRegularMin = 1.20,
+        )
+        val corrigida = FaixasClassificacao.normalizar(quebrada)
+        assertEquals(1.80, corrigida.limiteRuimMax, 0.0)
+        assertEquals(1.81, corrigida.limiteRegularMin, 0.0)
+        assertEquals(corrigida.limiteRegularMin, corrigida.limiteRuimMax + FaixasClassificacao.PASSO, 0.0001)
+        assertEquals(corrigida.limiteBoaMin, corrigida.limiteRegularMax + FaixasClassificacao.PASSO, 0.0001)
+        assertEquals(corrigida.limiteOtimaMin, corrigida.limiteBoaMax + FaixasClassificacao.PASSO, 0.0001)
+    }
 }

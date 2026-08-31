@@ -155,8 +155,8 @@ class AppViewModelTest {
         viewModel.abrirConfiguracoes()
         OverlayBridge.emitir(OverlayAcao.AbaConfiguracao(1))
         assertEquals(1, viewModel.state.abaConfiguracao)
-        OverlayBridge.emitir(OverlayAcao.AbaConfiguracao(2))
-        assertEquals(2, viewModel.state.abaConfiguracao)
+        OverlayBridge.emitir(OverlayAcao.AbaConfiguracao(3))
+        assertEquals(3, viewModel.state.abaConfiguracao)
     }
 
     @Test

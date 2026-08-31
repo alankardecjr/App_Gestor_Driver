@@ -490,12 +490,13 @@ O monitoramento continua ativo.
 A configuração abre como **painel overlay abaixo da expandida** (mesmo recorte do histórico). Abas:
 
 - **VEÍCULO** — marca, modelo, versão, ano, final da placa, consumo gasolina (km/L), consumo etanol (km/L), combustível atual (um checkbox).
-- **CLASSIFICAÇÃO** — faixas R$/km encadeadas (Ruim MIN fixo, Ótima MAX fixo).
-- **APP** — permissões, **preços** gasolina/etanol (R$/L), Maps ou Waze.
+- **CUSTOS** — preços gasolina/etanol (R$/L).
+- **CLASSIFICAÇÃO** — faixas R$/km encadeadas. **−** e **+** mudam o valor daquele campo em 0,01; o vizinho acompanha para não haver buraco nem sobreposição. Ruim MIN e Ótima MAX são rótulos fixos.
+- **APP** — permissões, Maps ou Waze, apps de motorista instalados.
 
 Permissão faltando: abrir a aba APP e destacar o que falta.
 
-Custo da corrida usa **combustível atual + km/L desse combustível + preço do litro na aba APP**. Não misturar gasolina e etanol na mesma conta.
+Custo da corrida usa **combustível atual + km/L desse combustível + preço do litro na aba CUSTOS**. Não misturar gasolina e etanol na mesma conta.
 
 **CANCELAR** fecha o painel e **descarta** o rascunho (os campos voltam ao que está gravado). Só **SALVAR** persiste. Fechar Config pelo botão ⤴️ Config também descarta, igual ao Cancelar.
 
@@ -971,7 +972,7 @@ Gasolina: litro mais caro, mais km/L. Etanol: litro mais barato, menos km/L. Os 
 
 40. Faixas padrão de classificação (R$/km)
 
-Sem sobreposição, passo 0,01. Ruim MIN e Ótima MAX são rótulos fixos.
+Sem sobreposição, passo 0,01. Ruim MIN e Ótima MAX são rótulos fixos. Na aba **CLASSIFICAÇÃO**, **−** diminui e **+** aumenta só o campo tocado; no mesmo passo o app amarra o min/max vizinho (MAX seguinte = MIN atual + 0,01, e o inverso).
 
 | Faixa | MIN | MAX | Borda |
 | --- | --- | --- | --- |
@@ -980,7 +981,7 @@ Sem sobreposição, passo 0,01. Ruim MIN e Ótima MAX são rótulos fixos.
 | Boa | 1,60 | 1,99 | verde |
 | Ótima | 2,00 | MAX | azul |
 
-Editar um limite ajusta o vizinho. O motorista pode alterar as faixas na aba **APP**.
+O motorista altera as faixas na aba **CLASSIFICAÇÃO** (não na aba APP). CANCELAR descarta o rascunho; SALVAR persiste as faixas já encadeadas.
 
 41. Pacotes monitorados (Beta)
 

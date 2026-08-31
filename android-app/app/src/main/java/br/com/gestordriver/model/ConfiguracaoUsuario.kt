@@ -17,10 +17,15 @@ data class ConfiguracaoUsuario(
 
     val oleoValor: Double = 0.0,
     val oleoKilometragem: Double = 0.0,
+    val oleoData: String = "",
     val pneuDianteiroValor: Double = 0.0,
     val pneuDianteiroRodagem: Double = 0.0,
+    val pneuDianteiroData: String = "",
     val pneuTraseiroValor: Double = 0.0,
     val pneuTraseiroRodagem: Double = 0.0,
+    val pneuTraseiroData: String = "",
+    val abastecimentoValor: Double = 0.0,
+    val abastecimentoLitros: Double = 0.0,
 
     val navegacao: AppNavegacao = AppNavegacao.GOOGLE_MAPS,
 

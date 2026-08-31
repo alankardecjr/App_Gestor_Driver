@@ -134,7 +134,7 @@ class OverlayService : Service() {
         } else {
             expandidaView?.visibility = View.INVISIBLE
         }
-        if (snapshot.historicoVisivel) {
+        if (snapshot.historicoVisivel && !snapshot.configuracoesVisivel) {
             garantirHistorico(snapshot)
             historicoView?.visibility = View.VISIBLE
         } else {
@@ -373,7 +373,7 @@ class OverlayService : Service() {
         }
         listOf(
             "📴 Fechar" to { OverlayBridge.emitir(OverlayAcao.Fechar) },
-            "⚙️ Config" to { OverlayBridge.emitir(OverlayAcao.AbrirConfig) },
+            "⚙️CONFIG" to { OverlayBridge.emitir(OverlayAcao.AbrirConfig) },
             "❎ Ocultar" to {
                 mostrarSeloImediato()
                 OverlayBridge.emitir(OverlayAcao.Ocultar)
@@ -428,7 +428,7 @@ class OverlayService : Service() {
         val historicoBotao = acoes.findViewWithTag<TextView>("botao_historico")
         historicoBotao?.text = if (snapshot.historicoVisivel) "⤴️ Histórico" else "📜 Histórico"
         val configBotao = acoes.findViewWithTag<TextView>("botao_config")
-        configBotao?.text = if (snapshot.configuracoesVisivel) "⤴️ Config" else "⚙️ Config"
+        configBotao?.text = if (snapshot.configuracoesVisivel) "⤴️CONFIG" else "⚙️CONFIG"
         val distancias = coluna.findViewWithTag<LinearLayout>("distancias")
         distancias.gravity = Gravity.TOP
         distancias.setPadding(dp(8), 0, dp(6), 0)
@@ -771,8 +771,8 @@ class OverlayService : Service() {
 
     private fun alturaPainelConfig(): Int =
         alturaMaximaAbaixoExpandida()
-            .coerceAtMost(dp(268) + mm(20) + mm(1))
-            .coerceAtLeast((dp(220) + mm(20) + mm(1)).coerceAtMost(alturaMaximaAbaixoExpandida()))
+            .coerceAtMost(dp(318) + mm(20) + mm(1))
+            .coerceAtLeast((dp(240) + mm(20) + mm(1)).coerceAtMost(alturaMaximaAbaixoExpandida()))
 
     private fun aplicarAlturaPainelSecundario(
         view: View,
@@ -825,7 +825,7 @@ class OverlayService : Service() {
             params.y = y
             aplicarTamanhoDoConteudo(view, params, alturaMaxima)
         }
-        if (snapshot.historicoVisivel) {
+        if (snapshot.historicoVisivel && !snapshot.configuracoesVisivel) {
             historicoParams?.let { params ->
                 historicoView?.let { view -> aplicarAlturaPainelSecundario(view, params) }
             }

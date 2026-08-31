@@ -99,7 +99,9 @@ class ConfiguracoesViewModel(
     }
 
     fun salvar() {
-        store.salvar(configuracao)
+        val normalizada = FaixasClassificacao.normalizar(configuracao)
+        store.salvar(normalizada)
+        configuracao = normalizada
     }
 
     private fun aplicar(nova: ConfiguracaoUsuario) {

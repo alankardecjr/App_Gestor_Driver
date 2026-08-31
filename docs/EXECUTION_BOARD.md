@@ -26,6 +26,7 @@ Não misturar Pro/Free com o piloto Beta.
 7. Navegação Maps/Waze a partir de endereços extraídos.
 8. Log local de notificações para calibração.
 9. README e Roadmap alinhados ao código (portfólio).
+10. Faixas de classificação com **−**/**+** (passo 0,01) e min/max encadeados (versão `1.1.6`).
 
 ## Critérios da Sprint 3 (código)
 

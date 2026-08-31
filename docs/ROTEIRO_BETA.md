@@ -24,7 +24,7 @@ Pro (custo operacional, R$ líquido, relatórios). Free na loja (mesma UI, **sem
 2. Abra o Gestor Driver e conceda **Notificações**, **Sobressair** e **Localização**.
 3. No Android 13+, aceite a permissão de notificação do próprio Gestor.
 4. Desative otimização de bateria para o Gestor Driver (senão o overlay some).
-5. Aba VEÍCULO: consumo km/L e combustível atual. Aba CUSTOS: preços R$/L. Aba APP: permissões, Maps/Waze e faixas.
+5. Aba VEÍCULO: consumo km/L e combustível atual. Aba CUSTOS: preços R$/L. Aba CLASSIFICAÇÃO: faixas com **−**/**+** (0,01; vizinho amarrado). Aba APP: permissões e Maps/Waze.
 6. Feche e reabra — os valores precisam continuar iguais.
 7. Abra Uber Driver, 99 ou inDrive **logado**.
 8. Deixe o Gestor em segundo plano (selo visível sobre o mapa).
