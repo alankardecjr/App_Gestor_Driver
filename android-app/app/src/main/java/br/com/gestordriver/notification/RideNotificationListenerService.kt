@@ -4,8 +4,11 @@ import android.content.ComponentName
 import android.service.notification.NotificationListenerService
 import android.service.notification.StatusBarNotification
 import br.com.gestordriver.GestorDriverApp
+import java.util.concurrent.Executors
 
 class RideNotificationListenerService : NotificationListenerService() {
+    private val io = Executors.newSingleThreadExecutor()
+
     private val processor by lazy {
         RideNotificationProcessor(
             configuracaoProvider = {
@@ -19,17 +22,29 @@ class RideNotificationListenerService : NotificationListenerService() {
     }
 
     override fun onListenerConnected() {
-        activeNotifications?.forEach { onNotificationPosted(it) }
+        val ativas = activeNotifications ?: return
+        io.execute {
+            ativas.forEach { processarSeguro(it) }
+        }
     }
 
     override fun onListenerDisconnected() {
         requestRebind(ComponentName(this, RideNotificationListenerService::class.java))
     }
 
+    override fun onDestroy() {
+        io.shutdownNow()
+        super.onDestroy()
+    }
+
     override fun onNotificationPosted(sbn: StatusBarNotification?) {
         if (sbn == null) {
             return
         }
+        io.execute { processarSeguro(sbn) }
+    }
+
+    private fun processarSeguro(sbn: StatusBarNotification) {
         if (!PlatformDetector.ehSuportada(sbn.packageName.orEmpty())) {
             return
         }
@@ -48,44 +63,21 @@ class RideNotificationListenerService : NotificationListenerService() {
         }
     }
 
+    private val pipeline by lazy {
+        RideOfferPipeline(
+            processor = processor,
+            diagnostico = diagnostico,
+        )
+    }
+
     private fun processarNotificacao(sbn: StatusBarNotification) {
-        val notification = NotificationMapper.de(sbn)
-        if (notification.fullText.isBlank()) {
-            diagnostico.registrar(notification, "VAZIA")
-            return
-        }
-        when (val evento = processor.processar(notification)) {
-            is RideNotificationEvent.CorridaRecebida -> {
-                OfertaSessao.registrarOferta(sbn.key)
-                diagnostico.registrar(notification, "OFERTA")
-                RideNotificationBus.publish(evento)
-                if (evento.aceiteImediato) {
-                    OfertaSessao.registrarAceite()
-                    diagnostico.registrar(notification, "ACEITE_IMEDIATO")
-                    RideNotificationBus.publish(RideNotificationEvent.CorridaAceita)
-                }
-            }
-
-            RideNotificationEvent.CorridaAceita -> {
-                OfertaSessao.registrarAceite()
-                diagnostico.registrar(notification, "ACEITE")
-                RideNotificationBus.publish(evento)
-            }
-
-            RideNotificationEvent.NotificacaoNaoReconhecida -> {
-                diagnostico.registrar(notification, "IGNORADA")
-            }
-
-            RideNotificationEvent.CorridaExpirada -> {
-                RideNotificationBus.publish(evento)
-            }
-        }
+        pipeline.processar(NotificationMapper.de(sbn))
     }
 
     override fun onNotificationRemoved(sbn: StatusBarNotification?) {
         val chave = sbn?.key ?: return
         if (OfertaSessao.deveExpirar(chave)) {
-            OfertaSessao.limpar()
+            OfertaSessao.limparPorChave(chave)
             RideNotificationBus.publish(RideNotificationEvent.CorridaExpirada)
         }
     }

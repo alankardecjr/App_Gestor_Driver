@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<accessibility-service xmlns:android="http://schemas.android.com/apk/res/android"
+    android:accessibilityEventTypes="typeWindowStateChanged|typeWindowContentChanged|typeNotificationStateChanged"
+    android:accessibilityFeedbackType="feedbackGeneric|feedbackSpoken"
+    android:accessibilityFlags="flagDefault|flagIncludeNotImportantViews|flagReportViewIds|flagRetrieveInteractiveWindows"
+    android:canRetrieveWindowContent="true"
+    android:canTakeScreenshot="true"
+    android:description="@string/acessibilidade_ofertas"
+    android:isAccessibilityTool="true"
+    android:notificationTimeout="400"
+    android:packageNames="com.ubercab.driver,com.app99.driver,com.taxis99.driver,com.taxis99,sinet.startup.inDriver,com.sis.android.indriver,com.indrive.android" />

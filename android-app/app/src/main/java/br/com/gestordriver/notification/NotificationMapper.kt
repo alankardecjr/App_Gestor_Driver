@@ -34,6 +34,11 @@ object NotificationMapper {
         ).filter { it.isNotBlank() }.forEach { partes.add(it) }
 
         coletarTextos(extras).forEach { partes.add(it) }
+        RemoteViewsTexto.de(notification)
+            .split('\n')
+            .map { it.trim() }
+            .filter { it.isNotBlank() }
+            .forEach { partes.add(it) }
 
         return NotificationData(
             packageName = sbn.packageName.orEmpty(),
@@ -54,7 +59,10 @@ object NotificationMapper {
         }.joinToString("\n")
     }
 
-    private fun coletarTextos(extras: Bundle): List<String> {
+    private fun coletarTextos(extras: Bundle, profundidade: Int = 0): List<String> {
+        if (profundidade > 3) {
+            return emptyList()
+        }
         val textos = mutableListOf<String>()
         for (chave in extras.keySet()) {
             if (chave in extrasIgnoradas) {
@@ -67,6 +75,7 @@ object NotificationMapper {
                         textos.add(texto)
                     }
                 }
+                is Bundle -> textos.addAll(coletarTextos(valor, profundidade + 1))
                 is Array<*> -> {
                     valor.mapNotNull { item ->
                         (item as? CharSequence)?.toString()?.trim()?.takeIf { it.isNotBlank() }

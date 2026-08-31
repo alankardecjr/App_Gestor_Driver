@@ -13,8 +13,8 @@ android {
         applicationId = "br.com.gestordriver"
         minSdk = 30
         targetSdk = 36
-        versionCode = 2
-        versionName = "1.1"
+        versionCode = 7
+        versionName = "1.1.5"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -55,6 +55,7 @@ dependencies {
     implementation(libs.androidx.room.runtime)
     implementation(libs.androidx.room.ktx)
     implementation(libs.androidx.datastore.preferences)
+    implementation(libs.mlkit.text.recognition)
     ksp(libs.androidx.room.compiler)
     testImplementation(libs.junit)
     androidTestImplementation(platform(libs.androidx.compose.bom))

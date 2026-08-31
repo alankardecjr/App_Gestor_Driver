@@ -10,6 +10,7 @@ import android.content.Intent
 import android.graphics.Color
 import android.graphics.PixelFormat
 import android.graphics.drawable.GradientDrawable
+import android.text.TextUtils
 import android.service.notification.NotificationListenerService
 import android.util.TypedValue
 import android.os.Build
@@ -51,6 +52,8 @@ class OverlayService : Service() {
     private var historicoParams: WindowManager.LayoutParams? = null
     private var configParams: WindowManager.LayoutParams? = null
     private var confirmacaoParams: WindowManager.LayoutParams? = null
+    private var ultimoSnapshot: OverlaySnapshot? = null
+    private var arrastandoSelo = false
 
     override fun onBind(intent: Intent?): IBinder? = null
 
@@ -60,6 +63,10 @@ class OverlayService : Service() {
         startForeground(NOTIFICACAO_ID, criarNotificacao())
         scope.launch {
             OverlayBridge.snapshot.collect { snapshot ->
+                if (snapshot == ultimoSnapshot) {
+                    return@collect
+                }
+                ultimoSnapshot = snapshot
                 atualizarJanelas(snapshot)
             }
         }
@@ -119,6 +126,7 @@ class OverlayService : Service() {
             compactaView?.visibility = View.VISIBLE
         } else {
             compactaView?.visibility = View.INVISIBLE
+            desligarToqueForaCompacta()
         }
         if (snapshot.expandidaVisivel) {
             garantirExpandida(snapshot)
@@ -146,6 +154,16 @@ class OverlayService : Service() {
         }
     }
 
+    private fun mostrarSeloImediato() {
+        compactaView?.visibility = View.INVISIBLE
+        expandidaView?.visibility = View.INVISIBLE
+        historicoView?.visibility = View.INVISIBLE
+        configView?.visibility = View.INVISIBLE
+        confirmacaoView?.visibility = View.INVISIBLE
+        desligarToqueForaCompacta()
+        seloView?.visibility = View.VISIBLE
+    }
+
     private fun garantirSelo(snapshot: OverlaySnapshot) {
         val tamanho = dp(SELO_DP)
         val params = seloParams ?: criarParams(
@@ -156,8 +174,10 @@ class OverlayService : Service() {
         }
         params.width = tamanho
         params.height = tamanho
-        params.x = snapshot.offsetX.toInt()
-        params.y = snapshot.offsetY.toInt()
+        if (!arrastandoSelo) {
+            params.x = snapshot.offsetX.toInt()
+            params.y = snapshot.offsetY.toInt()
+        }
         val view = seloView ?: criarSelo().also { nova ->
             val adicionou = runCatching { windowManager.addView(nova, params) }.isSuccess
             if (!adicionou) {
@@ -188,7 +208,15 @@ class OverlayService : Service() {
             compactaView = nova
         }
         atualizarCompacta(view, snapshot)
+        aplicarFlagsToqueFora(params, ativo = true)
         atualizarPainel(view, params)
+    }
+
+    private fun desligarToqueForaCompacta() {
+        val view = compactaView ?: return
+        val params = compactaParams ?: return
+        aplicarFlagsToqueFora(params, ativo = false)
+        runCatching { windowManager.updateViewLayout(view, params) }
     }
 
     private fun garantirExpandida(snapshot: OverlaySnapshot) {
@@ -211,10 +239,7 @@ class OverlayService : Service() {
         }
         atualizarExpandida(view, snapshot)
         aplicarTamanhoDoConteudo(view, params)
-        view.post {
-            aplicarTamanhoDoConteudo(view, params)
-            reposicionarPaineisAbaixo(snapshot)
-        }
+        reposicionarPaineisAbaixo(snapshot)
     }
 
     private fun garantirHistorico(snapshot: OverlaySnapshot) {
@@ -292,6 +317,7 @@ class OverlayService : Service() {
         }
         val metricas = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
             tag = "metricas"
         }
         metricas.addView(criarColunaMetrica("💵", "R$/KM"))
@@ -326,7 +352,8 @@ class OverlayService : Service() {
         coluna.addView(metricas)
         val corpo = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
-            setPadding(0, dp(8), 0, dp(0))
+            gravity = Gravity.TOP
+            setPadding(dp(8), dp(8), dp(8), 0)
         }
         corpo.addView(
             criarBlocoDetalhes("distancias").apply {
@@ -347,7 +374,10 @@ class OverlayService : Service() {
         listOf(
             "📴 Fechar" to { OverlayBridge.emitir(OverlayAcao.Fechar) },
             "⚙️ Config" to { OverlayBridge.emitir(OverlayAcao.AbrirConfig) },
-            "❎ Ocultar" to { OverlayBridge.emitir(OverlayAcao.Ocultar) },
+            "❎ Ocultar" to {
+                mostrarSeloImediato()
+                OverlayBridge.emitir(OverlayAcao.Ocultar)
+            },
             "📜 Histórico" to { OverlayBridge.emitir(OverlayAcao.AbrirHistorico) },
         ).forEach { (rotulo, acao) ->
             acoes.addView(
@@ -383,10 +413,16 @@ class OverlayService : Service() {
         )
         listOf("💵", "💰", "🛞", "🕐", "⭐").forEachIndexed { index, icone ->
             val bloco = metricas.getChildAt(index) as LinearLayout
-            (bloco.getChildAt(0) as TextView).text = "$icone ${
-                listOf("R$/KM", "VALOR", "DIST.", "TEMPO", "NOTA")[index]
-            }"
-            (bloco.getChildAt(1) as TextView).text = valores[index]
+            (bloco.getChildAt(0) as TextView).apply {
+                text = "$icone ${listOf("R$/KM", "VALOR", "DIST.", "TEMPO", "NOTA")[index]}"
+                textSize = 11.5f
+                gravity = Gravity.CENTER
+            }
+            (bloco.getChildAt(1) as TextView).apply {
+                text = valores[index]
+                textSize = 14.5f
+                gravity = Gravity.CENTER
+            }
         }
         val acoes = coluna.findViewWithTag<LinearLayout>("acoes")
         val historicoBotao = acoes.findViewWithTag<TextView>("botao_historico")
@@ -394,12 +430,16 @@ class OverlayService : Service() {
         val configBotao = acoes.findViewWithTag<TextView>("botao_config")
         configBotao?.text = if (snapshot.configuracoesVisivel) "⤴️ Config" else "⚙️ Config"
         val distancias = coluna.findViewWithTag<LinearLayout>("distancias")
+        distancias.gravity = Gravity.TOP
+        distancias.setPadding(dp(8), 0, dp(6), 0)
         distancias.removeAllViews()
         adicionarTituloBloco(distancias, "🛞 DISTÂNCIAS", "#42A5F5")
         adicionarLinhaDetalhe(distancias, "Até o passageiro", snapshot.kmAtePassageiro)
         adicionarLinhaDetalhe(distancias, "Até o destino", snapshot.kmViagem)
         adicionarLinhaDetalhe(distancias, "Total percorrido", snapshot.kmTotal)
         val custos = coluna.findViewWithTag<LinearLayout>("custos")
+        custos.gravity = Gravity.TOP
+        custos.setPadding(dp(8), 0, dp(6), 0)
         custos.removeAllViews()
         adicionarTituloBloco(custos, "💰 CUSTOS (ESTIMADO)", "#7CB342")
         adicionarLinhaDetalhe(custos, "Consumo estimado", snapshot.litrosEstimados)
@@ -443,6 +483,15 @@ class OverlayService : Service() {
         layout.background = fundoPainel(ClassificacaoConstantes.COR_BORDA_NEUTRA, BORDA_COMPACTA_DP)
         layout.gravity = Gravity.CENTER_VERTICAL
         layout.setOnClickListener { reabrirApp(origemCompacta = true) }
+        layout.setOnTouchListener { _, event ->
+            if (event.action == MotionEvent.ACTION_OUTSIDE &&
+                OverlayBridge.snapshot.value.compactaVisivel
+            ) {
+                OverlayBridge.emitir(OverlayAcao.ToqueForaDaCompacta)
+                return@setOnTouchListener true
+            }
+            false
+        }
         listOf("💵 R$/KM", "💰 VALOR", "🛞 DIST.", "🕐 TEMPO", "⭐ NOTA").forEach { titulo ->
             layout.addView(
                 criarColunaMetrica(
@@ -519,6 +568,7 @@ class OverlayService : Service() {
                     setTextColor(Color.parseColor("#7CB342"))
                     textSize = 11.5f
                     gravity = Gravity.CENTER
+                    maxLines = 1
                 },
             )
             addView(
@@ -526,6 +576,7 @@ class OverlayService : Service() {
                     setTextColor(Color.WHITE)
                     textSize = 14.5f
                     gravity = Gravity.CENTER
+                    maxLines = 1
                     text = "—"
                 },
             )
@@ -545,8 +596,9 @@ class OverlayService : Service() {
     private fun criarBlocoDetalhes(tag: String): LinearLayout {
         return LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
+            gravity = Gravity.TOP
             this.tag = tag
-            setPadding(dp(4), 0, dp(4), 0)
+            setPadding(dp(8), 0, dp(6), 0)
         }
     }
 
@@ -555,21 +607,43 @@ class OverlayService : Service() {
             TextView(this).apply {
                 text = texto
                 setTextColor(Color.parseColor(cor))
-                textSize = 11f
+                textSize = 11.5f
+                gravity = Gravity.START
                 setPadding(0, 0, 0, dp(2))
             },
         )
     }
 
     private fun adicionarLinhaDetalhe(destino: LinearLayout, titulo: String, valor: String) {
-        destino.addView(
+        val linha = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+            )
+            setPadding(0, dp(1), 0, dp(1))
+        }
+        linha.addView(
             TextView(this).apply {
-                text = "$titulo  $valor"
+                text = titulo
                 setTextColor(Color.parseColor("#D0D9E2"))
-                textSize = 11f
-                setPadding(0, dp(1), 0, dp(1))
+                textSize = 11.5f
+                maxLines = 1
+                ellipsize = TextUtils.TruncateAt.END
+                layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
             },
         )
+        linha.addView(
+            TextView(this).apply {
+                text = valor
+                setTextColor(Color.parseColor("#D0D9E2"))
+                textSize = 11.5f
+                gravity = Gravity.END
+                maxLines = 1
+            },
+        )
+        destino.addView(linha)
     }
 
     private fun fundoPainel(corBorda: String, espessuraDp: Int): GradientDrawable {
@@ -610,6 +684,14 @@ class OverlayService : Service() {
                 layoutInDisplayCutoutMode =
                     WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES
             }
+        }
+    }
+
+    private fun aplicarFlagsToqueFora(params: WindowManager.LayoutParams, ativo: Boolean) {
+        params.flags = if (ativo) {
+            params.flags or WindowManager.LayoutParams.FLAG_WATCH_OUTSIDE_TOUCH
+        } else {
+            params.flags and WindowManager.LayoutParams.FLAG_WATCH_OUTSIDE_TOUCH.inv()
         }
     }
 

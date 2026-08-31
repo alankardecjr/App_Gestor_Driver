@@ -41,6 +41,8 @@ data class AppState(
     // podem existir nesta lista.
     // ================================================================
 
+    val ofertasPendentes: Map<String, AnaliseCorrida> = emptyMap(),
+
     val historico: List<HistoricoItemPresentation>,
 
     val historicoSelecionado:

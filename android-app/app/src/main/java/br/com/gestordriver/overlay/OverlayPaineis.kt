@@ -160,6 +160,7 @@ object OverlayPaineis {
         }
         val lista = coluna.findViewWithTag<LinearLayout>("historico_lista")
         lista.removeAllViews()
+        lista.addView(linhaHistorico(view.context, titulosHistorico, cabecalho = true))
         if (snapshot.historicoItens.isEmpty()) {
             lista.addView(
                 TextView(view.context).apply {
@@ -253,7 +254,7 @@ object OverlayPaineis {
                 isClickable = true
                 setPadding(dp(ctx, 8), dp(ctx, 8), dp(ctx, 8), dp(ctx, 8))
                 layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
-                setOnClickListener { cancelarConfig() }
+                setOnClickListener { cancelarConfig(raiz) }
             },
         )
         rodape.addView(
@@ -284,8 +285,7 @@ object OverlayPaineis {
 
     fun atualizarConfig(view: View, snapshot: OverlaySnapshot) {
         if (!snapshot.configuracoesVisivel) {
-            rascunho = null
-            abaMontada = -1
+            descartarPainel(view)
             return
         }
         atualizarConfigInterno(view, snapshot)
@@ -315,9 +315,17 @@ object OverlayPaineis {
         }
     }
 
-    private fun cancelarConfig() {
-        rascunho = null
+    private fun cancelarConfig(raiz: View) {
+        descartarPainel(raiz)
         OverlayBridge.emitir(OverlayAcao.CancelarConfig)
+    }
+
+    private fun descartarPainel(view: View) {
+        rascunho = null
+        abaMontada = -1
+        view.findViewWithTag<ScrollView>("config_scroll")?.let { scroll ->
+            (scroll.getChildAt(0) as? LinearLayout)?.removeAllViews()
+        }
     }
 
     private fun salvarConfig(raiz: View, context: Context) {
@@ -404,6 +412,47 @@ object OverlayPaineis {
         imm?.hideSoftInputFromWindow(view.windowToken, 0)
     }
 
+    private val titulosHistorico = listOf("DATA", "HORA", "R$/KM", "VALOR", "KM", "TEMPO", "NOTA", "⭐")
+    private val pesosHistorico = listOf(0.95f, 0.7f, 0.8f, 0.8f, 0.9f, 0.55f, 0.55f, 0.35f)
+
+    private fun linhaHistorico(
+        context: Context,
+        valores: List<String>,
+        cabecalho: Boolean,
+        corMarcador: String = SECUNDARIO,
+    ): LinearLayout {
+        return LinearLayout(context).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            valores.forEachIndexed { indice, valor ->
+                addView(
+                    TextView(context).apply {
+                        text = valor
+                        setTextColor(
+                            Color.parseColor(
+                                when {
+                                    indice == valores.lastIndex && !cabecalho -> corMarcador
+                                    cabecalho -> SECUNDARIO
+                                    else -> TEXTO
+                                },
+                            ),
+                        )
+                        textSize = if (cabecalho) 8f else 9f
+                        maxLines = 1
+                        ellipsize = TextUtils.TruncateAt.END
+                        gravity = Gravity.CENTER
+                        typeface = if (cabecalho) Typeface.DEFAULT_BOLD else Typeface.DEFAULT
+                        layoutParams = LinearLayout.LayoutParams(
+                            0,
+                            LinearLayout.LayoutParams.WRAP_CONTENT,
+                            pesosHistorico.getOrElse(indice) { 1f },
+                        )
+                    },
+                )
+            }
+        }
+    }
+
     private fun criarItemHistorico(context: Context, item: OverlayHistoricoItem): View {
         return LinearLayout(context).apply {
             orientation = LinearLayout.VERTICAL
@@ -412,7 +461,7 @@ object OverlayPaineis {
                 setStroke(dp(context, 1), Color.parseColor(ClassificacaoConstantes.COR_BORDA_NEUTRA))
                 cornerRadius = dp(context, 8).toFloat()
             }
-            setPadding(dp(context, 6), dp(context, 5), dp(context, 6), dp(context, 5))
+            setPadding(dp(context, 4), dp(context, 5), dp(context, 4), dp(context, 5))
             val params = LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT,
                 LinearLayout.LayoutParams.WRAP_CONTENT,
@@ -420,33 +469,21 @@ object OverlayPaineis {
             params.topMargin = dp(context, 5)
             layoutParams = params
             addView(
-                TextView(context).apply {
-                    text = "DATA | HORA | R$/KM | VALOR | KM | TEMPO | NOTA | ⭐"
-                    setTextColor(Color.parseColor(SECUNDARIO))
-                    textSize = 8f
-                    maxLines = 1
-                },
-            )
-            addView(
-                LinearLayout(context).apply {
-                    orientation = LinearLayout.HORIZONTAL
-                    addView(
-                        TextView(context).apply {
-                            text = "${item.data} │ ${item.hora} │ ${item.valorPorKm} │ ${item.valor} │ ${item.km} │ ${item.tempo} │ ${item.nota}"
-                            setTextColor(Color.WHITE)
-                            textSize = 9f
-                            maxLines = 2
-                            layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
-                        },
-                    )
-                    addView(
-                        TextView(context).apply {
-                            text = item.marcador
-                            setTextColor(Color.parseColor(item.corMarcador))
-                            textSize = 12f
-                        },
-                    )
-                },
+                linhaHistorico(
+                    context,
+                    listOf(
+                        item.data,
+                        item.hora,
+                        item.valorPorKm,
+                        item.valor,
+                        item.km,
+                        item.tempo,
+                        item.nota,
+                        item.marcador,
+                    ),
+                    cabecalho = false,
+                    corMarcador = item.corMarcador,
+                ),
             )
             setOnClickListener { OverlayBridge.emitir(OverlayAcao.SelecionarHistorico(item.chave)) }
         }

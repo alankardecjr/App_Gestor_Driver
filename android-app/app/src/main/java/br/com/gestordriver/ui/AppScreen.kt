@@ -40,6 +40,7 @@ import androidx.compose.ui.unit.sp
 import br.com.gestordriver.model.CampoApresentacao
 import br.com.gestordriver.model.HistoricoItemPresentation
 import br.com.gestordriver.model.ModoApresentacao
+import br.com.gestordriver.presentation.PresentationBuilder
 
 // =====================================================================
 // CORES DA INTERFACE
@@ -56,6 +57,7 @@ private val TextoAzul = Color(0xFF42A5F5)
 private val TextoVerde = Color(0xFF7CB342)
 private val TextoLaranja = Color(0xFFFF9800)
 private val TextoAmarelo = Color(0xFFFFD54F)
+private val pesosColunaHistorico = listOf(0.95f, 0.7f, 0.8f, 0.8f, 0.9f, 0.55f, 0.55f, 0.35f)
 
 // =====================================================================
 // TELA PRINCIPAL
@@ -749,6 +751,22 @@ private fun HistoricoSection(
             }
         }
 
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            listOf("DATA", "HORA", "R$/KM", "VALOR", "KM", "TEMPO", "NOTA", "⭐").forEachIndexed { indice, titulo ->
+                Text(
+                    text = titulo,
+                    color = TextoHistorico,
+                    style = MaterialTheme.typography.labelSmall,
+                    maxLines = 1,
+                    fontWeight = FontWeight.SemiBold,
+                    modifier = Modifier.weight(pesosColunaHistorico[indice]),
+                )
+            }
+        }
+
         if (itens.isEmpty()) {
             Text(
                 text = "Nenhuma corrida aceita.",
@@ -826,7 +844,18 @@ private fun HistoricoItemLista(
     item: HistoricoItemPresentation,
     onClick: () -> Unit,
 ) {
-    Column(
+    val nota = item.notaPassageiro?.let { PresentationBuilder.formatarDecimalPublico(it) } ?: "—"
+    val valores = listOf(
+        item.dataLista,
+        item.horaLista,
+        PresentationBuilder.formatarDecimalPublico(item.valorPorKm),
+        PresentationBuilder.formatarDecimalPublico(item.valorTotal),
+        PresentationBuilder.formatarKmPublico(item.kmTotal),
+        item.tempoEstimado?.toString() ?: "—",
+        nota,
+        item.classificacao.marcador,
+    )
+    Row(
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onClick)
@@ -835,31 +864,20 @@ private fun HistoricoItemLista(
                 color = Color(0xFF3D4A57),
                 shape = CardDefaults.shape,
             )
-            .padding(horizontal = 6.dp, vertical = 6.dp),
-        verticalArrangement = Arrangement.spacedBy(3.dp),
+            .padding(horizontal = 4.dp, vertical = 6.dp),
+        verticalAlignment = Alignment.CenterVertically,
     ) {
-        Text(
-            text = "DATA | HORA | R$/KM | VALOR | KM | TEMPO | NOTA | ⭐",
-            color = TextoHistorico,
-            style = MaterialTheme.typography.labelSmall,
-            maxLines = 1,
-        )
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween,
-        ) {
+        valores.forEachIndexed { indice, valor ->
             Text(
-                text = item.linhaHistorico,
-                color = TextoPrincipal,
+                text = valor,
+                color = if (indice == valores.lastIndex) {
+                    parseColor(item.corClassificacao)
+                } else {
+                    TextoPrincipal
+                },
                 style = MaterialTheme.typography.labelSmall,
-                maxLines = 2,
-                modifier = Modifier.weight(1f),
-            )
-            Text(
-                text = item.classificacao.marcador,
-                color = parseColor(item.corClassificacao),
-                style = MaterialTheme.typography.labelLarge,
+                maxLines = 1,
+                modifier = Modifier.weight(pesosColunaHistorico[indice]),
             )
         }
     }

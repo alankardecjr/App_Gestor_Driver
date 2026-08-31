@@ -1,3 +1,4 @@
 <resources>
     <string name="app_name">Gestor Driver</string>
+    <string name="acessibilidade_ofertas">Lê o card de oferta na tela da Uber, 99 e inDrive (incluindo captura da tela quando a corrida não vem como notificação).</string>
 </resources>

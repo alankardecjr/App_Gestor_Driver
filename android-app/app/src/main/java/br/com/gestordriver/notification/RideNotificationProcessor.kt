@@ -10,16 +10,21 @@ class RideNotificationProcessor(
     private val parser: CorridaParser = CorridaParser(),
     private val calculadora: CalculadoraCorrida? = null,
     private val configuracaoProvider: () -> ConfiguracaoUsuario = { ConfiguracaoUsuario.padrao() },
-    private val ofertaEmAndamento: () -> Boolean = { OfertaSessao.chaveAtiva() },
+    private val ofertaEmAndamento: (String) -> Boolean = { OfertaSessao.chaveAtiva(it) },
 ) {
     fun processar(notification: NotificationData): RideNotificationEvent {
+        if (!RideEventClassifier.pareceAceite(notification) &&
+            OfertaTextoFiltro.ehPromocaoOuStatus(notification.fullText)
+        ) {
+            return RideNotificationEvent.NotificacaoNaoReconhecida
+        }
         val parseada = tentarParsearOferta(notification)
         val ofertaParseavel = parseada != null
         return when (
             RideEventClassifier.classificar(
                 notification = notification,
                 ofertaParseavel = ofertaParseavel,
-                ofertaEmAndamento = ofertaEmAndamento(),
+                ofertaEmAndamento = ofertaEmAndamento(notification.packageName),
             )
         ) {
             TipoEventoCorrida.NOVA_OFERTA,
@@ -30,11 +35,14 @@ class RideNotificationProcessor(
                 val analise = calculadoraAtual().calcular(
                     corrida = corrida,
                     plataforma = plataforma.label,
+                    notaPassageiro = NotificationExtractor.extrairNotaPassageiro(
+                        notification.fullText,
+                    ),
                 )
                 RideNotificationEvent.CorridaRecebida(
                     analise = analise,
                     aceiteImediato = RideEventClassifier.pareceAceite(notification) &&
-                        !ofertaEmAndamento(),
+                        !ofertaEmAndamento(notification.packageName),
                 )
             }
 

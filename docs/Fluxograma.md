@@ -25,10 +25,10 @@ O aplicativo:
 4. inicia o monitoramento;
 5. exibe o selo flutuante sobre o app de transporte;
 6. monitora notificações;
-7. na oferta, mostra a **barra compacta** no topo (só o cabeçalho);
+7. na oferta, mostra a **barra compacta** no topo (só o cabeçalho); toque fora dela (mapa/plataforma) recolhe ao selo na hora;
 8. `⬇️` ou toque no selo abre a **expandida em overlay** (altura do conteúdo, não 1/3 fixo);
 9. Histórico e Configuração abrem **embaixo da expandida** (painéis overlay, exclusivos);
-10. Recolher (`⬆️`) volta à compacta; **após 5 s** retorna ao selo. Aceite detectado também vai ao selo;
+10. Recolher (`⬆️`) volta à compacta; toque **fora** das janelas do Gestor Driver (ou **após 5 s**) retorna ao selo. Aceite detectado também vai ao selo;
 11. Ocultar e expiração (sem item de histórico selecionado) retornam ao selo na última posição;
 12. Fechar encerra o app após confirmação.
 
@@ -131,7 +131,7 @@ Nova oferta substitui a corrida atual. Sem oferta = selo. Histórico só muda no
           │
           ├── 📜 HISTÓRICO → painel overlay abaixo (⤴️ recolhe)
           ├── ⚙️ CONFIG → painel overlay abaixo (abas VEÍCULO / CLASSIFICAÇÃO / APP)
-          ├── ⬆️ retrai para compacta (5 s → selo, mesmo com oferta)
+          ├── ⬆️ retrai para compacta (toque fora → selo imediato; senão 5 s → selo, mesmo com oferta)
           └── ❎ OCULTAR → selo (fecha histórico e config)
 
 #5. Fluxo de encerramento

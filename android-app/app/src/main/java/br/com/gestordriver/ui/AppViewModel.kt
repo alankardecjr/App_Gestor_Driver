@@ -35,6 +35,7 @@ class AppViewModel(
     private val scope: CoroutineScope = coroutineScope ?: viewModelScope
     private var compactaTemporariaJob: Job? = null
     private var estadoAntesFechar: AppState? = null
+    private var ofertaParaHistorico: AnaliseCorrida? = null
 
     // ================================================================
     // ESTADO
@@ -130,6 +131,7 @@ class AppViewModel(
                     OverlayAcao.CancelarConfig -> fecharConfiguracoes()
                     OverlayAcao.Ocultar -> ocultarInterface()
                     OverlayAcao.Retratil -> retrairParaCompactaTemporaria()
+                    OverlayAcao.ToqueForaDaCompacta -> recolherCompactaPorToqueFora()
                     OverlayAcao.Fechar -> solicitarFecharApp()
                     OverlayAcao.CancelarFechar -> cancelarFecharApp()
                     OverlayAcao.ConfirmarFechar -> confirmarFecharApp()
@@ -198,6 +200,7 @@ class AppViewModel(
             ofertaAtiva = state.ofertaAtiva,
             compactaTemporaria = state.compactaTemporaria,
             corridaAntesDaOferta = state.corridaAntesDaOferta,
+            ofertasPendentes = state.ofertasPendentes,
         )
         publicarOverlay()
     }
@@ -270,6 +273,7 @@ class AppViewModel(
             ultimaCorridaAceita = state.ultimaCorridaAceita,
             ofertaAtiva = manterOferta,
             corridaAntesDaOferta = null,
+            ofertasPendentes = state.ofertasPendentes,
         )
         publicarOverlay()
         _irParaSegundoPlano.tryEmit(Unit)
@@ -288,17 +292,33 @@ class AppViewModel(
     }
 
     fun abrirConfiguracoes(destaquePermissao: Boolean = false, usarOverlay: Boolean = true) {
-        state = state.copy(
-            configuracoesVisivel = true,
-            historicoVisivel = false,
-            interfaceOculta = usarOverlay,
-            seloFlutuante = false,
+        val manterOferta = state.ofertaAtiva
+        val analise = if (manterOferta) state.analiseAtual else null
+        state = PresentationBuilder.criarEstado(
+            analise = analise,
+            plano = state.plano,
+            historico = state.historico,
+            historicoSelecionado = null,
+            abaHistorico = state.abaHistorico,
+            abaConfiguracao = if (destaquePermissao) 2 else 0,
             destacarPermissoes = destaquePermissao,
-            abaConfiguracao = if (destaquePermissao) 2 else state.abaConfiguracao,
-            corrida = state.corrida.copy(
-                modo = ModoApresentacao.DETALHES,
-                acaoDetalhes = "Menos detalhes",
-            ),
+            modo = ModoApresentacao.DETALHES,
+            historicoVisivel = false,
+            configuracoesVisivel = true,
+            interfaceOculta = usarOverlay,
+            overlayAtivo = true,
+            notificacaoDisponivel = manterOferta,
+            seloFlutuante = false,
+            compactaTemporaria = false,
+            monitorando = true,
+            seloOffsetX = state.seloOffsetX,
+            seloOffsetY = state.seloOffsetY,
+            estadoSalvo = state.estadoSalvo,
+            corridaAceita = false,
+            ultimaCorridaAceita = state.ultimaCorridaAceita,
+            ofertaAtiva = manterOferta,
+            corridaAntesDaOferta = null,
+            ofertasPendentes = state.ofertasPendentes,
         )
         publicarOverlay()
         if (usarOverlay) {
@@ -358,6 +378,7 @@ class AppViewModel(
             ultimaCorridaAceita = state.ultimaCorridaAceita,
             ofertaAtiva = state.ofertaAtiva,
             corridaAntesDaOferta = state.corridaAntesDaOferta,
+            ofertasPendentes = state.ofertasPendentes,
         )
         publicarOverlay()
         _irParaSegundoPlano.tryEmit(Unit)
@@ -386,21 +407,69 @@ class AppViewModel(
     // ================================================================
 
     fun registrarAceiteCorrida() {
-        val analise = state.analiseAtual ?: return
+        val analise = state.analiseAtual ?: ofertaParaHistorico ?: return
         val itemHistorico = PresentationBuilder.historicoDe(analise)
         if (state.historico.any { it.chaveHistorico() == itemHistorico.chaveHistorico() }) {
             return
         }
         historicoRepository.salvar(itemHistorico)
-        state = state.copy(
-            historico = listOf(itemHistorico) + state.historico,
-            historicoSelecionado = itemHistorico,
-            corridaAceita = true,
-            ofertaAtiva = false,
-            compactaTemporaria = false,
-            ultimaCorridaAceita = analise,
-        )
-        irParaSelo()
+        val chave = chavePlataforma(analise)
+        val pendentes = state.ofertasPendentes - chave
+        val proxima = pendentes.values.lastOrNull()
+        val historico = listOf(itemHistorico) + state.historico
+        if (proxima != null) {
+            state = PresentationBuilder.criarEstado(
+                analise = proxima,
+                plano = state.plano,
+                historico = historico,
+                historicoSelecionado = null,
+                abaHistorico = abaDe(analise.plataforma),
+                abaConfiguracao = state.abaConfiguracao,
+                modo = ModoApresentacao.COMPACTA,
+                historicoVisivel = false,
+                configuracoesVisivel = false,
+                interfaceOculta = true,
+                overlayAtivo = true,
+                notificacaoDisponivel = true,
+                seloFlutuante = false,
+                compactaTemporaria = false,
+                monitorando = true,
+                seloOffsetX = state.seloOffsetX,
+                seloOffsetY = state.seloOffsetY,
+                estadoSalvo = state.estadoSalvo,
+                corridaAceita = false,
+                ultimaCorridaAceita = analise,
+                ofertaAtiva = true,
+                ofertasPendentes = pendentes,
+            )
+        } else {
+            state = PresentationBuilder.criarEstado(
+                analise = null,
+                plano = state.plano,
+                historico = historico,
+                historicoSelecionado = null,
+                abaHistorico = abaDe(analise.plataforma),
+                abaConfiguracao = state.abaConfiguracao,
+                modo = ModoApresentacao.COMPACTA,
+                historicoVisivel = false,
+                configuracoesVisivel = false,
+                interfaceOculta = true,
+                overlayAtivo = true,
+                notificacaoDisponivel = false,
+                seloFlutuante = true,
+                compactaTemporaria = false,
+                monitorando = true,
+                seloOffsetX = state.seloOffsetX,
+                seloOffsetY = state.seloOffsetY,
+                estadoSalvo = state.estadoSalvo,
+                corridaAceita = true,
+                ultimaCorridaAceita = analise,
+                ofertaAtiva = false,
+                ofertasPendentes = pendentes,
+            )
+        }
+        publicarOverlay()
+        _irParaSegundoPlano.tryEmit(Unit)
     }
 
     // ================================================================
@@ -438,6 +507,21 @@ class AppViewModel(
             return
         }
         ocultarInterface()
+    }
+
+    fun recolherCompactaPorToqueFora() {
+        val emOverlay = state.monitorando && state.overlayAtivo && state.interfaceOculta
+        val expandida = emOverlay &&
+            state.corrida.modo == ModoApresentacao.DETALHES &&
+            !state.seloFlutuante
+        val compactaVisivel = emOverlay &&
+            !expandida &&
+            !state.seloFlutuante &&
+            (state.ofertaAtiva || state.compactaTemporaria)
+        if (!compactaVisivel) {
+            return
+        }
+        irParaSelo()
     }
 
     fun retrairParaCompactaTemporaria() {
@@ -581,6 +665,9 @@ class AppViewModel(
         analise: AnaliseCorrida
     ) {
         cancelarCompactaTemporaria()
+        ofertaParaHistorico = analise
+        val chave = chavePlataforma(analise)
+        val pendentes = state.ofertasPendentes + (chave to analise)
         val emAppExpandido = !state.interfaceOculta && state.monitorando
         val expandidaOverlay = state.interfaceOculta &&
             state.corrida.modo == ModoApresentacao.DETALHES &&
@@ -611,6 +698,7 @@ class AppViewModel(
                 ultimaCorridaAceita = state.ultimaCorridaAceita,
                 ofertaAtiva = true,
                 corridaAntesDaOferta = state.historicoSelecionado?.paraAnalise(),
+                ofertasPendentes = pendentes,
             )
         publicarOverlay()
         _irParaSegundoPlano.tryEmit(Unit)
@@ -621,67 +709,64 @@ class AppViewModel(
             return
         }
         cancelarCompactaTemporaria()
-        val manterExpandida = state.corrida.modo == ModoApresentacao.DETALHES && !state.seloFlutuante
-        val restaurar = state.historicoSelecionado?.paraAnalise()
-        val ultimaAceita = state.ultimaCorridaAceita
-        val offsetsX = state.seloOffsetX
-        val offsetsY = state.seloOffsetY
-        val estadoSalvo = state.estadoSalvo
-        if (manterExpandida) {
+        val chave = state.analiseAtual?.let { chavePlataforma(it) }.orEmpty()
+        val pendentes = if (chave.isBlank()) {
+            emptyMap()
+        } else {
+            state.ofertasPendentes - chave
+        }
+        val proxima = pendentes.values.lastOrNull()
+        if (proxima != null) {
             state = PresentationBuilder.criarEstado(
-                analise = restaurar,
+                analise = proxima,
                 plano = state.plano,
                 historico = state.historico,
-                historicoSelecionado = state.historicoSelecionado,
+                historicoSelecionado = null,
                 abaHistorico = state.abaHistorico,
                 abaConfiguracao = state.abaConfiguracao,
-                destacarPermissoes = false,
-                modo = ModoApresentacao.DETALHES,
-                historicoVisivel = state.historicoVisivel,
+                modo = ModoApresentacao.COMPACTA,
+                historicoVisivel = false,
                 configuracoesVisivel = false,
                 interfaceOculta = true,
                 overlayAtivo = true,
-                notificacaoDisponivel = restaurar != null,
+                notificacaoDisponivel = true,
                 seloFlutuante = false,
                 compactaTemporaria = false,
                 monitorando = true,
-                seloOffsetX = offsetsX,
-                seloOffsetY = offsetsY,
-                estadoSalvo = estadoSalvo,
-                corridaAceita = restaurar != null,
-                ultimaCorridaAceita = ultimaAceita,
-                ofertaAtiva = false,
-                corridaAntesDaOferta = null,
+                seloOffsetX = state.seloOffsetX,
+                seloOffsetY = state.seloOffsetY,
+                estadoSalvo = state.estadoSalvo,
+                corridaAceita = false,
+                ultimaCorridaAceita = state.ultimaCorridaAceita,
+                ofertaAtiva = true,
+                ofertasPendentes = pendentes,
             )
-            publicarOverlay()
-            _irParaSegundoPlano.tryEmit(Unit)
-            return
+        } else {
+            state = PresentationBuilder.criarEstado(
+                analise = null,
+                plano = state.plano,
+                historico = state.historico,
+                historicoSelecionado = null,
+                abaHistorico = state.abaHistorico,
+                abaConfiguracao = state.abaConfiguracao,
+                modo = ModoApresentacao.COMPACTA,
+                historicoVisivel = false,
+                configuracoesVisivel = false,
+                interfaceOculta = true,
+                overlayAtivo = true,
+                notificacaoDisponivel = false,
+                seloFlutuante = true,
+                compactaTemporaria = false,
+                monitorando = true,
+                seloOffsetX = state.seloOffsetX,
+                seloOffsetY = state.seloOffsetY,
+                estadoSalvo = state.estadoSalvo,
+                corridaAceita = false,
+                ultimaCorridaAceita = state.ultimaCorridaAceita,
+                ofertaAtiva = false,
+                ofertasPendentes = pendentes,
+            )
         }
-        state = PresentationBuilder.criarEstado(
-            analise = null,
-            plano = state.plano,
-            historico = state.historico,
-            historicoSelecionado = state.historicoSelecionado,
-            abaHistorico = state.abaHistorico,
-            abaConfiguracao = state.abaConfiguracao,
-            destacarPermissoes = false,
-            modo = ModoApresentacao.COMPACTA,
-            historicoVisivel = false,
-            configuracoesVisivel = false,
-            interfaceOculta = true,
-            overlayAtivo = true,
-            notificacaoDisponivel = false,
-            seloFlutuante = true,
-            compactaTemporaria = false,
-            monitorando = true,
-            seloOffsetX = offsetsX,
-            seloOffsetY = offsetsY,
-            estadoSalvo = estadoSalvo,
-            corridaAceita = false,
-            ultimaCorridaAceita = ultimaAceita,
-            ofertaAtiva = false,
-            corridaAntesDaOferta = null,
-        )
         publicarOverlay()
         _irParaSegundoPlano.tryEmit(Unit)
     }
@@ -716,7 +801,9 @@ class AppViewModel(
         val expandidaVisivel = emOverlay &&
             state.corrida.modo == ModoApresentacao.DETALHES &&
             !state.seloFlutuante
-        val compactaVisivel = emOverlay && !expandidaVisivel &&
+        val compactaVisivel = emOverlay &&
+            !expandidaVisivel &&
+            !state.seloFlutuante &&
             (state.ofertaAtiva || state.compactaTemporaria)
         val seloVisivel = emOverlay && !compactaVisivel && !expandidaVisivel
         val analise = analiseExibida()
@@ -784,7 +871,23 @@ class AppViewModel(
         if (state.ofertaAtiva) {
             return state.analiseAtual
         }
-        return state.historicoSelecionado?.paraAnalise()
+        if (state.historicoVisivel) {
+            return state.historicoSelecionado?.paraAnalise()
+        }
+        return null
+    }
+
+    private fun chavePlataforma(analise: AnaliseCorrida): String =
+        analise.plataforma?.ifBlank { "Uber" } ?: "Uber"
+
+    private fun abaDe(plataforma: String?): String {
+        val nome = plataforma.orEmpty()
+        return when {
+            nome.contains("99") -> "99"
+            nome.contains("inDrive", ignoreCase = true) ||
+                nome.contains("indrive", ignoreCase = true) -> "inDrive"
+            else -> "Uber"
+        }
     }
 
     companion object {

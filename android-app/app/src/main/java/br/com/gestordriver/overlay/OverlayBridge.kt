@@ -1,6 +1,7 @@
 package br.com.gestordriver.overlay
 
 import br.com.gestordriver.core.ClassificacaoConstantes
+import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
@@ -64,6 +65,7 @@ sealed class OverlayAcao {
     data object CancelarConfig : OverlayAcao()
     data object Ocultar : OverlayAcao()
     data object Retratil : OverlayAcao()
+    data object ToqueForaDaCompacta : OverlayAcao()
     data object Fechar : OverlayAcao()
     data object CancelarFechar : OverlayAcao()
     data object ConfirmarFechar : OverlayAcao()
@@ -76,14 +78,32 @@ object OverlayBridge {
     private val _snapshot = MutableStateFlow(OverlaySnapshot())
     val snapshot: StateFlow<OverlaySnapshot> = _snapshot.asStateFlow()
 
-    private val _acoes = MutableSharedFlow<OverlayAcao>(extraBufferCapacity = 16)
+    private val _acoes = MutableSharedFlow<OverlayAcao>(
+        extraBufferCapacity = 64,
+        onBufferOverflow = BufferOverflow.DROP_OLDEST,
+    )
     val acoes: SharedFlow<OverlayAcao> = _acoes.asSharedFlow()
 
+    @Volatile
+    private var pausarLeituraAteMs: Long = 0L
+
+    fun leituraPausada(): Boolean = System.currentTimeMillis() < pausarLeituraAteMs
+
+    fun pausarLeitura(duracaoMs: Long = 800L) {
+        pausarLeituraAteMs = System.currentTimeMillis() + duracaoMs
+    }
+
     fun publicar(snapshot: OverlaySnapshot) {
+        if (_snapshot.value == snapshot) {
+            return
+        }
         _snapshot.value = snapshot
     }
 
     fun emitir(acao: OverlayAcao) {
+        if (acao !is OverlayAcao.MoverSelo) {
+            pausarLeitura()
+        }
         _acoes.tryEmit(acao)
     }
 }

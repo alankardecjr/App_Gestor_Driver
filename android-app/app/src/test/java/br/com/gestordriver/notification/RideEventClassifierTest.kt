@@ -67,4 +67,102 @@ class RideEventClassifierTest {
         )
         assertEquals(TipoEventoCorrida.OFERTA_E_ACEITE, evento)
     }
+
+    @Test
+    fun tela_99_ponto_de_encontro_e_aceite() {
+        val notification = NotificationData(
+            packageName = "com.app99.driver",
+            title = "Ponto de encontro",
+            text = "Estou no local",
+        )
+        val evento = RideEventClassifier.classificar(notification, ofertaParseavel = false)
+        assertEquals(TipoEventoCorrida.ACEITE_DETECTADO, evento)
+    }
+
+    @Test
+    fun tela_99_chegue_antes_e_aceite() {
+        val notification = NotificationData(
+            packageName = "com.app99.driver",
+            title = "JARDIM TARUMA",
+            text = "9 min 2,3 km\nChegue antes de 06:50",
+        )
+        val evento = RideEventClassifier.classificar(notification, ofertaParseavel = false)
+        assertEquals(TipoEventoCorrida.ACEITE_DETECTADO, evento)
+    }
+
+    @Test
+    fun tela_99_chegada_prevista_e_aceite() {
+        val notification = NotificationData(
+            packageName = "com.app99.driver",
+            title = "",
+            text = "9 min 2,3 km\nChegada prevista: 06:46",
+        )
+        val evento = RideEventClassifier.classificar(notification, ofertaParseavel = false)
+        assertEquals(TipoEventoCorrida.ACEITE_DETECTADO, evento)
+    }
+
+    @Test
+    fun botao_aceitar_nao_e_aceite() {
+        val notification = NotificationData(
+            packageName = "com.ubercab.driver",
+            title = "Priority",
+            text = "R$ 11,74\n5 min (1.2 km)\nAceitar\nSelecionar",
+        )
+        assertEquals(
+            TipoEventoCorrida.NOVA_OFERTA,
+            RideEventClassifier.classificar(notification, ofertaParseavel = true),
+        )
+    }
+
+    @Test
+    fun overlay_do_gestor_nao_e_aceite() {
+        val notification = NotificationData(
+            packageName = "com.app99.driver",
+            title = "HISTÓRICO",
+            text = "DATA | HORA | R$/KM| VALOR\n31/08 | 10:20 | 1,68 | 8,90\nChegada prevista: 10:31\nTotal percorrido\nCustos estimados",
+        )
+        assertEquals(
+            TipoEventoCorrida.IGNORADO,
+            RideEventClassifier.classificar(notification, ofertaParseavel = false),
+        )
+    }
+
+    @Test
+    fun historico_vazio_do_overlay_nao_e_aceite() {
+        val notification = NotificationData(
+            packageName = "com.ubercab.driver",
+            title = "",
+            text = "DATA | HORA | Nenhuma corrida aceita",
+        )
+        assertEquals(
+            TipoEventoCorrida.IGNORADO,
+            RideEventClassifier.classificar(notification, ofertaParseavel = false),
+        )
+    }
+
+    @Test
+    fun tela_uber_aceitei_por_engano_e_aceite() {
+        val notification = NotificationData(
+            packageName = "com.ubercab.driver",
+            title = "Avenida Brasil",
+            text = "4,88\nUberX\nAceitei por engano\nlocal de partida\nQuer cancelar a viagem?",
+        )
+        assertEquals(
+            TipoEventoCorrida.ACEITE_DETECTADO,
+            RideEventClassifier.classificar(notification, ofertaParseavel = false),
+        )
+    }
+
+    @Test
+    fun tela_uber_pos_aceite_sem_frase_longa_grava() {
+        val notification = NotificationData(
+            packageName = "com.ubercab.driver",
+            title = "Avenida Brasil",
+            text = "Maria\n4,88\nUberX",
+        )
+        assertEquals(
+            TipoEventoCorrida.ACEITE_DETECTADO,
+            RideEventClassifier.classificar(notification, ofertaParseavel = false),
+        )
+    }
 }

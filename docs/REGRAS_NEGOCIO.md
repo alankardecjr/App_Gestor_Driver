@@ -210,7 +210,11 @@ R$/KM | VALOR | DIST. | TEMPO | NOTA | ℹ️ ⬇️
 
 Exemplo: 💵 2,38 | 💰 38,00 | 🛞 16,0 KM | 🕐 28 min | ⭐ 4,9 | ⬇️
 
-A compacta **não** tem botões Fechar / Config / Ocultar / Histórico. `⬇️` (ou toque) abre a expandida. Sem oferta, os valores são `—` e a borda é neutra.
+A compacta **não** tem botões Fechar / Config / Ocultar / Histórico. `⬇️` (ou toque **na própria barra**) abre a expandida. Sem oferta, os valores são `—` e a borda é neutra.
+
+**Toque fora da compacta → selo:** enquanto a barra compacta estiver visível — por oferta recém-detectada ou por retração a partir da expandida — um toque em qualquer região da tela que **não** pertença às janelas do Gestor Driver recolhe a interface **imediatamente** para o selo flutuante. O toque segue para o aplicativo da plataforma (Uber, 99 ou inDrive), liberando controles cobertos pela barra, em especial o recusar da 99. A oferta permanece em monitoramento. Toque **sobre** a compacta continua expandindo o painel.
+
+**Oferta expirada → selo na hora:** se a leitura da tela voltar ao mapa/home da plataforma (`Você está online/conectado/offline`, sem o par `N min (X km)` do card e sem `Aceitar`), a compacta some **na primeira leitura**. Não espera várias capturas. O botão **Aceitar** da oferta **não** grava histórico. Histórico só com assinatura de aceite real (ex.: `Aceitei por engano`, `local de partida`, ponto de encontro). Card Uber típico: valor `R$`, taxa `/km` ignorada, bônus `+R$` ignorado, nota `4,99 (165)`, embarque `5 min (1.2 km)` e destino `5 minutos (1.3 km)` — o destino muitas vezes só no OCR; nós da acessibilidade sozinhos não bastam.
 
 8. Regra da corrida atual
 
@@ -334,7 +338,7 @@ COMPACTA
    ↓
 EXPANDIDA (altura do conteúdo, overlay)
 
-Na expandida: Distâncias (até o passageiro, até o destino, total) e Custos (consumo estimado em litros, gasto, lucro) + botões Fechar · Config · Ocultar · Histórico.
+Na expandida: Distâncias (até o passageiro, até o destino, total) e Custos (consumo estimado em litros, gasto, lucro) + botões Fechar · Config · Ocultar · Histórico. Cabeçalho com a mesma fonte da compacta; colunas alinhadas (rótulo à esquerda, valor à direita).
 
 E:
 
@@ -344,11 +348,11 @@ EXPANDIDA
    ↓
 COMPACTA
    ↓
-após 5 segundos
-   ↓
-SELO
+toque fora das janelas do Gestor Driver → SELO (imediato)
+   ou
+após 5 segundos sem esse toque → SELO
 
-(mesmo que ainda exista oferta). Toque no selo reabre a expandida.
+(mesmo que ainda exista oferta). Toque no selo reabre a expandida. Toque na própria compacta reabre a expandida.
 
 15. Comportamento durante uma corrida
 
@@ -492,6 +496,8 @@ A configuração abre como **painel overlay abaixo da expandida** (mesmo recorte
 Permissão faltando: abrir a aba APP e destacar o que falta.
 
 Custo da corrida usa **combustível atual + km/L desse combustível + preço do litro na aba APP**. Não misturar gasolina e etanol na mesma conta.
+
+**CANCELAR** fecha o painel e **descarta** o rascunho (os campos voltam ao que está gravado). Só **SALVAR** persiste. Fechar Config pelo botão ⤴️ Config também descarta, igual ao Cancelar.
 
 Fluxo:
 
@@ -761,6 +767,7 @@ As seguintes regras são consideradas fundamentais:
 O selo flutuante é a janela principal.
 O monitoramento ocorre em segundo plano enquanto estiver ativo.
 A tela compacta aparece para apresentar uma nova corrida.
+Com a compacta visível, toque fora das janelas do Gestor Driver volta ao selo na hora.
 O usuário aceita a corrida na Uber, 99 ou inDrive.
 O Gestor Driver identifica o aceite.
 Somente corridas aceitas entram no histórico.

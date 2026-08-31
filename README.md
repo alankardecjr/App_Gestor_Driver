@@ -39,7 +39,7 @@ Compacta (sobre o mapa; só o cabeçalho):
 💵 R$/KM │ 💰 VALOR │ 🛞 DIST. │ 🕐 TEMPO │ ⭐ NOTA │ ℹ️ ⬇️
 ```
 
-`⬇️` abre a expandida. Recolher (`⬆️`) volta à compacta; **após 5 s** o app volta ao selo (mesmo com oferta). Aceite detectado também vai ao selo.
+`⬇️` abre a expandida. Recolher (`⬆️`) volta à compacta. Com a compacta visível, um toque **fora** das janelas do Gestor Driver (no mapa ou nos controles da plataforma) recolhe **na hora** para o selo — assim o motorista alcança o recusar da 99, que fica na mesma faixa da barra. Sem esse toque, a compacta ainda volta ao selo **após 5 s**. Aceite detectado também vai ao selo.
 
 Expandida (~1/3 da tela, mapa visível): o mesmo cabeçalho + colunas **Distâncias** e **Custos (combustível)** + botões **Fechar · Config · Ocultar · Histórico**. Histórico e Config são painéis overlay abaixo da expandida (exclusivos).
 

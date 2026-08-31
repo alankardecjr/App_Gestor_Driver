@@ -126,6 +126,7 @@ object PresentationBuilder {
         ofertaAtiva: Boolean = analise != null && !corridaAceita,
         compactaTemporaria: Boolean = false,
         corridaAntesDaOferta: AnaliseCorrida? = null,
+        ofertasPendentes: Map<String, AnaliseCorrida> = emptyMap(),
     ): AppState {
 
         val corrida =
@@ -208,6 +209,9 @@ object PresentationBuilder {
 
             estadoSalvo =
                 estadoSalvo,
+
+            ofertasPendentes =
+                ofertasPendentes,
         )
     }
 

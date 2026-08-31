@@ -4,31 +4,39 @@ import android.content.Context
 import java.io.File
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
+import java.util.concurrent.Executors
 
 class NotificationDiagnosticLog(
     context: Context,
 ) {
     private val arquivo = File(context.filesDir, ARQUIVO)
     private val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
+    private val io = Executors.newSingleThreadExecutor()
 
     fun registrar(notification: NotificationData, evento: String) {
-        runCatching {
-            arquivo.appendText(
-                buildString {
-                    append(LocalDateTime.now().format(formatter))
-                    append('\t')
-                    append(evento)
-                    append('\t')
-                    append(notification.packageName)
-                    append('\t')
-                    append(notification.title.replace('\n', ' '))
-                    append('\n')
-                    append(notification.text)
-                    append("\n---\n")
-                },
-            )
-            limitarTamanho()
+        io.execute {
+            runCatching {
+                gravar(notification, evento)
+            }
         }
+    }
+
+    private fun gravar(notification: NotificationData, evento: String) {
+        arquivo.appendText(
+            buildString {
+                append(LocalDateTime.now().format(formatter))
+                append('\t')
+                append(evento)
+                append('\t')
+                append(notification.packageName)
+                append('\t')
+                append(notification.title.replace('\n', ' '))
+                append('\n')
+                append(notification.text)
+                append("\n---\n")
+            },
+        )
+        limitarTamanho()
     }
 
     private fun limitarTamanho() {

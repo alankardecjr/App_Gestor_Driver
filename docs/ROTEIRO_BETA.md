@@ -39,7 +39,8 @@ Pro (custo operacional, R$ líquido, relatórios). Free na loja (mesma UI, **sem
 | `⬇️` ou toque no selo | Expandida com Distâncias + Custos; mapa visível atrás |
 | Config / Histórico | Painel abaixo da expandida (não tela cheia) |
 | Aceita na plataforma | Uma linha no histórico; interface vai ao **selo** |
-| Recolher (`⬆️`) | Compacta e, em 5 s, selo |
+| Recolher (`⬆️`) | Compacta; toque fora das janelas do Gestor → selo na hora (senão, 5 s) |
+| Compacta + toque no mapa / recusar da 99 | Selo imediato; o toque chega na plataforma |
 | Fecha e reabre | Configurações iguais |
 
 Se a oferta **não aparecer**, o teste ainda vale: `notificacoes_diagnostico.txt` guarda o texto real.

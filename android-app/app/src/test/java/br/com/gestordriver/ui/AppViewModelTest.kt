@@ -545,10 +545,18 @@ class AppViewModelTest {
         assertTrue(viewModel.state.corridaAceita)
         assertFalse(viewModel.state.ofertaAtiva)
         assertTrue(viewModel.state.seloFlutuante)
-        assertEquals(
-            viewModel.state.analiseAtual?.corClassificacao,
-            viewModel.state.corrida.corClassificacao,
-        )
+        assertEquals(null, viewModel.state.analiseAtual)
+        assertEquals("—", viewModel.state.corrida.camposCompactos.first { it.id == "valor_total" }.valor)
+    }
+
+    @Test
+    fun aceite_depois_de_expirar_ainda_grava_historico() {
+        val viewModel = novoViewModel()
+        viewModel.aplicarNovaCorrida(analiseFake())
+        viewModel.expirarOfertaAtual()
+        assertEquals(null, viewModel.state.analiseAtual)
+        viewModel.registrarAceiteCorrida()
+        assertEquals(1, viewModel.state.historico.size)
     }
 
     @Test
@@ -598,6 +606,41 @@ class AppViewModelTest {
     }
 
     @Test
+    fun toque_fora_da_compacta_com_oferta_vai_ao_selo() {
+        val viewModel = novoViewModel()
+        viewModel.aplicarNovaCorrida(analiseFake())
+        assertTrue(viewModel.state.ofertaAtiva)
+        assertFalse(viewModel.state.seloFlutuante)
+        OverlayBridge.emitir(OverlayAcao.ToqueForaDaCompacta)
+        assertTrue(viewModel.state.seloFlutuante)
+        assertTrue(viewModel.state.ofertaAtiva)
+        assertTrue(viewModel.state.interfaceOculta)
+    }
+
+    @Test
+    fun toque_fora_apos_retrair_vai_ao_selo_na_hora() {
+        val viewModel = novoViewModel()
+        viewModel.aplicarNovaCorrida(analiseFake())
+        viewModel.reabrirInterface()
+        viewModel.alternarDetalhes()
+        assertTrue(viewModel.state.compactaTemporaria)
+        OverlayBridge.emitir(OverlayAcao.ToqueForaDaCompacta)
+        assertTrue(viewModel.state.seloFlutuante)
+        assertFalse(viewModel.state.compactaTemporaria)
+    }
+
+    @Test
+    fun toque_fora_na_expandida_nao_recolhe() {
+        val viewModel = novoViewModel()
+        viewModel.aplicarNovaCorrida(analiseFake())
+        viewModel.reabrirInterface()
+        assertEquals(ModoApresentacao.DETALHES, viewModel.state.corrida.modo)
+        OverlayBridge.emitir(OverlayAcao.ToqueForaDaCompacta)
+        assertFalse(viewModel.state.seloFlutuante)
+        assertEquals(ModoApresentacao.DETALHES, viewModel.state.corrida.modo)
+    }
+
+    @Test
     fun recolher_ao_sair_nao_fecha_overlay_ja_visivel() {
         val viewModel = novoViewModel()
         viewModel.reabrirInterface()
@@ -636,7 +679,7 @@ class AppViewModelTest {
     }
 
     @Test
-    fun oferta_na_expandida_expira_restaura_historico_selecionado() {
+    fun oferta_na_expandida_expira_nao_restaura_corrida_aceita_nos_campos() {
         val viewModel = novoViewModel()
         viewModel.iniciarMonitoramento()
         viewModel.reabrirInterface()
@@ -649,12 +692,11 @@ class AppViewModelTest {
         viewModel.aplicarNovaCorrida(analiseFake(valor = 22.0))
         assertEquals(22.0, viewModel.state.analiseAtual?.valorTotal ?: 0.0, 0.001)
         viewModel.expirarOfertaAtual()
-        assertEquals(40.0, viewModel.state.analiseAtual?.valorTotal ?: 0.0, 0.001)
+        assertEquals(null, viewModel.state.analiseAtual)
         assertFalse(viewModel.state.ofertaAtiva)
-        assertEquals(
-            aceita.corClassificacao,
-            viewModel.state.corrida.corClassificacao,
-        )
+        assertTrue(viewModel.state.seloFlutuante)
+        assertEquals(1, viewModel.state.historico.size)
+        assertEquals(40.0, viewModel.state.historico.first().valorTotal, 0.001)
     }
 
     @Test
@@ -669,7 +711,20 @@ class AppViewModelTest {
         assertEquals(160f, viewModel.state.seloOffsetY)
     }
 
-    private fun analiseFake(valor: Double = 38.0) =
+    @Test
+    fun aceite_99_mantem_oferta_uber() {
+        val viewModel = novoViewModel()
+        viewModel.aplicarNovaCorrida(analiseFake(valor = 40.0, plataforma = "Uber"))
+        viewModel.aplicarNovaCorrida(analiseFake(valor = 8.9, plataforma = "99"))
+        viewModel.registrarAceiteCorrida()
+        assertEquals(1, viewModel.state.historico.size)
+        assertEquals("99", viewModel.state.abaHistorico)
+        assertTrue(viewModel.state.ofertaAtiva)
+        assertEquals(40.0, viewModel.state.analiseAtual?.valorTotal ?: 0.0, 0.001)
+        assertFalse(viewModel.state.seloFlutuante)
+    }
+
+    private fun analiseFake(valor: Double = 38.0, plataforma: String = "Uber") =
         br.com.gestordriver.core.CalculadoraCorrida(
             configuracaoUsuario = br.com.gestordriver.core.ConfiguracaoUsuario.padrao(),
         ).calcular(
@@ -679,6 +734,6 @@ class AppViewModelTest {
                 kmViagem = 12.8,
                 tempoEstimado = 24,
             ),
-            plataforma = "Uber",
+            plataforma = plataforma,
         )
 }
