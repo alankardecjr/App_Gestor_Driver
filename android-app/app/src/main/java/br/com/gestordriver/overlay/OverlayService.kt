@@ -60,7 +60,12 @@ class OverlayService : Service() {
     override fun onCreate() {
         super.onCreate()
         criarCanal()
-        startForeground(NOTIFICACAO_ID, criarNotificacao())
+        runCatching {
+            startForeground(NOTIFICACAO_ID, criarNotificacao())
+        }.onFailure {
+            stopSelf()
+            return
+        }
         scope.launch {
             OverlayBridge.snapshot.collect { snapshot ->
                 if (snapshot == ultimoSnapshot) {
@@ -110,6 +115,10 @@ class OverlayService : Service() {
     }
 
     private fun atualizarJanelas(snapshot: OverlaySnapshot) {
+        runCatching { atualizarJanelasInterno(snapshot) }
+    }
+
+    private fun atualizarJanelasInterno(snapshot: OverlaySnapshot) {
         if (!snapshot.monitorando) {
             seloView?.visibility = View.INVISIBLE
             compactaView?.visibility = View.INVISIBLE
@@ -284,7 +293,10 @@ class OverlayService : Service() {
         OverlayPaineis.atualizarConfig(view, snapshot)
         params.softInputMode = WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_HIDDEN or
             WindowManager.LayoutParams.SOFT_INPUT_ADJUST_PAN
-        aplicarAlturaPainelSecundario(view, params)
+        aplicarTamanhoDoConteudo(view, params, alturaMaximaAbaixoExpandida())
+        view.post {
+            aplicarTamanhoDoConteudo(view, params, alturaMaximaAbaixoExpandida())
+        }
     }
 
     private fun garantirConfirmacao(@Suppress("UNUSED_PARAMETER") snapshot: OverlaySnapshot) {
@@ -832,7 +844,9 @@ class OverlayService : Service() {
         }
         if (snapshot.configuracoesVisivel) {
             configParams?.let { params ->
-                configView?.let { view -> aplicarAlturaPainelSecundario(view, params) }
+                configView?.let { view ->
+                    aplicarTamanhoDoConteudo(view, params, alturaMaximaAbaixoExpandida())
+                }
             }
         }
         if (snapshot.confirmacaoFecharVisivel) {
@@ -913,6 +927,9 @@ class OverlayService : Service() {
         const val ACAO_PARAR = "br.com.gestordriver.overlay.PARAR"
 
         fun iniciar(context: Context) {
+            if (!android.provider.Settings.canDrawOverlays(context)) {
+                return
+            }
             runCatching {
                 context.startForegroundService(Intent(context, OverlayService::class.java))
             }

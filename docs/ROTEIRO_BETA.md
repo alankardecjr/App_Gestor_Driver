@@ -20,11 +20,11 @@ Pro (custo operacional, R$ líquido, relatórios). Free na loja (mesma UI, **sem
 
 ## Como testar (você)
 
-1. Instale o APK debug no celular que usa para dirigir.
-2. Abra o Gestor Driver e conceda **Notificações**, **Sobressair** e **Localização**.
-3. No Android 13+, aceite a permissão de notificação do próprio Gestor.
-4. Desative otimização de bateria para o Gestor Driver (senão o overlay some).
-5. Aba VEÍCULO: consumo km/L e combustível atual. Aba CUSTOS: preços R$/L. Aba CLASSIFICAÇÃO: faixas com **−**/**+** (0,01; vizinho amarrado). Aba APP: permissões e Maps/Waze.
+1. Instale o APK no celular que usa para dirigir.
+2. Na **primeira abertura** o app confere permissões (notificações, sobrepor, acessibilidade, bateria). Autorize cada ❎ até virar 🆗 e toque **SEGUIR**.
+3. Conecte **conta Google** ou **e-mail** (identidade local). Sem conta o tutorial não abre.
+4. Tutorial: **SEGUIR** em cada janela ou **PULAR**. Depois disso o selo sobe e o monitoramento começa.
+5. Abra Config: VEÍCULO (consumo + combustível atual), CUSTOS (R$/L), CLASSIFICAÇÃO (−/+), APP (**ENVIAR LOG** se a oferta não ler). Localização é opcional.
 6. Feche e reabra — os valores precisam continuar iguais.
 7. Abra Uber Driver, 99 ou inDrive **logado**.
 8. Deixe o Gestor em segundo plano (selo visível sobre o mapa).
@@ -47,14 +47,12 @@ Se a oferta **não aparecer**, o teste ainda vale: `notificacoes_diagnostico.txt
 
 ## Onde está o log
 
-`/data/data/br.com.gestordriver/files/notificacoes_diagnostico.txt`
-
-No Android Studio: Device File Explorer, ou `adb pull` desse caminho. Use só para calibrar.
+Na aba APP: **ENVIAR LOG**. Também em `/data/data/br.com.gestordriver/files/notificacoes_diagnostico.txt` (adb / Device File Explorer).
 
 ## Ordem se algo falhar
 
-1. Overlay some → bateria / overlay / notificação permanente.
-2. Oferta não lê → trecho do log (package + título + texto).
-3. Aceite não grava histórico → texto da notificação **depois** de aceitar.
-4. Custo estranho → conferir combustível atual, km/L e preços na aba APP.
+1. Overlay some → BATERIA + SOBREPOR + notificação permanente.
+2. Oferta não lê → ACESSIB. ligada + **ENVIAR LOG** (package + título + texto).
+3. Aceite não grava histórico → texto da notificação **depois** de aceitar (também no log).
+4. Custo estranho → conferir combustível atual, km/L e preços na aba CUSTOS.
 5. Rota / Maps → nesta versão só abre o app escolhido; endereço depende do texto da notificação.

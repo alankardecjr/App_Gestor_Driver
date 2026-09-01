@@ -6,13 +6,13 @@ import br.com.gestordriver.core.MotorClassificacao
 import br.com.gestordriver.data.paraMotor
 import br.com.gestordriver.model.ConfiguracaoUsuario
 
-class RideNotificationProcessor(
+open class RideNotificationProcessor(
     private val parser: CorridaParser = CorridaParser(),
     private val calculadora: CalculadoraCorrida? = null,
     private val configuracaoProvider: () -> ConfiguracaoUsuario = { ConfiguracaoUsuario.padrao() },
     private val ofertaEmAndamento: (String) -> Boolean = { OfertaSessao.chaveAtiva(it) },
 ) {
-    fun processar(notification: NotificationData): RideNotificationEvent {
+    open fun processar(notification: NotificationData): RideNotificationEvent {
         if (!RideEventClassifier.pareceAceite(notification) &&
             OfertaTextoFiltro.ehPromocaoOuStatus(notification.fullText)
         ) {

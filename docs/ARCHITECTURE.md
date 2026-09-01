@@ -20,18 +20,18 @@ O Python não é o app instalado: é a referência testável do domínio. O entr
 ## Fluxo em tempo de execução
 
 ```text
+Primeira abertura
+  permissões → conta (Google/e-mail) → tutorial (seguir/pular) → selo
+        ↓
 Uber / 99 / inDrive
         ↓
-NotificationListenerService
+NotificationListener + leitura de tela (OCR se preciso)
         ↓
 Parser + classificador (oferta / aceite / ignorar)
         ↓
-CalculadoraCorrida (usa config persistida)
+CalculadoraCorrida (config persistida)
         ↓
-AppViewModel
-        ↓
-    ┌───┴────┐
-Overlay    Room (só no aceite)
+AppViewModel → overlay  |  Room só no aceite
 ```
 
 ## Diretrizes

@@ -27,6 +27,8 @@ Sua função principal é:
 - permitir acesso às configurações e ao histórico;
 - manter uma interface principal mínima através do **selo flutuante**.
 
+**Primeira abertura:** conferir permissões obrigatórias (notificações, sobrepor, acessibilidade, bateria) → se for o primeiro uso, pedir conta Google ou e-mail → tutorial em janelas curtas (SEGUIR ou PULAR) → iniciar monitoramento no selo. Sem as permissões obrigatórias o monitoramento não sobe. Conta no primeiro uso é exigida para seguir. Pular o tutorial equivale a concluir o onboarding.
+
 Plataformas iniciais consideradas:
 
 - Uber
@@ -487,18 +489,34 @@ O monitoramento continua ativo.
 
 23. Configurações
 
-A configuração abre como **painel overlay abaixo da expandida** (mesmo recorte do histórico). Abas:
+A configuração abre como **painel overlay abaixo da expandida** (mesmo recorte do histórico: bordas arredondadas, fundo semitransparente). As quatro abas usam a **mesma altura vertical**. Rolagem vertical só se o conteúdo não couber abaixo da expandida.
 
-- **VEÍCULO** — marca, modelo, versão, ano, final da placa, consumo gasolina (km/L), consumo etanol (km/L), combustível atual (um checkbox).
-- **CUSTOS** — preços gasolina/etanol (R$/L).
-- **CLASSIFICAÇÃO** — faixas R$/km encadeadas. **−** e **+** mudam o valor daquele campo em 0,01; o vizinho acompanha para não haver buraco nem sobreposição. Ruim MIN e Ótima MAX são rótulos fixos.
-- **APP** — permissões, Maps ou Waze, apps de motorista instalados.
+- **VEÍCULO** — descrição (marca, modelo, versão, ano, **final da placa**), consumo km/L gasolina e etanol, combustível atual (marca exclusiva). Pro: vencimento do IPVA e **calcular abastecimento**.
+- **CUSTOS** — preços gasolina/etanol (R$/L). Pro (estruturado, bloqueado): troca de óleo (valor, km, data) e pneus dianteiro/traseiro (valor, rodagem, data).
+- **CLASSIFICAÇÃO** — faixas R$/km encadeadas. Botões **−** e **+** mudam o valor daquele campo em 0,01. Ruim MIN e Ótima MAX são rótulos fixos. Ao **SALVAR**, se min/max vizinhos se cruzarem, o app **normaliza** a cadeia automaticamente.
+- **APP** — permissões (🆗/❎), apps de motorista instalados (🆗/❎), Maps ou Waze, **conectar conta** (Google ou e-mail).
 
-Permissão faltando: abrir a aba APP e destacar o que falta.
+Permissão **obrigatória** para monitorar: notificações, sobrepor e acessibilidade (leitura do card). Bateria (ignorar otimização) evita o overlay sumir. Localização é opcional e **não** trava o monitoramento. Permissão faltando: abrir a aba APP e destacar o que falta. **ENVIAR LOG** compartilha `notificacoes_diagnostico.txt` (não entra no backup da nuvem).
 
 Custo da corrida usa **combustível atual + km/L desse combustível + preço do litro na aba CUSTOS**. Não misturar gasolina e etanol na mesma conta.
 
-**CANCELAR** fecha o painel e **descarta** o rascunho (os campos voltam ao que está gravado). Só **SALVAR** persiste. Fechar Config pelo botão ⤴️ Config também descarta, igual ao Cancelar.
+**Aba VEÍCULO (layout)**
+
+- **DESCRIÇÃO VEÍCULO:** MARCA | MODELO; VERSÃO | ANO; FINAL DA PLACA | 🔒 IPVA … versão pro (Pro: data de vencimento do documento/IPVA).
+- **CONSUMO KM:** GASOLINA | ETANOL (editável na Beta; o motorista pode digitar).
+- **🔒 CALCULAR ABASTECIMENTO** … versão pro: VALOR TOTAL | LITROS TOTAL; KM INICIAL | KM FINAL. Campos Pro ficam bloqueados; o cadeado vai só no título.
+  - R$/L = valor pago ÷ litros → grava o **preço do litro do combustível atual** na aba CUSTOS.
+  - km/L = (km final − km inicial) ÷ litros → grava o **consumo do combustível atual**.
+  - Só calcula com litros > 0 e km final > km inicial. Não altera o outro combustível.
+- **COMBUSTÍVEL ATUAL:** checkbox exclusivo GASOLINA / ETANOL (define qual combustível entra no custo da oferta e no cálculo Pro acima).
+
+Campos Pro: emoji 🔒 no **início do título** e o aviso **versão pro** no final. O valor do campo não leva cadeado.
+
+**CANCELAR** descarta o rascunho e **fecha** Config. **SALVAR** persiste a edição (e corrige faixas de classificação) e **fecha** Config. Fechar pelo botão ⤴️CONFIG também descarta, igual ao Cancelar.
+
+Botão na expandida: **⚙️CONFIG** abre o painel; com o painel aberto vira **⤴️CONFIG** e fecha.
+
+**Conta (Free/Beta):** a vinculação guarda só a identidade do motorista (e-mail Google escolhido no seletor do aparelho, ou e-mail digitado). Persiste na hora, independente de SALVAR/CANCELAR do restante da config. Não há sync de nuvem nesta etapa — o vínculo deixa o app pronto para limitar/identificar Free e Beta depois.
 
 Fluxo:
 
@@ -959,6 +977,7 @@ Ordem: **Beta agora → Pro depois → Free no lançamento**.
 | Valor, DIST., tempo, nota, cor da borda | sim | sim | sim |
 | R$/KM, litros, gasto, lucro (combustível) | **não mostra** | mostra | mostra |
 | Custo operacional, R$/km líquido, relatórios | não | não | sim |
+| IPVA (vencimento) e calcular combustível (R$/L e km/L automáticos) | 🔒 | 🔒 (campos visíveis) | sim |
 
 O motor calcula sempre; no Free a UI oculta os números financeiros.
 
@@ -1015,10 +1034,12 @@ Telas congeladas:
 - compacta
 - expandida (cabeçalho, DISTÂNCIAS, CUSTOS (ESTIMADO), botões)
 - histórico (abas Uber / 99 / inDrive, deslize horizontal)
-- configuração (VEÍCULO / CUSTOS / APP, deslize horizontal, CANCELAR / SALVAR)
+- configuração (VEÍCULO / CUSTOS / CLASSIFICAÇÃO / APP, deslize horizontal, CANCELAR / SALVAR)
 - confirmação de fechar
+
+Exceção autorizada na Beta: layout da configuração (abas VEÍCULO / CUSTOS / CLASSIFICAÇÃO / APP), campos Pro com 🔒 no título + **versão pro**, e vínculo de conta Google/e-mail sem habilitar edição dos campos Pro.
 
 Permitido na Beta, sem mudar a UI: calibrar parser e aceite, correção de crash/bug de funcionamento, persistência e monitoramento.
 
-Mudança visual só volta no **Pro** (óleo, pneus, trajeto no histórico, R$ líquido, relatórios).
+Mudança visual só volta no **Pro** (óleo, pneus, IPVA e calcular combustível editáveis, trajeto no histórico, R$ líquido, relatórios).
 

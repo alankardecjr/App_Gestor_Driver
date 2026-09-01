@@ -5,7 +5,6 @@ import android.content.Intent
 import android.graphics.Color
 import android.graphics.Typeface
 import android.graphics.drawable.GradientDrawable
-import android.provider.Settings
 import android.text.TextUtils
 import android.util.TypedValue
 import android.view.ContextThemeWrapper
@@ -25,9 +24,11 @@ import br.com.gestordriver.GestorDriverApp
 import br.com.gestordriver.core.FaixasClassificacao
 import br.com.gestordriver.MainActivity
 import br.com.gestordriver.core.ClassificacaoConstantes
+import br.com.gestordriver.data.ContaVinculo
 import br.com.gestordriver.model.AppNavegacao
 import br.com.gestordriver.model.Combustivel
 import br.com.gestordriver.model.ConfiguracaoUsuario
+import br.com.gestordriver.model.TipoContaVinculada
 import br.com.gestordriver.navigation.NavegacaoLauncher
 import br.com.gestordriver.notification.Plataforma
 import br.com.gestordriver.notification.PlataformasMotorista
@@ -38,6 +39,7 @@ import kotlin.math.abs
 object OverlayPaineis {
     private var rascunho: ConfiguracaoUsuario? = null
     private var abaMontada: Int = -1
+    private var alturaMinimaConteudo: Int = 0
     private const val FUNDO = "#F2050809"
     private const val TEXTO = "#FFFFFF"
     private const val SECUNDARIO = "#B8C5D1"
@@ -198,9 +200,9 @@ object OverlayPaineis {
             TextView(ctx).apply {
                 text = "CONFIGURAÇÃO"
                 setTextColor(Color.WHITE)
-                textSize = 12f
+                textSize = 14f
                 gravity = Gravity.CENTER
-                setPadding(0, 0, 0, dp(ctx, 4))
+                setPadding(0, 0, 0, dp(ctx, 6))
             },
         )
         val abas = LinearLayout(ctx).apply {
@@ -217,11 +219,11 @@ object OverlayPaineis {
                     isFocusable = true
                     isFocusableInTouchMode = false
                     setTextColor(Color.parseColor(SECUNDARIO))
-                    textSize = 8.5f
+                    textSize = 12f
                     gravity = Gravity.CENTER
                     maxLines = 1
                     ellipsize = TextUtils.TruncateAt.END
-                    setPadding(dp(ctx, 2), dp(ctx, 3), dp(ctx, 2), dp(ctx, 3))
+                    setPadding(dp(ctx, 2), dp(ctx, 5), dp(ctx, 2), dp(ctx, 5))
                     layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
                     setOnClickListener { selecionarAbaConfig(indice) }
                 },
@@ -294,8 +296,18 @@ object OverlayPaineis {
                 FrameLayout.LayoutParams.MATCH_PARENT,
             ),
         )
-        moldura.addView(criarDialogoConta(ctx))
+        moldura.addView(criarDialogoContaGoogle(ctx))
+        moldura.addView(criarDialogoContaEmail(ctx))
         return moldura
+    }
+
+    fun invalidarMontagem() {
+        abaMontada = -1
+    }
+
+    fun atualizarContaVinculada(tipo: TipoContaVinculada, email: String) {
+        rascunho = (rascunho ?: return).copy(contaTipo = tipo, contaEmail = email)
+        abaMontada = -1
     }
 
     fun atualizarConfig(view: View, snapshot: OverlaySnapshot) {
@@ -347,7 +359,8 @@ object OverlayPaineis {
         view.findViewWithTag<ScrollView>("config_scroll")?.let { scroll ->
             (scroll.getChildAt(0) as? LinearLayout)?.removeAllViews()
         }
-        view.findViewWithTag<View>("dialogo_conta")?.visibility = View.GONE
+        view.findViewWithTag<View>("dialogo_conta_google")?.visibility = View.GONE
+        view.findViewWithTag<View>("dialogo_conta_email")?.visibility = View.GONE
     }
 
     private fun salvarConfig(raiz: View, context: Context) {
@@ -400,6 +413,7 @@ object OverlayPaineis {
         }
         if (montou.isSuccess) {
             abaMontada = snapshot.abaConfiguracao
+            aplicarAlturaMinimaAba(conteudo)
         } else {
             abaMontada = -1
             conteudo.addView(
@@ -517,7 +531,7 @@ object OverlayPaineis {
         config: ConfiguracaoUsuario,
     ) {
         val ctx = destino.context
-        destino.addView(rotulo(ctx, "DESCRIÇÃO"))
+        destino.addView(rotulo(ctx, "DESCRIÇÃO VEÍCULO", secao = true))
         destino.addView(
             linha(
                 ctx,
@@ -532,7 +546,14 @@ object OverlayPaineis {
                 campo(ctx, "ANO", config.anoVeiculo, "cfg_ano", compacto = true).first,
             ),
         )
-        destino.addView(rotulo(ctx, "CONSUMO KM"))
+        destino.addView(
+            linha(
+                ctx,
+                campo(ctx, "FINAL DA PLACA", config.finalPlaca, "cfg_placa", compacto = true).first,
+                campo(ctx, "IPVA", config.ipvaVencimento, "cfg_ipva", bloqueado = true, compacto = true, pro = true).first,
+            ),
+        )
+        destino.addView(rotulo(ctx, "CONSUMO KM", secao = true))
         destino.addView(
             linha(
                 ctx,
@@ -540,15 +561,22 @@ object OverlayPaineis {
                 campo(ctx, "ETANOL", DecimalInput.formatar(config.consumoEtanol), "cfg_consumo_e", compacto = true).first,
             ),
         )
-        destino.addView(rotulo(ctx, "🔒 ABASTECIMENTO", compacto = true))
+        destino.addView(rotuloPro(ctx, "CALCULAR ABASTECIMENTO"))
         destino.addView(
             linha(
                 ctx,
-                campo(ctx, "VALOR", DecimalInput.formatar(config.abastecimentoValor), "cfg_abast_valor", bloqueado = true, compacto = true).first,
-                campo(ctx, "LITROS", DecimalInput.formatar(config.abastecimentoLitros), "cfg_abast_litros", bloqueado = true, compacto = true).first,
+                campo(ctx, "VALOR TOTAL", "", "cfg_abast_valor", bloqueado = true, compacto = true).first,
+                campo(ctx, "LITROS TOTAL", "", "cfg_abast_litros", bloqueado = true, compacto = true).first,
             ),
         )
-        destino.addView(rotulo(ctx, "COMBUSTÍVEL ATUAL"))
+        destino.addView(
+            linha(
+                ctx,
+                campo(ctx, "KM INICIAL", "", "cfg_abast_km_ini", bloqueado = true, compacto = true).first,
+                campo(ctx, "KM FINAL", "", "cfg_abast_km_fim", bloqueado = true, compacto = true).first,
+            ),
+        )
+        destino.addView(rotulo(ctx, "COMBUSTÍVEL ATUAL", secao = true))
         val ckG = CheckBox(ctx).apply {
             text = "GASOLINA"
             tag = "cfg_ck_gasolina"
@@ -589,7 +617,7 @@ object OverlayPaineis {
         config: ConfiguracaoUsuario,
     ) {
         val ctx = destino.context
-        destino.addView(rotulo(ctx, "VALOR DO COMBUSTÍVEL"))
+        destino.addView(rotulo(ctx, "VALOR DO COMBUSTÍVEL", secao = true))
         destino.addView(
             linha(
                 ctx,
@@ -597,32 +625,32 @@ object OverlayPaineis {
                 campo(ctx, "LITRO ETANOL", DecimalInput.formatar(config.precoEtanol), "cfg_preco_e").first,
             ),
         )
-        destino.addView(rotulo(ctx, "🔒 TROCA DE ÓLEO (ÓLEO E FILTROS)", compacto = true))
+        destino.addView(rotuloPro(ctx, "TROCA DE ÓLEO (ÓLEO E FILTROS)"))
         destino.addView(
             linha(
                 ctx,
-                campo(ctx, "VALOR", DecimalInput.formatar(config.oleoValor), "cfg_oleo_valor", bloqueado = true, compacto = true).first,
-                campo(ctx, "KM", DecimalInput.formatar(config.oleoKilometragem), "cfg_oleo_km", bloqueado = true, compacto = true).first,
-                campo(ctx, "DATA", config.oleoData.ifBlank { "🔒" }, "cfg_oleo_data", bloqueado = true, compacto = true).first,
+                campo(ctx, "VALOR", "", "cfg_oleo_valor", bloqueado = true, compacto = true).first,
+                campo(ctx, "KM", "", "cfg_oleo_km", bloqueado = true, compacto = true).first,
+                campo(ctx, "DATA", "", "cfg_oleo_data", bloqueado = true, compacto = true).first,
             ),
         )
-        destino.addView(rotulo(ctx, "🔒 CUSTO ESTIMADO DOS PNEUS", compacto = true))
+        destino.addView(rotuloPro(ctx, "CUSTO ESTIMADO DOS PNEUS"))
         destino.addView(rotulo(ctx, "DIANTEIRO", compacto = true))
         destino.addView(
             linha(
                 ctx,
-                campo(ctx, "VALOR", DecimalInput.formatar(config.pneuDianteiroValor), "cfg_pneu_d_valor", bloqueado = true, compacto = true).first,
-                campo(ctx, "RODAGEM", DecimalInput.formatar(config.pneuDianteiroRodagem), "cfg_pneu_d_km", bloqueado = true, compacto = true).first,
-                campo(ctx, "DATA", config.pneuDianteiroData.ifBlank { "🔒" }, "cfg_pneu_d_data", bloqueado = true, compacto = true).first,
+                campo(ctx, "VALOR", "", "cfg_pneu_d_valor", bloqueado = true, compacto = true).first,
+                campo(ctx, "RODAGEM", "", "cfg_pneu_d_km", bloqueado = true, compacto = true).first,
+                campo(ctx, "DATA", "", "cfg_pneu_d_data", bloqueado = true, compacto = true).first,
             ),
         )
         destino.addView(rotulo(ctx, "TRASEIRO", compacto = true))
         destino.addView(
             linha(
                 ctx,
-                campo(ctx, "VALOR", DecimalInput.formatar(config.pneuTraseiroValor), "cfg_pneu_t_valor", bloqueado = true, compacto = true).first,
-                campo(ctx, "RODAGEM", DecimalInput.formatar(config.pneuTraseiroRodagem), "cfg_pneu_t_km", bloqueado = true, compacto = true).first,
-                campo(ctx, "DATA", config.pneuTraseiroData.ifBlank { "🔒" }, "cfg_pneu_t_data", bloqueado = true, compacto = true).first,
+                campo(ctx, "VALOR", "", "cfg_pneu_t_valor", bloqueado = true, compacto = true).first,
+                campo(ctx, "RODAGEM", "", "cfg_pneu_t_km", bloqueado = true, compacto = true).first,
+                campo(ctx, "DATA", "", "cfg_pneu_t_data", bloqueado = true, compacto = true).first,
             ),
         )
     }
@@ -633,42 +661,91 @@ object OverlayPaineis {
         snapshot: OverlaySnapshot,
         context: Context,
     ) {
-        destino.addView(rotulo(context, "PERMISSÕES"))
-        val perms = LinearLayout(context).apply {
+        destino.addView(rotulo(context, "PERMISSÕES", secao = true))
+        destino.addView(
+            linhaPermissoes(
+                context,
+                snapshot.destacarPermissoes,
+                ItemPermissao("NOTIFICAÇÕES", PermissoesMonitoramento.listenerNotificacoesAtivo(context)) {
+                    context.startActivity(PermissoesMonitoramento.intentNotificacoes().addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+                },
+                ItemPermissao("SOBREPOR", PermissoesMonitoramento.overlayConcedida(context)) {
+                    context.startActivity(PermissoesMonitoramento.intentSobrepor(context).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+                },
+                ItemPermissao("ACESSIB.", PermissoesMonitoramento.acessibilidadeAtiva(context)) {
+                    context.startActivity(
+                        Intent(context, MainActivity::class.java)
+                            .putExtra(MainActivity.EXTRA_PEDIR_ACESSIBILIDADE, true)
+                            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP),
+                    )
+                },
+            ),
+        )
+        destino.addView(
+            linhaPermissoes(
+                context,
+                snapshot.destacarPermissoes,
+                ItemPermissao("BATERIA", PermissoesMonitoramento.bateriaLiberada(context)) {
+                    context.startActivity(
+                        Intent(context, MainActivity::class.java)
+                            .putExtra(MainActivity.EXTRA_PEDIR_BATERIA, true)
+                            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP),
+                    )
+                },
+                ItemPermissao(
+                    "LOCALIZAÇÃO",
+                    PermissoesMonitoramento.localizacaoConcedida(context),
+                    obrigatoria = false,
+                ) {
+                    context.startActivity(
+                        Intent(context, MainActivity::class.java)
+                            .putExtra(MainActivity.EXTRA_PEDIR_LOCALIZACAO, true)
+                            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP),
+                    )
+                },
+            ),
+        )
+        destino.addView(
+            TextView(context).apply {
+                text = "ACESSIB. lê o card. BATERIA evita o overlay sumir. LOCALIZAÇÃO opcional."
+                setTextColor(Color.parseColor(SECUNDARIO))
+                textSize = 10f
+                setPadding(0, dp(context, 2), 0, dp(context, 4))
+            },
+        )
+        val logVersao = LinearLayout(context).apply {
             orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER
         }
-        perms.addView(
-            linhaPermissao(context, "LOCALIZAÇÃO", PermissoesMonitoramento.localizacaoConcedida(context), snapshot.destacarPermissoes) {
-                context.startActivity(
-                    Intent(context, MainActivity::class.java)
-                        .putExtra(MainActivity.EXTRA_PEDIR_LOCALIZACAO, true)
-                        .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP),
-                )
-            }.apply {
+        logVersao.addView(
+            TextView(context).apply {
+                text = "ENVIAR LOG"
+                setTextColor(Color.parseColor(AMARELO))
+                textSize = 12f
+                gravity = Gravity.CENTER
+                setPadding(0, dp(context, 6), 0, dp(context, 6))
+                layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+                setOnClickListener {
+                    context.startActivity(
+                        Intent(context, MainActivity::class.java)
+                            .putExtra(MainActivity.EXTRA_COMPARTILHAR_LOG, true)
+                            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP),
+                    )
+                }
+            },
+        )
+        logVersao.addView(
+            TextView(context).apply {
+                text = "v${PermissoesMonitoramento.versaoApp(context)}"
+                setTextColor(Color.parseColor(SECUNDARIO))
+                textSize = 12f
+                gravity = Gravity.CENTER
+                setPadding(0, dp(context, 6), 0, dp(context, 6))
                 layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
             },
         )
-        perms.addView(
-            linhaPermissao(context, "NOTIFICAÇÕES", PermissoesMonitoramento.listenerNotificacoesAtivo(context), snapshot.destacarPermissoes) {
-                context.startActivity(Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
-            }.apply {
-                layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
-            },
-        )
-        perms.addView(
-            linhaPermissao(context, "SOBREPOR", PermissoesMonitoramento.overlayConcedida(context), snapshot.destacarPermissoes) {
-                context.startActivity(
-                    Intent(
-                        Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
-                        android.net.Uri.parse("package:${context.packageName}"),
-                    ).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
-                )
-            }.apply {
-                layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
-            },
-        )
-        destino.addView(perms)
-        destino.addView(rotulo(context, "APP DE CORRIDA"))
+        destino.addView(logVersao)
+        destino.addView(rotulo(context, "APP DE CORRIDA", secao = true))
         val apps = LinearLayout(context).apply { orientation = LinearLayout.HORIZONTAL }
         listOf(
             Plataforma.UBER to "UBER",
@@ -688,7 +765,7 @@ object OverlayPaineis {
             )
         }
         destino.addView(apps)
-        destino.addView(rotulo(context, "NAVEGAÇÃO"))
+        destino.addView(rotulo(context, "NAVEGAÇÃO", secao = true))
         val maps = CheckBox(context).apply {
             text = "GOOGLE MAPS"
             tag = "cfg_ck_maps"
@@ -718,33 +795,45 @@ object OverlayPaineis {
             }
         }
         destino.addView(linha(context, maps, waze))
-        destino.addView(rotulo(context, "CONECTAR CONTA"))
+        destino.addView(rotulo(context, "CONECTAR CONTA EMAIL", secao = true))
         val contas = LinearLayout(context).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER
         }
-        contas.addView(botaoConta(context, "CONTA GOOGLE"))
-        contas.addView(botaoConta(context, "CONTA EMAIL"))
+        contas.addView(
+            botaoConta(
+                context,
+                if (config.contaTipo == TipoContaVinculada.GOOGLE) "CONTA GOOGLE 🆗" else "CONTA GOOGLE",
+                "dialogo_conta_google",
+            ),
+        )
+        contas.addView(
+            botaoConta(
+                context,
+                if (config.contaTipo == TipoContaVinculada.EMAIL) "CONTA EMAIL 🆗" else "CONTA EMAIL",
+                "dialogo_conta_email",
+            ),
+        )
         destino.addView(contas)
     }
 
-    private fun botaoConta(context: Context, titulo: String): TextView =
+    private fun botaoConta(context: Context, titulo: String, dialogo: String): TextView =
         TextView(context).apply {
             text = titulo
             setTextColor(Color.parseColor(AMARELO))
-            textSize = 11f
+            textSize = 12f
             gravity = Gravity.CENTER
             setPadding(dp(context, 6), dp(context, 8), dp(context, 6), dp(context, 8))
             layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
-            setOnClickListener { mostrarDialogoConta(this) }
+            setOnClickListener { mostrarDialogo(this, dialogo) }
         }
 
-    private fun mostrarDialogoConta(origem: View) {
-        painelConfig(origem)?.findViewWithTag<View>("dialogo_conta")?.visibility = View.VISIBLE
+    private fun mostrarDialogo(origem: View, tag: String) {
+        painelConfig(origem)?.findViewWithTag<View>(tag)?.visibility = View.VISIBLE
     }
 
-    private fun ocultarDialogoConta(origem: View) {
-        painelConfig(origem)?.findViewWithTag<View>("dialogo_conta")?.visibility = View.GONE
+    private fun ocultarDialogo(origem: View, tag: String) {
+        painelConfig(origem)?.findViewWithTag<View>(tag)?.visibility = View.GONE
     }
 
     private fun painelConfig(origem: View): View? {
@@ -758,10 +847,10 @@ object OverlayPaineis {
         return origem.rootView
     }
 
-    private fun criarDialogoConta(context: Context): LinearLayout {
-        val coluna = LinearLayout(context).apply {
+    private fun molduraDialogo(context: Context, tag: String): LinearLayout =
+        LinearLayout(context).apply {
             orientation = LinearLayout.VERTICAL
-            tag = "dialogo_conta"
+            this.tag = tag
             visibility = View.GONE
             background = fundoNeutro(context)
             setPadding(dp(context, 12), dp(context, 10), dp(context, 12), dp(context, 10))
@@ -774,9 +863,12 @@ object OverlayPaineis {
                 marginEnd = dp(context, 8)
             }
         }
+
+    private fun criarDialogoContaGoogle(context: Context): LinearLayout {
+        val coluna = molduraDialogo(context, "dialogo_conta_google")
         coluna.addView(
             TextView(context).apply {
-                text = "CONECTAR CONTA"
+                text = "CONTA GOOGLE"
                 setTextColor(Color.WHITE)
                 textSize = 13f
                 gravity = Gravity.CENTER
@@ -785,7 +877,7 @@ object OverlayPaineis {
         )
         coluna.addView(
             TextView(context).apply {
-                text = "Conecte uma conta Google ou e-mail para sincronizar o aplicativo."
+                text = "Conecte a conta Google do motorista para identificar o usuário nas versões Free e Beta."
                 setTextColor(Color.parseColor(SECUNDARIO))
                 textSize = 12f
                 gravity = Gravity.CENTER
@@ -804,38 +896,105 @@ object OverlayPaineis {
                 gravity = Gravity.CENTER
                 setPadding(dp(context, 12), dp(context, 8), dp(context, 12), dp(context, 8))
                 layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
-                setOnClickListener { ocultarDialogoConta(this) }
+                setOnClickListener { ocultarDialogo(this, "dialogo_conta_google") }
             },
         )
         acoes.addView(
             TextView(context).apply {
-                text = "Google"
+                text = "Conectar"
                 setTextColor(Color.parseColor(AMARELO))
                 textSize = 13f
                 gravity = Gravity.CENTER
                 setPadding(dp(context, 12), dp(context, 8), dp(context, 12), dp(context, 8))
                 layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
-                setOnClickListener { ocultarDialogoConta(this) }
-            },
-        )
-        acoes.addView(
-            TextView(context).apply {
-                text = "E-mail"
-                setTextColor(Color.parseColor(AMARELO))
-                textSize = 13f
-                gravity = Gravity.CENTER
-                setPadding(dp(context, 12), dp(context, 8), dp(context, 12), dp(context, 8))
-                layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
-                setOnClickListener { ocultarDialogoConta(this) }
+                setOnClickListener {
+                    ocultarDialogo(this, "dialogo_conta_google")
+                    context.startActivity(
+                        Intent(context, MainActivity::class.java)
+                            .putExtra(MainActivity.EXTRA_CONECTAR_GOOGLE, true)
+                            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP),
+                    )
+                }
             },
         )
         coluna.addView(acoes)
         return coluna
     }
 
+    private fun criarDialogoContaEmail(context: Context): LinearLayout {
+        val coluna = molduraDialogo(context, "dialogo_conta_email")
+        coluna.addView(
+            TextView(context).apply {
+                text = "CONTA EMAIL"
+                setTextColor(Color.WHITE)
+                textSize = 13f
+                gravity = Gravity.CENTER
+                setPadding(0, 0, 0, dp(context, 8))
+            },
+        )
+        val campoEmail = campo(context, "E-MAIL", "", "cfg_conta_email", compacto = true).first
+        coluna.addView(campoEmail)
+        val aviso = TextView(context).apply {
+            tag = "cfg_conta_email_erro"
+            visibility = View.GONE
+            text = "Informe um e-mail válido."
+            setTextColor(Color.parseColor(AMARELO))
+            textSize = 11f
+            gravity = Gravity.CENTER
+            setPadding(0, dp(context, 6), 0, 0)
+        }
+        coluna.addView(aviso)
+        val acoes = LinearLayout(context).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER
+        }
+        acoes.addView(
+            TextView(context).apply {
+                text = "Cancelar"
+                setTextColor(Color.parseColor(SECUNDARIO))
+                textSize = 13f
+                gravity = Gravity.CENTER
+                setPadding(dp(context, 12), dp(context, 8), dp(context, 12), dp(context, 8))
+                layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+                setOnClickListener { ocultarDialogo(this, "dialogo_conta_email") }
+            },
+        )
+        acoes.addView(
+            TextView(context).apply {
+                text = "Conectar"
+                setTextColor(Color.parseColor(AMARELO))
+                textSize = 13f
+                gravity = Gravity.CENTER
+                setPadding(dp(context, 12), dp(context, 8), dp(context, 12), dp(context, 8))
+                layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+                setOnClickListener {
+                    val email = coluna.findViewWithTag<EditText>("cfg_conta_email")?.text?.toString().orEmpty()
+                    if (!ContaVinculo.emailValido(email)) {
+                        aviso.visibility = View.VISIBLE
+                        return@setOnClickListener
+                    }
+                    persistirConta(coluna.context, TipoContaVinculada.EMAIL, email)
+                    ocultarDialogo(this, "dialogo_conta_email")
+                }
+            },
+        )
+        coluna.addView(acoes)
+        return coluna
+    }
+
+    private fun persistirConta(context: Context, tipo: TipoContaVinculada, email: String) {
+        val app = context.applicationContext as? GestorDriverApp ?: return
+        val base = app.configuracaoStore.carregar()
+        val nova = ContaVinculo.aplicar(base, tipo, email)
+        runCatching { app.configuracaoStore.salvar(nova) }
+        rascunho = (rascunho ?: base).copy(contaTipo = tipo, contaEmail = email.trim())
+        abaMontada = -1
+        OverlayBridge.publicar(OverlayBridge.snapshot.value)
+    }
+
     private fun montarClassificacao(destino: LinearLayout, config: ConfiguracaoUsuario) {
         val ctx = destino.context
-        destino.addView(rotulo(ctx, "CLASSIFICAÇÃO", compacto = true))
+        destino.addView(rotulo(ctx, "CLASSIFICAÇÃO", secao = true))
         data class Faixa(
             val titulo: String,
             val minTexto: String,
@@ -936,6 +1095,7 @@ object OverlayPaineis {
                     modeloVeiculo = txt("cfg_modelo") ?: base.modeloVeiculo,
                     versaoVeiculo = txt("cfg_versao") ?: base.versaoVeiculo,
                     anoVeiculo = txt("cfg_ano") ?: base.anoVeiculo,
+                    finalPlaca = txt("cfg_placa") ?: base.finalPlaca,
                     consumoGasolina = num("cfg_consumo_g", base.consumoGasolina),
                     consumoEtanol = num("cfg_consumo_e", base.consumoEtanol),
                     combustivel = when (gasolinaMarcada) {
@@ -976,19 +1136,46 @@ object OverlayPaineis {
         }
     }
 
+    private data class ItemPermissao(
+        val titulo: String,
+        val ok: Boolean,
+        val obrigatoria: Boolean = true,
+        val onClick: () -> Unit,
+    )
+
+    private fun linhaPermissoes(
+        context: Context,
+        destacar: Boolean,
+        vararg itens: ItemPermissao,
+    ): LinearLayout =
+        LinearLayout(context).apply {
+            orientation = LinearLayout.HORIZONTAL
+            itens.forEach { item ->
+                addView(
+                    linhaPermissao(
+                        context,
+                        item.titulo,
+                        item.ok,
+                        destacar && item.obrigatoria && !item.ok,
+                        item.onClick,
+                    ).apply {
+                        layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+                    },
+                )
+            }
+        }
+
     private fun atualizarPermissoes(conteudo: LinearLayout, snapshot: OverlaySnapshot, context: Context) {
-        val localizacao = PermissoesMonitoramento.localizacaoConcedida(context)
-        val notificacoes = PermissoesMonitoramento.listenerNotificacoesAtivo(context)
-        val overlay = PermissoesMonitoramento.overlayConcedida(context)
-        conteudo.findViewWithTag<TextView>("perm_LOCALIZAÇÃO")?.let {
-            colorirPermissao(it, "LOCALIZAÇÃO", localizacao, snapshot.destacarPermissoes)
+        fun pintar(titulo: String, ok: Boolean, obrigatoria: Boolean) {
+            conteudo.findViewWithTag<TextView>("perm_$titulo")?.let {
+                colorirPermissao(it, titulo, ok, snapshot.destacarPermissoes && obrigatoria && !ok)
+            }
         }
-        conteudo.findViewWithTag<TextView>("perm_NOTIFICAÇÕES")?.let {
-            colorirPermissao(it, "NOTIFICAÇÕES", notificacoes, snapshot.destacarPermissoes)
-        }
-        conteudo.findViewWithTag<TextView>("perm_SOBREPOR")?.let {
-            colorirPermissao(it, "SOBREPOR", overlay, snapshot.destacarPermissoes)
-        }
+        pintar("NOTIFICAÇÕES", PermissoesMonitoramento.listenerNotificacoesAtivo(context), true)
+        pintar("SOBREPOR", PermissoesMonitoramento.overlayConcedida(context), true)
+        pintar("ACESSIB.", PermissoesMonitoramento.acessibilidadeAtiva(context), true)
+        pintar("BATERIA", PermissoesMonitoramento.bateriaLiberada(context), true)
+        pintar("LOCALIZAÇÃO", PermissoesMonitoramento.localizacaoConcedida(context), false)
     }
 
     private fun linhaPermissao(
@@ -1020,6 +1207,25 @@ object OverlayPaineis {
         )
     }
 
+    private fun aplicarAlturaMinimaAba(conteudo: LinearLayout) {
+        conteudo.post {
+            val medida = conteudo.height
+            if (medida > alturaMinimaConteudo) {
+                alturaMinimaConteudo = medida
+            }
+            if (alturaMinimaConteudo > 0) {
+                conteudo.minimumHeight = alturaMinimaConteudo
+            }
+        }
+    }
+
+    private fun caixaCampo(context: Context): GradientDrawable =
+        GradientDrawable().apply {
+            setColor(Color.parseColor("#33000000"))
+            setStroke(dp(context, 1), Color.parseColor("#3D4A57"))
+            cornerRadius = dp(context, 6).toFloat()
+        }
+
     private fun campo(
         context: Context,
         label: String,
@@ -1027,19 +1233,23 @@ object OverlayPaineis {
         tag: String,
         bloqueado: Boolean = false,
         compacto: Boolean = false,
+        pro: Boolean = false,
     ): Pair<LinearLayout, EditText> {
         val bloco = LinearLayout(context).apply {
             orientation = LinearLayout.VERTICAL
-            val pad = if (compacto) 0 else 4
-            setPadding(0, dp(context, pad), 0, dp(context, pad))
+            setPadding(0, dp(context, if (compacto) 2 else 4), 0, dp(context, if (compacto) 2 else 4))
         }
-        bloco.addView(
-            rotulo(context, label, compacto = compacto).apply {
-                minHeight = dp(context, 14)
-                maxLines = 1
-                ellipsize = TextUtils.TruncateAt.END
-            },
-        )
+        if (pro) {
+            bloco.addView(rotuloPro(context, label))
+        } else {
+            bloco.addView(
+                rotulo(context, label, compacto = compacto).apply {
+                    minHeight = dp(context, 16)
+                    maxLines = 1
+                    ellipsize = TextUtils.TruncateAt.END
+                },
+            )
+        }
         val campo = EditText(context).apply {
             this.tag = tag
             setText(valor)
@@ -1047,28 +1257,57 @@ object OverlayPaineis {
             textSize = 13f
             isEnabled = !bloqueado
             isCursorVisible = false
-            minHeight = dp(context, if (compacto) 32 else 36)
+            minHeight = dp(context, 32)
             showSoftInputOnFocus = true
             setOnFocusChangeListener { v, temFoco ->
                 (v as EditText).isCursorVisible = temFoco
             }
             setHintTextColor(Color.parseColor(SECUNDARIO))
-            setBackgroundColor(Color.parseColor("#33000000"))
-            val padV = if (compacto) 4 else 6
-            setPadding(dp(context, 8), dp(context, padV), dp(context, 8), dp(context, padV))
+            background = caixaCampo(context)
+            setPadding(dp(context, 8), dp(context, 5), dp(context, 8), dp(context, 5))
         }
         bloco.addView(campo)
         return bloco to campo
     }
 
-    private fun rotulo(context: Context, texto: String, compacto: Boolean = false): TextView =
+    private fun rotulo(
+        context: Context,
+        texto: String,
+        compacto: Boolean = false,
+        secao: Boolean = false,
+    ): TextView =
         TextView(context).apply {
             text = texto
-            setTextColor(Color.parseColor(SECUNDARIO))
-            textSize = 10f
-            val padTopo = if (compacto) 1 else 4
-            val padBase = if (compacto) 0 else 2
+            setTextColor(Color.parseColor(if (secao) SECUNDARIO else SECUNDARIO))
+            textSize = if (secao) 12f else 11.5f
+            typeface = if (secao) Typeface.DEFAULT_BOLD else Typeface.DEFAULT
+            val padTopo = if (secao) 8 else if (compacto) 3 else 6
+            val padBase = if (secao) 4 else if (compacto) 2 else 3
             setPadding(0, dp(context, padTopo), 0, dp(context, padBase))
+        }
+
+    private fun rotuloPro(context: Context, texto: String): LinearLayout =
+        LinearLayout(context).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            setPadding(0, dp(context, 8), 0, dp(context, 4))
+            addView(
+                TextView(context).apply {
+                    text = "🔒 $texto"
+                    setTextColor(Color.parseColor(SECUNDARIO))
+                    textSize = 11.5f
+                    maxLines = 1
+                    ellipsize = TextUtils.TruncateAt.END
+                    layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+                },
+            )
+            addView(
+                TextView(context).apply {
+                    text = "versão pro"
+                    setTextColor(Color.parseColor(AMARELO))
+                    textSize = 10f
+                },
+            )
         }
 
     private fun stepper(
@@ -1081,31 +1320,39 @@ object OverlayPaineis {
     ): LinearLayout {
         val bloco = LinearLayout(context).apply {
             orientation = LinearLayout.VERTICAL
-            setPadding(0, 0, 0, dp(context, 2))
+            setPadding(0, dp(context, 4), 0, dp(context, 6))
         }
         bloco.addView(rotulo(context, label, compacto = true))
         val linha = LinearLayout(context).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
+            background = caixaCampo(context)
+            setPadding(dp(context, 6), dp(context, 4), dp(context, 6), dp(context, 4))
         }
         val valorView = TextView(context).apply {
             this.tag = tag
             text = valor
             setTextColor(Color.WHITE)
-            textSize = 12f
+            textSize = 13f
             gravity = Gravity.CENTER
             layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
         }
         fun botao(texto: String): TextView = TextView(context).apply {
             this.text = texto
             setTextColor(Color.parseColor(if (editavel) AMARELO else SECUNDARIO))
-            textSize = 14f
+            textSize = 16f
             gravity = Gravity.CENTER
-            setPadding(dp(context, 6), dp(context, 2), dp(context, 6), dp(context, 2))
+            typeface = Typeface.DEFAULT_BOLD
+            minWidth = dp(context, 32)
+            minHeight = dp(context, 32)
+            background = GradientDrawable().apply {
+                setColor(Color.parseColor("#22000000"))
+                setStroke(dp(context, 1), Color.parseColor(if (editavel) AMARELO else "#3D4A57"))
+                cornerRadius = dp(context, 6).toFloat()
+            }
+            setPadding(dp(context, 8), dp(context, 4), dp(context, 8), dp(context, 4))
             if (editavel) {
                 isClickable = true
-                minWidth = dp(context, 36)
-                minHeight = dp(context, 36)
                 setOnClickListener {
                     val delta = if (texto == "+") FaixasClassificacao.PASSO else -FaixasClassificacao.PASSO
                     if (onPasso != null) {
@@ -1121,7 +1368,7 @@ object OverlayPaineis {
                 }
             }
         }
-        linha.addView(botao("-"))
+        linha.addView(botao("−"))
         linha.addView(valorView)
         linha.addView(botao("+"))
         bloco.addView(linha)
@@ -1132,9 +1379,11 @@ object OverlayPaineis {
         LinearLayout(context).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.TOP
+            setPadding(0, dp(context, 4), 0, dp(context, 4))
             filhos.forEach { filho ->
                 filho.layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f).apply {
                     gravity = Gravity.TOP
+                    marginEnd = dp(context, 4)
                 }
                 addView(filho)
             }

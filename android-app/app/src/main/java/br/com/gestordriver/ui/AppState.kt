@@ -4,6 +4,7 @@ import br.com.gestordriver.core.AnaliseCorrida
 import br.com.gestordriver.model.CorridaPresentation
 import br.com.gestordriver.model.HistoricoItemPresentation
 import br.com.gestordriver.model.ModoApresentacao
+import br.com.gestordriver.model.OnboardingEtapa
 import br.com.gestordriver.model.PlanoAcesso
 
 data class EstadoInterfaceSalvo(
@@ -53,6 +54,10 @@ data class AppState(
     val abaConfiguracao: Int = 0,
 
     val destacarPermissoes: Boolean = false,
+
+    val onboardingEtapa: OnboardingEtapa = OnboardingEtapa.NENHUMA,
+
+    val tutorialPasso: Int = 0,
 
     // ================================================================
     // ACEITE DA CORRIDA ATUAL

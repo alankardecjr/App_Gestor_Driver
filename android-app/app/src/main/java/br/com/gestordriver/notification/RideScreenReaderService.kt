@@ -161,6 +161,10 @@ class RideScreenReaderService : AccessibilityService() {
     }
 
     private fun decidirAposNos(pacote: String, textoNos: String) {
+        runCatching { decidirAposNosInterno(pacote, textoNos) }
+    }
+
+    private fun decidirAposNosInterno(pacote: String, textoNos: String) {
         val temDados = OfertaTextoFiltro.temDadosParseaveis(textoNos) &&
             !OfertaTextoFiltro.ehPromocaoOuStatus(textoNos) &&
             !OfertaTextoFiltro.ehInterfaceGestor(textoNos)
@@ -246,11 +250,19 @@ class RideScreenReaderService : AccessibilityService() {
             registrarAmostra(pacote, "", "OCR_BITMAP_NULO")
             return
         }
-        val recorte = recortarOferta(bitmap)
+        val recorte = runCatching { recortarOferta(bitmap) }.getOrElse {
+            encerrarOcr()
+            registrarAmostra(pacote, it.message.orEmpty(), "OCR_RECORTE")
+            if (!bitmap.isRecycled) {
+                bitmap.recycle()
+            }
+            return
+        }
         if (recorte != bitmap && !bitmap.isRecycled) {
             bitmap.recycle()
         }
-        reconhecedor.process(InputImage.fromBitmap(recorte, 0))
+        runCatching {
+            reconhecedor.process(InputImage.fromBitmap(recorte, 0))
             .addOnSuccessListener(ocrExecutor) { resultado ->
                 aplicarTexto(pacote, resultado.text, "OCR")
                 if (!recorte.isRecycled) {
@@ -265,6 +277,13 @@ class RideScreenReaderService : AccessibilityService() {
                 }
                 encerrarOcr()
             }
+        }.onFailure {
+            registrarAmostra(pacote, it.message.orEmpty(), "OCR_FALHA")
+            if (!recorte.isRecycled) {
+                recorte.recycle()
+            }
+            encerrarOcr()
+        }
     }
 
     private fun encerrarOcr() {
@@ -294,7 +313,10 @@ class RideScreenReaderService : AccessibilityService() {
         } else {
             software
         }
-        val top = (trabalho.height * 0.38f).toInt().coerceAtMost(trabalho.height - 80)
+        if (trabalho.width < 40 || trabalho.height < 80) {
+            return trabalho
+        }
+        val top = (trabalho.height * 0.38f).toInt().coerceIn(0, trabalho.height - 80)
         val recorte = Bitmap.createBitmap(trabalho, 0, top, trabalho.width, trabalho.height - top)
         if (trabalho != origem && trabalho != recorte && !trabalho.isRecycled) {
             trabalho.recycle()

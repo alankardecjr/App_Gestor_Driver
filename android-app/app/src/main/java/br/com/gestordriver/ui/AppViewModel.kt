@@ -8,10 +8,14 @@ import androidx.lifecycle.viewModelScope
 import br.com.gestordriver.core.AnaliseCorrida
 import br.com.gestordriver.data.HistoricoRepository
 import br.com.gestordriver.data.MemoriaHistoricoRepository
+import br.com.gestordriver.data.MemoriaOnboardingStore
+import br.com.gestordriver.data.OnboardingStore
 import br.com.gestordriver.data.chaveHistorico
 import br.com.gestordriver.model.HistoricoItemPresentation
 import br.com.gestordriver.model.ModoApresentacao
+import br.com.gestordriver.model.OnboardingEtapa
 import br.com.gestordriver.model.PlanoAcesso
+import br.com.gestordriver.model.TutorialConteudo
 import br.com.gestordriver.notification.RideNotificationBus
 import br.com.gestordriver.notification.RideNotificationEvent
 import br.com.gestordriver.overlay.OverlayAcao
@@ -29,6 +33,7 @@ import kotlinx.coroutines.launch
 
 class AppViewModel(
     private val historicoRepository: HistoricoRepository = MemoriaHistoricoRepository(),
+    private val onboardingStore: OnboardingStore = MemoriaOnboardingStore(inicial = true),
     coroutineScope: CoroutineScope? = null,
 ) : ViewModel() {
 
@@ -161,6 +166,9 @@ class AppViewModel(
     }
 
     fun iniciarMonitoramento() {
+        if (state.onboardingEtapa != OnboardingEtapa.NENHUMA) {
+            return
+        }
         if (state.monitorando) {
             publicarOverlay()
             if (state.interfaceOculta) {
@@ -168,6 +176,75 @@ class AppViewModel(
             }
             return
         }
+        irParaSelo()
+    }
+
+    fun avaliarInicio(permissoesOk: Boolean, temConta: Boolean) {
+        if (onboardingStore.concluido()) {
+            if (!permissoesOk) {
+                state = state.copy(
+                    onboardingEtapa = OnboardingEtapa.PERMISSOES,
+                    tutorialPasso = 0,
+                    interfaceOculta = false,
+                    destacarPermissoes = true,
+                    monitorando = false,
+                )
+                return
+            }
+            if (state.onboardingEtapa != OnboardingEtapa.NENHUMA) {
+                concluirOnboarding()
+                return
+            }
+            iniciarMonitoramento()
+            return
+        }
+        val etapa = when {
+            !permissoesOk -> OnboardingEtapa.PERMISSOES
+            !temConta -> OnboardingEtapa.CONTA
+            else -> OnboardingEtapa.TUTORIAL
+        }
+        if (state.onboardingEtapa == OnboardingEtapa.TUTORIAL && etapa == OnboardingEtapa.TUTORIAL) {
+            return
+        }
+        state = state.copy(
+            onboardingEtapa = etapa,
+            tutorialPasso = if (etapa == OnboardingEtapa.TUTORIAL) state.tutorialPasso else 0,
+            interfaceOculta = false,
+            destacarPermissoes = etapa == OnboardingEtapa.PERMISSOES,
+            monitorando = false,
+            abaConfiguracao = if (etapa == OnboardingEtapa.PERMISSOES) 3 else state.abaConfiguracao,
+        )
+    }
+
+    fun tutorialSeguir() {
+        val proximo = state.tutorialPasso + 1
+        if (proximo >= TutorialConteudo.passos.size) {
+            concluirOnboarding()
+            return
+        }
+        state = state.copy(tutorialPasso = proximo)
+    }
+
+    fun tutorialPular() {
+        concluirOnboarding()
+    }
+
+    fun onboardingContaPronta() {
+        state = state.copy(
+            onboardingEtapa = OnboardingEtapa.TUTORIAL,
+            tutorialPasso = 0,
+            interfaceOculta = false,
+        )
+    }
+
+    private fun concluirOnboarding() {
+        onboardingStore.marcarConcluido()
+        state = state.copy(
+            onboardingEtapa = OnboardingEtapa.NENHUMA,
+            tutorialPasso = 0,
+            destacarPermissoes = false,
+            interfaceOculta = true,
+        )
         irParaSelo()
     }
 
@@ -205,6 +282,8 @@ class AppViewModel(
             compactaTemporaria = state.compactaTemporaria,
             corridaAntesDaOferta = state.corridaAntesDaOferta,
             ofertasPendentes = state.ofertasPendentes,
+            onboardingEtapa = state.onboardingEtapa,
+            tutorialPasso = state.tutorialPasso,
         )
         publicarOverlay()
     }
@@ -278,6 +357,8 @@ class AppViewModel(
             ofertaAtiva = manterOferta,
             corridaAntesDaOferta = null,
             ofertasPendentes = state.ofertasPendentes,
+            onboardingEtapa = state.onboardingEtapa,
+            tutorialPasso = state.tutorialPasso,
         )
         publicarOverlay()
         _irParaSegundoPlano.tryEmit(Unit)
@@ -323,6 +404,8 @@ class AppViewModel(
             ofertaAtiva = manterOferta,
             corridaAntesDaOferta = null,
             ofertasPendentes = state.ofertasPendentes,
+            onboardingEtapa = state.onboardingEtapa,
+            tutorialPasso = state.tutorialPasso,
         )
         publicarOverlay()
         if (usarOverlay) {
@@ -383,6 +466,8 @@ class AppViewModel(
             ofertaAtiva = state.ofertaAtiva,
             corridaAntesDaOferta = state.corridaAntesDaOferta,
             ofertasPendentes = state.ofertasPendentes,
+            onboardingEtapa = state.onboardingEtapa,
+            tutorialPasso = state.tutorialPasso,
         )
         publicarOverlay()
         _irParaSegundoPlano.tryEmit(Unit)
@@ -445,6 +530,8 @@ class AppViewModel(
                 ultimaCorridaAceita = analise,
                 ofertaAtiva = true,
                 ofertasPendentes = pendentes,
+                onboardingEtapa = state.onboardingEtapa,
+                tutorialPasso = state.tutorialPasso,
             )
         } else {
             state = PresentationBuilder.criarEstado(
@@ -470,6 +557,8 @@ class AppViewModel(
                 ultimaCorridaAceita = analise,
                 ofertaAtiva = false,
                 ofertasPendentes = pendentes,
+                onboardingEtapa = state.onboardingEtapa,
+                tutorialPasso = state.tutorialPasso,
             )
         }
         publicarOverlay()
@@ -703,6 +792,8 @@ class AppViewModel(
                 ofertaAtiva = true,
                 corridaAntesDaOferta = state.historicoSelecionado?.paraAnalise(),
                 ofertasPendentes = pendentes,
+                onboardingEtapa = state.onboardingEtapa,
+                tutorialPasso = state.tutorialPasso,
             )
         publicarOverlay()
         _irParaSegundoPlano.tryEmit(Unit)
@@ -744,6 +835,8 @@ class AppViewModel(
                 ultimaCorridaAceita = state.ultimaCorridaAceita,
                 ofertaAtiva = true,
                 ofertasPendentes = pendentes,
+                onboardingEtapa = state.onboardingEtapa,
+                tutorialPasso = state.tutorialPasso,
             )
         } else {
             state = PresentationBuilder.criarEstado(
@@ -769,6 +862,8 @@ class AppViewModel(
                 ultimaCorridaAceita = state.ultimaCorridaAceita,
                 ofertaAtiva = false,
                 ofertasPendentes = pendentes,
+                onboardingEtapa = state.onboardingEtapa,
+                tutorialPasso = state.tutorialPasso,
             )
         }
         publicarOverlay()

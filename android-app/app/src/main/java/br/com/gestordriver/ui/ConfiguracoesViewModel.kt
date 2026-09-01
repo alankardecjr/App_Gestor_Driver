@@ -6,10 +6,12 @@ import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import br.com.gestordriver.core.FaixasClassificacao
 import br.com.gestordriver.data.ConfiguracaoStore
+import br.com.gestordriver.data.ContaVinculo
 import br.com.gestordriver.data.MemoriaConfiguracaoStore
 import br.com.gestordriver.model.AppNavegacao
 import br.com.gestordriver.model.Combustivel
 import br.com.gestordriver.model.ConfiguracaoUsuario
+import br.com.gestordriver.model.TipoContaVinculada
 
 class ConfiguracoesViewModel(
     private val store: ConfiguracaoStore = MemoriaConfiguracaoStore(),
@@ -64,6 +66,24 @@ class ConfiguracoesViewModel(
         navegacao: AppNavegacao,
     ) {
         aplicar(configuracao.copy(navegacao = navegacao))
+    }
+
+    fun conectarContaGoogle(email: String): Boolean {
+        return persistirConta(TipoContaVinculada.GOOGLE, email)
+    }
+
+    fun conectarContaEmail(email: String): Boolean {
+        if (!ContaVinculo.emailValido(email)) {
+            return false
+        }
+        return persistirConta(TipoContaVinculada.EMAIL, email)
+    }
+
+    private fun persistirConta(tipo: TipoContaVinculada, email: String): Boolean {
+        val persistida = ContaVinculo.aplicar(store.carregar(), tipo, email)
+        store.salvar(persistida)
+        aplicar(configuracao.copy(contaTipo = persistida.contaTipo, contaEmail = persistida.contaEmail))
+        return true
     }
 
     fun atualizarLimiteRuimMin(valor: Double) {

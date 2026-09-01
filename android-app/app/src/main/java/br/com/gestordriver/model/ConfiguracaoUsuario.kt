@@ -1,5 +1,7 @@
 package br.com.gestordriver.model
 
+import br.com.gestordriver.core.CalcularCombustivel
+
 data class ConfiguracaoUsuario(
     val marcaVeiculo: String = "",
     val modeloVeiculo: String = "",
@@ -26,8 +28,14 @@ data class ConfiguracaoUsuario(
     val pneuTraseiroData: String = "",
     val abastecimentoValor: Double = 0.0,
     val abastecimentoLitros: Double = 0.0,
+    val abastecimentoKmInicial: Double = 0.0,
+    val abastecimentoKmFinal: Double = 0.0,
+    val ipvaVencimento: String = "",
 
     val navegacao: AppNavegacao = AppNavegacao.GOOGLE_MAPS,
+
+    val contaTipo: TipoContaVinculada = TipoContaVinculada.NENHUMA,
+    val contaEmail: String = "",
 
     val limiteRuimMin: Double = 0.0,
     val limiteRuimMax: Double = 0.0,
@@ -46,6 +54,25 @@ data class ConfiguracaoUsuario(
             limiteBoaMin > 0.0 ||
             limiteRegularMin > 0.0 ||
             limiteRuimMax > 0.0
+    }
+
+    fun aplicarCalculoAbastecimento(): ConfiguracaoUsuario {
+        val preco = CalcularCombustivel.precoPorLitro(abastecimentoValor, abastecimentoLitros)
+        val consumo = CalcularCombustivel.consumoKmPorLitro(
+            abastecimentoKmInicial,
+            abastecimentoKmFinal,
+            abastecimentoLitros,
+        )
+        return when (combustivel) {
+            Combustivel.GASOLINA -> copy(
+                precoGasolina = preco ?: precoGasolina,
+                consumoGasolina = consumo ?: consumoGasolina,
+            )
+            Combustivel.ETANOL -> copy(
+                precoEtanol = preco ?: precoEtanol,
+                consumoEtanol = consumo ?: consumoEtanol,
+            )
+        }
     }
 
     companion object {
@@ -80,4 +107,10 @@ enum class Combustivel {
 enum class AppNavegacao {
     GOOGLE_MAPS,
     WAZE,
+}
+
+enum class TipoContaVinculada {
+    NENHUMA,
+    GOOGLE,
+    EMAIL,
 }

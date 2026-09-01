@@ -127,6 +127,9 @@ object PresentationBuilder {
         compactaTemporaria: Boolean = false,
         corridaAntesDaOferta: AnaliseCorrida? = null,
         ofertasPendentes: Map<String, AnaliseCorrida> = emptyMap(),
+        onboardingEtapa: br.com.gestordriver.model.OnboardingEtapa =
+            br.com.gestordriver.model.OnboardingEtapa.NENHUMA,
+        tutorialPasso: Int = 0,
     ): AppState {
 
         val corrida =
@@ -212,6 +215,12 @@ object PresentationBuilder {
 
             ofertasPendentes =
                 ofertasPendentes,
+
+            onboardingEtapa =
+                onboardingEtapa,
+
+            tutorialPasso =
+                tutorialPasso,
         )
     }
 

@@ -2,7 +2,7 @@ package br.com.gestordriver.notification
 
 class RideOfferPipeline(
     private val processor: RideNotificationProcessor,
-    private val diagnostico: NotificationDiagnosticLog,
+    private val diagnostico: RegistroDiagnostico,
 ) {
     fun processar(notification: NotificationData) {
         if (notification.fullText.isBlank()) {
@@ -13,7 +13,14 @@ class RideOfferPipeline(
             diagnostico.registrar(notification, "IGNORADA_UI")
             return
         }
-        when (val evento = processor.processar(notification)) {
+        val evento = runCatching { processor.processar(notification) }.getOrElse { erro ->
+            diagnostico.registrar(
+                notification.copy(text = erro.message.orEmpty()),
+                "EXCECAO",
+            )
+            return
+        }
+        when (evento) {
             is RideNotificationEvent.CorridaRecebida -> {
                 val assinatura = assinaturaDe(evento)
                 if (OfertaSessao.chaveAtiva(notification.packageName) &&

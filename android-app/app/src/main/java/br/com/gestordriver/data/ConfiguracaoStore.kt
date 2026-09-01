@@ -3,6 +3,7 @@ package br.com.gestordriver.data
 import br.com.gestordriver.model.AppNavegacao
 import br.com.gestordriver.model.Combustivel
 import br.com.gestordriver.model.ConfiguracaoUsuario
+import br.com.gestordriver.model.TipoContaVinculada
 
 interface ConfiguracaoStore {
     fun carregar(): ConfiguracaoUsuario
@@ -45,7 +46,12 @@ fun ConfiguracaoUsuario.paraPreferencias(): Map<String, String> = mapOf(
     "pneuTraseiroData" to pneuTraseiroData,
     "abastecimentoValor" to abastecimentoValor.toString(),
     "abastecimentoLitros" to abastecimentoLitros.toString(),
+    "abastecimentoKmInicial" to abastecimentoKmInicial.toString(),
+    "abastecimentoKmFinal" to abastecimentoKmFinal.toString(),
+    "ipvaVencimento" to ipvaVencimento,
     "navegacao" to navegacao.name,
+    "contaTipo" to contaTipo.name,
+    "contaEmail" to contaEmail,
     "limiteRuimMin" to limiteRuimMin.toString(),
     "limiteRuimMax" to limiteRuimMax.toString(),
     "limiteRegularMin" to limiteRegularMin.toString(),
@@ -82,9 +88,16 @@ fun Map<String, String>.paraConfiguracaoUsuario(): ConfiguracaoUsuario {
         pneuTraseiroData = this["pneuTraseiroData"] ?: padrao.pneuTraseiroData,
         abastecimentoValor = this["abastecimentoValor"]?.toDoubleOrNull() ?: padrao.abastecimentoValor,
         abastecimentoLitros = this["abastecimentoLitros"]?.toDoubleOrNull() ?: padrao.abastecimentoLitros,
+        abastecimentoKmInicial = this["abastecimentoKmInicial"]?.toDoubleOrNull() ?: padrao.abastecimentoKmInicial,
+        abastecimentoKmFinal = this["abastecimentoKmFinal"]?.toDoubleOrNull() ?: padrao.abastecimentoKmFinal,
+        ipvaVencimento = this["ipvaVencimento"] ?: padrao.ipvaVencimento,
         navegacao = this["navegacao"]?.let {
             runCatching { AppNavegacao.valueOf(it) }.getOrDefault(padrao.navegacao)
         } ?: padrao.navegacao,
+        contaTipo = this["contaTipo"]?.let {
+            runCatching { TipoContaVinculada.valueOf(it) }.getOrDefault(padrao.contaTipo)
+        } ?: padrao.contaTipo,
+        contaEmail = this["contaEmail"] ?: padrao.contaEmail,
         limiteRuimMin = this["limiteRuimMin"]?.toDoubleOrNull() ?: padrao.limiteRuimMin,
         limiteRuimMax = this["limiteRuimMax"]?.toDoubleOrNull() ?: padrao.limiteRuimMax,
         limiteRegularMin = this["limiteRegularMin"]?.toDoubleOrNull() ?: padrao.limiteRegularMin,

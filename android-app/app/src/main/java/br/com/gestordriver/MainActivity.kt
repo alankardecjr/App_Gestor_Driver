@@ -11,10 +11,16 @@ import androidx.activity.ComponentActivity
 import androidx.activity.SystemBarStyle
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.LaunchedEffect
 import androidx.core.view.WindowCompat
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
+import br.com.gestordriver.data.ContaVinculo
+import br.com.gestordriver.model.OnboardingEtapa
+import br.com.gestordriver.model.TipoContaVinculada
+import br.com.gestordriver.overlay.OverlayBridge
+import br.com.gestordriver.overlay.OverlayPaineis
 import br.com.gestordriver.overlay.OverlayService
 import br.com.gestordriver.permission.PermissoesMonitoramento
 import br.com.gestordriver.ui.AppScreen
@@ -25,6 +31,26 @@ import br.com.gestordriver.ui.theme.GestorDriverTheme
 class MainActivity : ComponentActivity() {
 
     private lateinit var appViewModel: AppViewModel
+
+    private val seletorGoogle = registerForActivityResult(
+        ActivityResultContracts.StartActivityForResult(),
+    ) { resultado ->
+        if (resultado.resultCode == RESULT_OK) {
+            val email = ContaVinculo.emailDaResposta(resultado.data)
+            if (!email.isNullOrBlank()) {
+                val app = application as GestorDriverApp
+                val atual = app.configuracaoStore.carregar()
+                app.configuracaoStore.salvar(
+                    ContaVinculo.aplicar(atual, TipoContaVinculada.GOOGLE, email),
+                )
+                OverlayPaineis.atualizarContaVinculada(TipoContaVinculada.GOOGLE, email)
+                OverlayPaineis.invalidarMontagem()
+                OverlayBridge.publicar(OverlayBridge.snapshot.value)
+            }
+        }
+        OverlayService.iniciar(this)
+        moveTaskToBack(true)
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -42,14 +68,16 @@ class MainActivity : ComponentActivity() {
         }
         val app = application as GestorDriverApp
         pedirNotificacaoPersistente()
-        pedirLocalizacao()
 
         appViewModel = ViewModelProvider(
             this,
             object : ViewModelProvider.Factory {
                 @Suppress("UNCHECKED_CAST")
                 override fun <T : ViewModel> create(modelClass: Class<T>): T {
-                    return AppViewModel(app.historicoRepository) as T
+                    return AppViewModel(
+                        historicoRepository = app.historicoRepository,
+                        onboardingStore = app.onboardingStore,
+                    ) as T
                 }
             },
         )[AppViewModel::class.java]
@@ -84,7 +112,7 @@ class MainActivity : ComponentActivity() {
 
                 LaunchedEffect(appViewModel.state.monitorando) {
                     if (appViewModel.state.monitorando &&
-                        PermissoesMonitoramento.todasConcedidas(this@MainActivity)
+                        PermissoesMonitoramento.overlayConcedida(this@MainActivity)
                     ) {
                         OverlayService.iniciar(this@MainActivity)
                     }
@@ -133,7 +161,7 @@ class MainActivity : ComponentActivity() {
         if (::appViewModel.isInitialized) {
             tratarIntent(intent, appViewModel)
         }
-        if (PermissoesMonitoramento.todasConcedidas(this)) {
+        if (PermissoesMonitoramento.overlayConcedida(this)) {
             OverlayService.iniciar(this)
         }
     }
@@ -168,12 +196,39 @@ class MainActivity : ComponentActivity() {
             moveTaskToBack(true)
             return
         }
+        val conectarGoogle = intent?.getBooleanExtra(EXTRA_CONECTAR_GOOGLE, false) == true
+        if (conectarGoogle) {
+            intent?.removeExtra(EXTRA_CONECTAR_GOOGLE)
+            seletorGoogle.launch(ContaVinculo.intentEscolherContaGoogle())
+            return
+        }
         val pedirLocalizacao = intent?.getBooleanExtra(EXTRA_PEDIR_LOCALIZACAO, false) == true
         if (pedirLocalizacao) {
             intent?.removeExtra(EXTRA_PEDIR_LOCALIZACAO)
             pedirLocalizacao()
             OverlayService.iniciar(this)
             moveTaskToBack(true)
+            return
+        }
+        val pedirAcessibilidade = intent?.getBooleanExtra(EXTRA_PEDIR_ACESSIBILIDADE, false) == true
+        if (pedirAcessibilidade) {
+            intent?.removeExtra(EXTRA_PEDIR_ACESSIBILIDADE)
+            startActivity(PermissoesMonitoramento.intentAcessibilidade())
+            OverlayService.iniciar(this)
+            return
+        }
+        val pedirBateria = intent?.getBooleanExtra(EXTRA_PEDIR_BATERIA, false) == true
+        if (pedirBateria) {
+            intent?.removeExtra(EXTRA_PEDIR_BATERIA)
+            startActivity(PermissoesMonitoramento.intentBateria(this))
+            OverlayService.iniciar(this)
+            return
+        }
+        val compartilharLog = intent?.getBooleanExtra(EXTRA_COMPARTILHAR_LOG, false) == true
+        if (compartilharLog) {
+            intent?.removeExtra(EXTRA_COMPARTILHAR_LOG)
+            (application as GestorDriverApp).diagnosticLog.compartilhar(this)
+            OverlayService.iniciar(this)
             return
         }
         val abrirHistorico = intent?.getBooleanExtra(EXTRA_ABRIR_HISTORICO, false) == true
@@ -199,16 +254,15 @@ class MainActivity : ComponentActivity() {
             OverlayService.iniciar(this)
             return
         }
-        if (!PermissoesMonitoramento.todasConcedidas(this)) {
-            val overlayOk = PermissoesMonitoramento.overlayConcedida(this)
-            viewModel.abrirConfiguracoes(destaquePermissao = true, usarOverlay = overlayOk)
-            if (overlayOk) {
-                OverlayService.iniciar(this)
-                moveTaskToBack(true)
-            }
+        val app = application as GestorDriverApp
+        val temConta = app.configuracaoStore.carregar().contaTipo != TipoContaVinculada.NENHUMA
+        viewModel.avaliarInicio(
+            permissoesOk = PermissoesMonitoramento.permissoesIniciaisOk(this),
+            temConta = temConta,
+        )
+        if (viewModel.state.onboardingEtapa != OnboardingEtapa.NENHUMA) {
             return
         }
-        viewModel.iniciarMonitoramento()
         OverlayService.iniciar(this)
         if (viewModel.state.interfaceOculta) {
             moveTaskToBack(true)
@@ -259,5 +313,9 @@ class MainActivity : ComponentActivity() {
         const val EXTRA_ABRIR_CONFIG = "abrir_config"
         const val EXTRA_CONFIRMAR_FECHAR = "confirmar_fechar"
         const val EXTRA_PEDIR_LOCALIZACAO = "pedir_localizacao"
+        const val EXTRA_PEDIR_ACESSIBILIDADE = "pedir_acessibilidade"
+        const val EXTRA_PEDIR_BATERIA = "pedir_bateria"
+        const val EXTRA_COMPARTILHAR_LOG = "compartilhar_log"
+        const val EXTRA_CONECTAR_GOOGLE = "conectar_google"
     }
 }

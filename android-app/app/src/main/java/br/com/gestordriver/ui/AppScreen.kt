@@ -72,7 +72,8 @@ fun AppScreen(
     val state = viewModel.state
     val janelaCheia = state.historicoVisivel ||
         state.configuracoesVisivel ||
-        state.confirmacaoFecharVisivel
+        state.confirmacaoFecharVisivel ||
+        state.onboardingEtapa != br.com.gestordriver.model.OnboardingEtapa.NENHUMA
     val activity = LocalContext.current as? br.com.gestordriver.MainActivity
     androidx.compose.runtime.SideEffect {
         activity?.aplicarJanela(
@@ -99,12 +100,14 @@ fun AppScreen(
                 modifier = Modifier.fillMaxSize(),
                 color = FundoPrincipal,
             ) {
-                if (state.configuracoesVisivel) {
-                    ConfiguracoesScreen(
-                        viewModel = configuracoesViewModel,
-                        onVoltar = viewModel::fecharConfiguracoes,
-                        abaInicial = state.abaConfiguracao,
-                        destacarPermissoes = state.destacarPermissoes,
+                if (state.onboardingEtapa != br.com.gestordriver.model.OnboardingEtapa.NENHUMA) {
+                    OnboardingHost(
+                        state = state,
+                        configuracoesViewModel = configuracoesViewModel,
+                        onAvancarPermissoes = viewModel::avaliarInicio,
+                        onContaPronta = viewModel::onboardingContaPronta,
+                        onSeguirTutorial = viewModel::tutorialSeguir,
+                        onPularTutorial = viewModel::tutorialPular,
                     )
                 } else {
                     ConteudoPrincipal(
@@ -121,7 +124,7 @@ fun AppScreen(
 @Composable
 private fun ConteudoPrincipal(
     viewModel: AppViewModel,
-    @Suppress("UNUSED_PARAMETER") configuracoesViewModel: ConfiguracoesViewModel,
+    configuracoesViewModel: ConfiguracoesViewModel,
     state: AppState,
 ) {
         Column(
@@ -241,6 +244,19 @@ private fun ConteudoPrincipal(
                 ConfirmacaoFecharSection(
                     onCancelar = viewModel::cancelarFecharApp,
                     onConfirmar = viewModel::confirmarFecharApp,
+                )
+            }
+
+            if (
+                state.configuracoesVisivel &&
+                state.corrida.modo ==
+                ModoApresentacao.DETALHES
+            ) {
+                ConfiguracoesScreen(
+                    viewModel = configuracoesViewModel,
+                    onVoltar = viewModel::fecharConfiguracoes,
+                    abaInicial = state.abaConfiguracao,
+                    destacarPermissoes = state.destacarPermissoes,
                 )
             }
 
