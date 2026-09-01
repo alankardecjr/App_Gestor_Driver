@@ -146,19 +146,19 @@ class OverlayService : Service() {
         } else {
             expandidaView?.visibility = View.INVISIBLE
         }
-        if (snapshot.historicoVisivel && !snapshot.configuracoesVisivel) {
+        if (snapshot.historicoVisivel && !snapshot.configuracoesVisivel && !snapshot.confirmacaoVisivel) {
             garantirHistorico(snapshot)
             historicoView?.visibility = View.VISIBLE
         } else {
             historicoView?.visibility = View.INVISIBLE
         }
-        if (snapshot.configuracoesVisivel) {
+        if (snapshot.configuracoesVisivel && !snapshot.confirmacaoVisivel) {
             garantirConfig(snapshot)
             configView?.visibility = View.VISIBLE
         } else {
             configView?.visibility = View.INVISIBLE
         }
-        if (snapshot.confirmacaoFecharVisivel) {
+        if (snapshot.confirmacaoVisivel) {
             garantirConfirmacao(snapshot)
             confirmacaoView?.visibility = View.VISIBLE
         } else {
@@ -302,7 +302,7 @@ class OverlayService : Service() {
         }
     }
 
-    private fun garantirConfirmacao(@Suppress("UNUSED_PARAMETER") snapshot: OverlaySnapshot) {
+    private fun garantirConfirmacao(snapshot: OverlaySnapshot) {
         val params = confirmacaoParams ?: criarParams(
             0,
             yAbaixoExpandida(),
@@ -319,6 +319,8 @@ class OverlayService : Service() {
             }
             confirmacaoView = nova
         }
+        OverlayPaineis.atualizarConfirmacao(view, snapshot.confirmacaoLimparHistoricoVisivel)
+        OverlayPaineis.aplicarBordaNeutra(view)
         atualizarPainel(view, params)
     }
 
@@ -347,7 +349,6 @@ class OverlayService : Service() {
         controle.addView(
             TextView(this).apply {
                 text = "ℹ️"
-                setTextColor(Color.WHITE)
                 textSize = 14f
                 gravity = Gravity.CENTER
                 setOnClickListener { OverlayBridge.emitir(OverlayAcao.Retratil) }
@@ -357,7 +358,6 @@ class OverlayService : Service() {
             TextView(this).apply {
                 tag = "seta_expandida"
                 text = "⬆️"
-                setTextColor(Color.WHITE)
                 textSize = 14f
                 gravity = Gravity.CENTER
                 setOnClickListener { OverlayBridge.emitir(OverlayAcao.Retratil) }
@@ -429,7 +429,7 @@ class OverlayService : Service() {
         listOf("💵", "💰", "🛞", "🕐", "⭐").forEachIndexed { index, icone ->
             val bloco = metricas.getChildAt(index) as LinearLayout
             (bloco.getChildAt(0) as TextView).apply {
-                text = "$icone ${listOf("R$/km", "Valor", "Dist.", "Tempo", "Nota")[index]}"
+                text = "$icone ${listOf("R$/KM", "VALOR", "DIST.", "TEMPO", "NOTA")[index]}"
                 textSize = 12f
                 gravity = Gravity.CENTER
             }
@@ -523,7 +523,6 @@ class OverlayService : Service() {
         controle.addView(
             TextView(this).apply {
                 text = "ℹ️"
-                setTextColor(Color.WHITE)
                 textSize = 14f
                 gravity = Gravity.CENTER
             },
@@ -531,7 +530,6 @@ class OverlayService : Service() {
         controle.addView(
             TextView(this).apply {
                 text = "⬇️"
-                setTextColor(Color.WHITE)
                 textSize = 14f
                 gravity = Gravity.CENTER
             },
@@ -786,7 +784,7 @@ class OverlayService : Service() {
 
     private fun alturaPainelConfig(): Int =
         alturaMaximaAbaixoExpandida()
-            .coerceAtMost(dp(268))
+            .coerceAtMost(dp(268) + mm(30))
             .coerceAtLeast(dp(220).coerceAtMost(alturaMaximaAbaixoExpandida()))
 
     private fun aplicarAlturaPainelSecundario(
@@ -840,17 +838,17 @@ class OverlayService : Service() {
             params.y = y
             aplicarTamanhoDoConteudo(view, params, alturaMaxima)
         }
-        if (snapshot.historicoVisivel && !snapshot.configuracoesVisivel) {
+        if (snapshot.historicoVisivel && !snapshot.configuracoesVisivel && !snapshot.confirmacaoVisivel) {
             historicoParams?.let { params ->
                 historicoView?.let { view -> aplicarAlturaPainelSecundario(view, params) }
             }
         }
-        if (snapshot.configuracoesVisivel) {
+        if (snapshot.configuracoesVisivel && !snapshot.confirmacaoVisivel) {
             configParams?.let { params ->
                 configView?.let { view -> aplicarAlturaPainelSecundario(view, params) }
             }
         }
-        if (snapshot.confirmacaoFecharVisivel) {
+        if (snapshot.confirmacaoVisivel) {
             aplicar(confirmacaoView, confirmacaoParams)
         }
     }

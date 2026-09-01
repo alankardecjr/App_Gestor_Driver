@@ -118,6 +118,7 @@ object PresentationBuilder {
         seloFlutuante: Boolean = false,
         monitorando: Boolean = true,
         confirmacaoFecharVisivel: Boolean = false,
+        confirmacaoLimparHistoricoVisivel: Boolean = false,
         seloOffsetX: Float = 0f,
         seloOffsetY: Float = 0f,
         estadoSalvo: EstadoInterfaceSalvo? = null,
@@ -204,6 +205,9 @@ object PresentationBuilder {
             confirmacaoFecharVisivel =
                 confirmacaoFecharVisivel,
 
+            confirmacaoLimparHistoricoVisivel =
+                confirmacaoLimparHistoricoVisivel,
+
             seloOffsetX =
                 seloOffsetX,
 
@@ -252,10 +256,17 @@ object PresentationBuilder {
         if (analise.kmTotal <= 0.0) {
             return "—"
         }
-        return formatDecimal((analise.valorTotal - custo) / analise.kmTotal, 2) + " /km"
+        return formatarQuantidade((analise.valorTotal - custo) / analise.kmTotal) + " /km"
     }
 
-    fun formatarDecimalPublico(valor: Double): String = formatDecimal(valor, 2)
+    fun formatarDecimalPublico(valor: Double): String = formatarQuantidade(valor)
+
+    fun formatarDinheiroHistorico(valor: Double): String = "R$" + formatarQuantidade(valor)
+
+    fun formatarDistanciaHistorico(valor: Double): String = formatarQuantidade(valor) + " Km"
+
+    fun formatarTempoHistorico(minutos: Int?): String =
+        minutos?.let { formatarQuantidade(it.toDouble()) + " Min" } ?: "—"
 
     fun formatarKmPublico(valor: Double): String = formatKm(valor)
 
@@ -313,10 +324,7 @@ object PresentationBuilder {
                     titulo = "R$/KM",
                     valor =
                         if (recursos.exibeValorPorKm) {
-                            "R$ " + formatDecimal(
-                                analise.valorPorKm,
-                                2,
-                            )
+                            "R$" + formatarQuantidade(analise.valorPorKm)
                         } else {
                             "🔒"
                         },
@@ -359,12 +367,7 @@ object PresentationBuilder {
                     id = "tempo_estimado",
                     titulo = "TEMPO",
                     valor =
-                        analise.corrida
-                            .tempoEstimado
-                            ?.let { tempo ->
-                                "$tempo MIN"
-                            }
-                            ?: "—",
+                        analise.corrida.tempoEstimado?.let { formatarTempoHistorico(it) } ?: "—",
                 ),
 
                 // ---------------------------------------------------------
@@ -375,11 +378,7 @@ object PresentationBuilder {
                     id = "nota_passageiro",
                     titulo = "NOTA",
                     valor =
-                        analise.notaPassageiro
-                            ?.let { nota ->
-                                formatDecimal(nota, 2)
-                            }
-                            ?: "—",
+                        analise.notaPassageiro?.let { formatarQuantidade(it) } ?: "—",
                 ),
             )
 
@@ -522,6 +521,16 @@ object PresentationBuilder {
     // FORMATAÇÃO
     // =====================================================================
 
+    private fun formatarQuantidade(valor: Double): String {
+        val texto = "%.2f".format(Locale.US, valor)
+        val arredondado = texto.toDouble()
+        return if (kotlin.math.abs(arredondado % 1.0) < 0.0000001) {
+            arredondado.toLong().toString()
+        } else {
+            texto.replace(".", ",").trimEnd('0').trimEnd(',')
+        }
+    }
+
     private fun formatDecimal(
         valor: Double,
         casas: Int,
@@ -532,20 +541,13 @@ object PresentationBuilder {
 
     private fun formatMoney(
         valor: Double,
-    ): String =
-        "R$ %.2f"
-            .format(Locale.US, valor)
-            .replace(".", ",")
+    ): String = "R$" + formatarQuantidade(valor)
 
     private fun formatKm(
         valor: Double,
-    ): String =
-        "%.1f".format(Locale.US, valor).replace(".", ",") + " KM"
+    ): String = formatarQuantidade(valor) + " Km"
 
     private fun formatLiters(
         valor: Double,
-    ): String =
-        "%.2f L"
-            .format(Locale.US, valor)
-            .replace(".", ",")
+    ): String = formatarQuantidade(valor) + " L"
 }

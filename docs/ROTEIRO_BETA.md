@@ -24,7 +24,7 @@ Pro (custo operacional, R$ líquido, relatórios). Free na loja (mesma UI, **sem
 2. Na **primeira abertura** o app confere permissões (notificações, sobrepor, acessibilidade, bateria). Autorize cada ❎ até virar 🆗 e toque **SEGUIR**.
 3. Conecte **conta Google** ou **e-mail** (identidade local). Sem conta o tutorial não abre.
 4. Tutorial: **SEGUIR** em cada janela ou **PULAR**. Depois disso o selo sobe e o monitoramento começa.
-5. Abra Config: VEÍCULO (consumo + combustível atual), CUSTOS (R$/L), CLASSIFICAÇÃO (−/+), APP (**ENVIAR LOG** se a oferta não ler). Localização é opcional.
+5. Abra Config: VEÍCULO (consumo + combustível atual), CUSTOS (R$/L), CALIBRAR (−/+ das faixas), APP (**ENVIAR LOG** se a oferta não ler). Localização é opcional.
 6. Feche e reabra — os valores precisam continuar iguais.
 7. Abra Uber Driver, 99 ou inDrive **logado**.
 8. Deixe o Gestor em segundo plano (selo visível sobre o mapa).

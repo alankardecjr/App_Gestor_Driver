@@ -32,7 +32,7 @@ object TutorialConteudo {
         ),
         TutorialPasso(
             titulo = "Config",
-            texto = "Abas VEÍCULO, CUSTOS, CLASSIFICAÇÃO e APP. Cancelar descarta. Salvar grava e fecha. Campos 🔒 são da versão Pro.",
+            texto = "Abas VEÍCULO, CUSTOS, CALIBRAR e APP. Cancelar descarta. Salvar grava e fecha. Campos 🔒 são da versão Pro.",
         ),
         TutorialPasso(
             titulo = "Histórico",

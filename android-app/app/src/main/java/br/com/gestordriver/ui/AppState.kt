@@ -106,6 +106,8 @@ data class AppState(
 
     val confirmacaoFecharVisivel: Boolean = false,
 
+    val confirmacaoLimparHistoricoVisivel: Boolean = false,
+
     // ================================================================
     // POSIÇÃO DO SELO
     // ================================================================

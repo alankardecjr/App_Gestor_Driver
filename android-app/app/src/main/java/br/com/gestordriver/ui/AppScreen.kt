@@ -8,10 +8,12 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.windowInsetsPadding
@@ -34,7 +36,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.PlatformTextStyle
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.LineHeightStyle
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import br.com.gestordriver.model.CampoApresentacao
@@ -47,7 +55,8 @@ import br.com.gestordriver.presentation.PresentationBuilder
 // =====================================================================
 
 private val FundoPrincipal = Color(0xFF10161D)
-private val FundoCard = Color(0xFF050809)
+private val FundoPainel = Color(0xF2050809)
+private val BordaNeutra = Color(0xFF607D8B)
 
 private val TextoPrincipal = Color.White
 private val TextoSecundario = Color(0xFFB8C5D1)
@@ -57,7 +66,24 @@ private val TextoAzul = Color(0xFF42A5F5)
 private val TextoVerde = Color(0xFF7CB342)
 private val TextoLaranja = Color(0xFFFF9800)
 private val TextoAmarelo = Color(0xFFFFD54F)
-private val pesosColunaHistorico = listOf(0.95f, 0.7f, 0.8f, 0.8f, 0.9f, 0.55f, 0.55f, 0.35f)
+private val AlturaPainelSecundario = 268.dp + 188.dp
+private val titulosColunaHistorico = listOf(
+    "🗓️Data",
+    "🕓Hora",
+    "💵R$/Km",
+    "💰VALOR",
+    "🛞DIST.",
+    "🕐TEMPO",
+    "⭐NOTA",
+    "Class.",
+)
+private val estiloCelulaHistorico = TextStyle(
+    platformStyle = PlatformTextStyle(includeFontPadding = false),
+    lineHeightStyle = LineHeightStyle(
+        alignment = LineHeightStyle.Alignment.Center,
+        trim = LineHeightStyle.Trim.Both,
+    ),
+)
 
 // =====================================================================
 // TELA PRINCIPAL
@@ -73,6 +99,7 @@ fun AppScreen(
     val janelaCheia = state.historicoVisivel ||
         state.configuracoesVisivel ||
         state.confirmacaoFecharVisivel ||
+        state.confirmacaoLimparHistoricoVisivel ||
         state.onboardingEtapa != br.com.gestordriver.model.OnboardingEtapa.NENHUMA
     val activity = LocalContext.current as? br.com.gestordriver.MainActivity
     androidx.compose.runtime.SideEffect {
@@ -180,7 +207,7 @@ private fun ConteudoPrincipal(
                         shape = CardDefaults.shape,
                     ),
                 colors = CardDefaults.cardColors(
-                    containerColor = FundoCard,
+                    containerColor = FundoPainel,
                 ),
             ) {
 
@@ -237,13 +264,32 @@ private fun ConteudoPrincipal(
             // =========================================================
 
             if (
-                state.confirmacaoFecharVisivel &&
+                (state.confirmacaoFecharVisivel || state.confirmacaoLimparHistoricoVisivel) &&
                 state.corrida.modo ==
                 ModoApresentacao.DETALHES
             ) {
                 ConfirmacaoFecharSection(
-                    onCancelar = viewModel::cancelarFecharApp,
-                    onConfirmar = viewModel::confirmarFecharApp,
+                    titulo = if (state.confirmacaoLimparHistoricoVisivel) {
+                        "Limpar histórico"
+                    } else {
+                        "Fechar gestor driver"
+                    },
+                    mensagem = if (state.confirmacaoLimparHistoricoVisivel) {
+                        "Deseja apagar todas as corridas aceitas do histórico?"
+                    } else {
+                        "Deseja encerrar o aplicativo e parar o monitoramento de corridas?"
+                    },
+                    textoConfirmar = if (state.confirmacaoLimparHistoricoVisivel) "Limpar" else "Fechar",
+                    onCancelar = if (state.confirmacaoLimparHistoricoVisivel) {
+                        viewModel::cancelarLimparHistorico
+                    } else {
+                        viewModel::cancelarFecharApp
+                    },
+                    onConfirmar = if (state.confirmacaoLimparHistoricoVisivel) {
+                        viewModel::confirmarLimparHistorico
+                    } else {
+                        viewModel::confirmarFecharApp
+                    },
                 )
             }
 
@@ -270,6 +316,7 @@ private fun ConteudoPrincipal(
                     state = state,
                     onSelecionarHistorico = viewModel::selecionarHistorico,
                     onAba = viewModel::selecionarAbaHistorico,
+                    onLimpar = viewModel::solicitarLimparHistorico,
                 )
             }
         }
@@ -356,7 +403,7 @@ private fun CabecalhoCorrida(
 
                 Text(
                     text = "ℹ️",
-                    color = TextoPrincipal,
+                    color = Color.Unspecified,
                     style = MaterialTheme.typography.bodyMedium,
                     fontWeight = FontWeight.Bold,
                     maxLines = 1,
@@ -384,7 +431,7 @@ private fun CabecalhoCorrida(
                     } else {
                         "⬆️"
                     },
-                    color = TextoPrincipal,
+                    color = Color.Unspecified,
                     style = MaterialTheme.typography.bodyMedium,
                     fontWeight = FontWeight.Bold,
                     maxLines = 1,
@@ -403,15 +450,13 @@ private fun CampoCabecalho(
     campo: CampoApresentacao,
     compacta: Boolean,
 ) {
-    fun titulo(caixaAlta: String, frase: String) = if (compacta) caixaAlta else frase
-
     when (campo.id) {
 
         "valor_por_km" -> {
 
                 CabecalhoSimples(
                     icone = "💵",
-                    titulo = titulo("R$/KM", "R$/km"),
+                    titulo = "R$/KM",
                     valor = campo.valor,
                     destaque = campo.destaque,
                     corTitulo = TextoVerde,
@@ -422,7 +467,7 @@ private fun CampoCabecalho(
 
             CabecalhoSimples(
                 icone = "💰",
-                titulo = titulo("VALOR", "Valor"),
+                titulo = "VALOR",
                 valor = removerPrefixoReal(
                     campo.valor,
                 ),
@@ -435,7 +480,7 @@ private fun CampoCabecalho(
 
             CabecalhoSimples(
                 icone = "🛞",
-                titulo = titulo("DIST.", "Dist."),
+                titulo = "DIST.",
                 valor = campo.valor,
                 destaque = campo.destaque,
                 corTitulo = TextoAzul,
@@ -446,7 +491,7 @@ private fun CampoCabecalho(
 
             CabecalhoSimples(
                 icone = "🕐",
-                titulo = titulo("TEMPO", "Tempo"),
+                titulo = "TEMPO",
                 valor = campo.valor,
                 destaque = campo.destaque,
                 corTitulo = TextoLaranja,
@@ -457,7 +502,7 @@ private fun CampoCabecalho(
 
             CabecalhoSimples(
                 icone = "⭐",
-                titulo = titulo("NOTA", "Nota"),
+                titulo = "NOTA",
                 valor = campo.valor,
                 destaque = campo.destaque,
                 corTitulo = TextoAmarelo,
@@ -669,7 +714,7 @@ private fun ControlesInterface(
 
         TextButton(onClick = onFechar) {
             Text(
-                text = "📴Fechar",
+                text = "📴 Fechar",
                 color = TextoAmarelo,
                 style = MaterialTheme.typography.labelSmall,
             )
@@ -689,7 +734,7 @@ private fun ControlesInterface(
 
         TextButton(onClick = onOcultar) {
             Text(
-                text = "❎Ocultar",
+                text = "❎ Ocultar",
                 color = TextoAmarelo,
                 style = MaterialTheme.typography.labelSmall,
             )
@@ -698,9 +743,9 @@ private fun ControlesInterface(
         TextButton(onClick = onAlternarHistorico) {
             Text(
                 text = if (historicoVisivel) {
-                    "⤴️Histórico"
+                    "⤴️ Histórico"
                 } else {
-                    "📜Histórico"
+                    "📜 Histórico"
                 },
                 color = TextoAmarelo,
                 style = MaterialTheme.typography.labelSmall,
@@ -721,6 +766,7 @@ private fun HistoricoSection(
     state: AppState,
     onSelecionarHistorico: (HistoricoItemPresentation) -> Unit,
     onAba: (String) -> Unit,
+    onLimpar: () -> Unit,
 ) {
     val plataformas = listOf("Uber", "99", "inDrive")
     val aba = state.abaHistorico
@@ -732,33 +778,35 @@ private fun HistoricoSection(
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .height(268.dp)
+            .height(AlturaPainelSecundario)
             .deslizeHorizontalAbas(indice, plataformas.size) { novo ->
                 onAba(plataformas[novo])
             }
             .border(
                 width = 2.dp,
-                color = Color(0xFF607D8B),
+                color = BordaNeutra,
                 shape = CardDefaults.shape,
             )
-            .background(Color(0xF2050809), CardDefaults.shape)
-            .padding(horizontal = 8.dp, vertical = 6.dp),
-        verticalArrangement = Arrangement.spacedBy(6.dp),
+            .background(FundoPainel, CardDefaults.shape)
+            .padding(vertical = 4.dp),
+        verticalArrangement = Arrangement.spacedBy(4.dp),
     ) {
-        Box(
-            modifier = Modifier.fillMaxWidth(),
-            contentAlignment = Alignment.Center,
-        ) {
-            Text(
-                text = "HISTÓRICO",
-                color = TextoPrincipal,
-                fontSize = 14.sp,
-                fontWeight = FontWeight.SemiBold,
+        Box(modifier = Modifier.padding(horizontal = 8.dp)) {
+            TituloComSetas(
+                titulo = "HISTÓRICO",
+                onEsquerda = {
+                    onAba(plataformas[(indice - 1).coerceAtLeast(0)])
+                },
+                onDireita = {
+                    onAba(plataformas[(indice + 1).coerceAtMost(plataformas.lastIndex)])
+                },
             )
         }
 
         Row(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 8.dp),
             horizontalArrangement = Arrangement.SpaceEvenly,
         ) {
             plataformas.forEach { plataforma ->
@@ -772,24 +820,20 @@ private fun HistoricoSection(
             }
         }
 
+        val rolagemHistorico = rememberScrollState()
         Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .weight(1f, fill = true)
-                .verticalScroll(rememberScrollState()),
+                .barraRolagemAoToque(rolagemHistorico)
+                .verticalScroll(rolagemHistorico)
+                .padding(start = 8.dp, end = 12.dp),
         ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                listOf("Data", "Hora", "R$/km", "Valor", "Km", "Tempo", "Nota", "⭐").forEachIndexed { indice, titulo ->
-                    Text(
-                        text = titulo,
-                        color = TextoHistorico,
-                        fontSize = 11.5.sp,
-                        maxLines = 1,
-                        fontWeight = FontWeight.SemiBold,
-                        modifier = Modifier.weight(pesosColunaHistorico[indice]),
+            GradeColunasHistorico {
+                titulosColunaHistorico.forEach { titulo ->
+                    CelulaHistorico(
+                        texto = titulo,
+                        destaque = true,
                     )
                 }
             }
@@ -799,6 +843,7 @@ private fun HistoricoSection(
                     text = "Nenhuma corrida aceita.",
                     color = TextoSecundario,
                     fontSize = 12.sp,
+                    modifier = Modifier.padding(horizontal = 4.dp, vertical = 8.dp),
                 )
             } else {
                 itens.forEach { item ->
@@ -809,11 +854,28 @@ private fun HistoricoSection(
                 }
             }
         }
+
+        TextButton(
+            onClick = onLimpar,
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            Text(
+                text = "🗑️ Limpar histórico",
+                color = TextoAmarelo,
+                fontSize = 13.sp,
+                fontWeight = FontWeight.SemiBold,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.fillMaxWidth(),
+            )
+        }
     }
 }
 
 @Composable
 private fun ConfirmacaoFecharSection(
+    titulo: String,
+    mensagem: String,
+    textoConfirmar: String,
     onCancelar: () -> Unit,
     onConfirmar: () -> Unit,
 ) {
@@ -822,23 +884,25 @@ private fun ConfirmacaoFecharSection(
             .fillMaxWidth()
             .border(
                 width = 2.dp,
-                color = Color(0xFF607D8B),
+                color = BordaNeutra,
                 shape = CardDefaults.shape,
             )
+            .background(FundoPainel, CardDefaults.shape)
             .padding(horizontal = 12.dp, vertical = 10.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Text(
-            text = "Fechar gestor driver",
+            text = titulo,
             color = TextoPrincipal,
             style = MaterialTheme.typography.titleSmall,
             fontWeight = FontWeight.SemiBold,
         )
         Text(
-            text = "Deseja encerrar o aplicativo e parar o monitoramento de corridas?",
+            text = mensagem,
             color = TextoSecundario,
             style = MaterialTheme.typography.bodySmall,
+            textAlign = TextAlign.Center,
         )
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -852,7 +916,7 @@ private fun ConfirmacaoFecharSection(
             }
             TextButton(onClick = onConfirmar) {
                 Text(
-                    text = "Fechar",
+                    text = textoConfirmar,
                     color = TextoAmarelo,
                     fontWeight = FontWeight.SemiBold,
                 )
@@ -868,6 +932,45 @@ private fun ConfirmacaoFecharSection(
 // =====================================================================
 
 @Composable
+private fun GradeColunasHistorico(
+    modifier: Modifier = Modifier,
+    comBorda: Boolean = false,
+    conteudo: @Composable RowScope.() -> Unit,
+) {
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .border(
+                width = 1.dp,
+                color = if (comBorda) Color(0xFF3D4A57) else Color.Transparent,
+                shape = CardDefaults.shape,
+            )
+            .padding(horizontal = 1.dp, vertical = 3.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        content = conteudo,
+    )
+}
+
+@Composable
+private fun RowScope.CelulaHistorico(
+    texto: String,
+    destaque: Boolean = false,
+) {
+    Text(
+        text = texto,
+        color = if (destaque) TextoHistorico else TextoPrincipal,
+        fontSize = 8.5.sp,
+        lineHeight = 10.sp,
+        maxLines = 1,
+        overflow = TextOverflow.Ellipsis,
+        fontWeight = if (destaque) FontWeight.SemiBold else FontWeight.Normal,
+        textAlign = TextAlign.Center,
+        style = estiloCelulaHistorico,
+        modifier = Modifier.weight(1f, fill = true),
+    )
+}
+
+@Composable
 private fun HistoricoItemLista(
     item: HistoricoItemPresentation,
     onClick: () -> Unit,
@@ -876,36 +979,27 @@ private fun HistoricoItemLista(
     val valores = listOf(
         item.dataLista,
         item.horaLista,
-        PresentationBuilder.formatarDecimalPublico(item.valorPorKm),
-        PresentationBuilder.formatarDecimalPublico(item.valorTotal),
-        PresentationBuilder.formatarKmPublico(item.kmTotal),
-        item.tempoEstimado?.toString() ?: "—",
+        PresentationBuilder.formatarDinheiroHistorico(item.valorPorKm),
+        PresentationBuilder.formatarDinheiroHistorico(item.valorTotal),
+        PresentationBuilder.formatarDistanciaHistorico(item.kmTotal),
+        PresentationBuilder.formatarTempoHistorico(item.tempoEstimado),
         nota,
-        item.classificacao.marcador,
     )
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick)
-            .border(
-                width = 1.dp,
-                color = Color(0xFF3D4A57),
-                shape = CardDefaults.shape,
-            )
-            .padding(horizontal = 4.dp, vertical = 6.dp),
-        verticalAlignment = Alignment.CenterVertically,
+    GradeColunasHistorico(
+        modifier = Modifier.clickable(onClick = onClick),
+        comBorda = true,
     ) {
-        valores.forEachIndexed { indice, valor ->
-            Text(
-                text = valor,
-                color = if (indice == valores.lastIndex) {
-                    parseColor(item.corClassificacao)
-                } else {
-                    TextoPrincipal
-                },
-                fontSize = 12.sp,
-                maxLines = 1,
-                modifier = Modifier.weight(pesosColunaHistorico[indice]),
+        valores.forEach { valor ->
+            CelulaHistorico(texto = valor)
+        }
+        Box(
+            modifier = Modifier.weight(1f, fill = true),
+            contentAlignment = Alignment.Center,
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(8.dp)
+                    .background(parseColor(item.corClassificacao), CircleShape),
             )
         }
     }

@@ -64,7 +64,7 @@ private val TextoAmareloConfig = Color(0xFFFFD54F)
 private val FundoCaixa = Color(0x33000000)
 private val FormaPainel = RoundedCornerShape(10.dp)
 private val FormaCaixa = RoundedCornerShape(6.dp)
-private val AlturaAba = 268.dp
+private val AlturaAba = 268.dp + 188.dp
 
 private val FonteAba = 13.sp
 private val FonteCampo = 12.sp
@@ -92,7 +92,7 @@ fun ConfiguracoesScreen(
         foco.clearFocus(force = true)
         teclado?.hide()
     }
-    val abas = listOf("VEÍCULO", "CUSTOS", "CLASSIFICAÇÃO", "APP")
+    val abas = listOf("VEÍCULO", "CUSTOS", "CALIBRAR", "APP")
 
     Box(
         modifier = Modifier
@@ -100,23 +100,22 @@ fun ConfiguracoesScreen(
             .deslizeHorizontalAbas(aba, abas.size) { aba = it }
             .border(width = 2.dp, color = BordaPainel, shape = FormaPainel)
             .background(Color(0xF2050809), FormaPainel)
-            .padding(horizontal = 8.dp, vertical = 6.dp),
+            .padding(vertical = 8.dp),
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            Box(
-                modifier = Modifier.fillMaxWidth(),
-                contentAlignment = Alignment.Center,
-            ) {
-                Text(
-                    text = "CONFIGURAÇÃO",
-                    color = TextoPrincipal,
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.SemiBold,
+            Box(modifier = Modifier.padding(horizontal = 8.dp)) {
+                TituloComSetas(
+                    titulo = "CONFIGURAÇÃO",
+                    onEsquerda = { aba = (aba - 1).coerceAtLeast(0) },
+                    onDireita = { aba = (aba + 1).coerceAtMost(abas.lastIndex) },
+                    corTitulo = TextoPrincipal,
                 )
             }
 
             Row(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 8.dp),
                 horizontalArrangement = Arrangement.SpaceEvenly,
             ) {
                 abas.forEachIndexed { index, titulo ->
@@ -136,7 +135,9 @@ fun ConfiguracoesScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .heightIn(min = AlturaAba, max = AlturaAba)
-                    .verticalScroll(rolagem),
+                    .barraRolagemAoToque(rolagem)
+                    .verticalScroll(rolagem)
+                    .padding(start = 8.dp, end = 12.dp),
                 verticalArrangement = Arrangement.spacedBy(6.dp),
             ) {
                 when (aba) {
@@ -153,7 +154,9 @@ fun ConfiguracoesScreen(
             }
 
             Row(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 8.dp),
                 horizontalArrangement = Arrangement.SpaceEvenly,
                 verticalAlignment = Alignment.CenterVertically,
             ) {
@@ -303,7 +306,7 @@ private fun AbaCustos(viewModel: ConfiguracoesViewModel) {
 @Composable
 private fun AbaClassificacao(viewModel: ConfiguracoesViewModel) {
     val configuracao = viewModel.configuracao
-    SubtituloSecao("Classificação")
+    SubtituloSecao("Calibrar classificações")
     FaixaClassificacao(
         "Ruim",
         ClassificacaoConstantes.CORES.getValue(Classificacao.RUIM),
@@ -361,7 +364,10 @@ private fun AbaApp(
     val bateriaOk = PermissoesMonitoramento.bateriaLiberada(contexto)
     val localizacaoOk = PermissoesMonitoramento.localizacaoConcedida(contexto)
     SubtituloSecao("Permissões")
-    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.Center,
+    ) {
         StatusToque(
             titulo = "Notificações",
             ok = listenerOk,
@@ -381,7 +387,10 @@ private fun AbaApp(
             onClick = { contexto.startActivity(PermissoesMonitoramento.intentAcessibilidade()) },
         )
     }
-    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.Center,
+    ) {
         StatusToque(
             titulo = "Bateria",
             ok = bateriaOk,
@@ -400,7 +409,10 @@ private fun AbaApp(
         color = TextoSecundario,
         fontSize = 10.sp,
     )
-    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.Center,
+    ) {
         Text(
             text = "Enviar log",
             color = TextoAmareloConfig,
@@ -419,7 +431,10 @@ private fun AbaApp(
         )
     }
     SubtituloSecao("App de corrida")
-    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.Center,
+    ) {
         listOf(
             br.com.gestordriver.notification.Plataforma.UBER to "Uber",
             br.com.gestordriver.notification.Plataforma.NOVE_NOVE to "99",
@@ -434,7 +449,11 @@ private fun AbaApp(
         }
     }
     SubtituloSecao("Navegação")
-    Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.Center,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
         OpcaoMarca(
             texto = "Google maps",
             marcado = configuracao.navegacao == AppNavegacao.GOOGLE_MAPS,
@@ -453,7 +472,10 @@ private fun AbaApp(
         )
     }
     SubtituloSecao("Conectar conta email")
-    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.Center,
+    ) {
         val googleOk = configuracao.contaTipo == TipoContaVinculada.GOOGLE
         val emailOk = configuracao.contaTipo == TipoContaVinculada.EMAIL
         Text(

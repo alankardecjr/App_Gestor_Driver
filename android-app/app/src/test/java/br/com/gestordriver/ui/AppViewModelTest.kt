@@ -496,6 +496,43 @@ class AppViewModelTest {
         )
     }
 
+    @Test
+    fun solicitar_limpar_historico_deve_exibir_confirmacao_sem_apagar() {
+        val viewModel = novoViewModel()
+        viewModel.aplicarNovaCorrida(analiseFake())
+        viewModel.registrarAceiteCorrida()
+        viewModel.alternarHistorico()
+        viewModel.solicitarLimparHistorico()
+        assertTrue(viewModel.state.confirmacaoLimparHistoricoVisivel)
+        assertFalse(viewModel.state.historicoVisivel)
+        assertEquals(1, viewModel.state.historico.size)
+    }
+
+    @Test
+    fun cancelar_limpar_historico_deve_manter_itens() {
+        val viewModel = novoViewModel()
+        viewModel.aplicarNovaCorrida(analiseFake())
+        viewModel.registrarAceiteCorrida()
+        viewModel.alternarHistorico()
+        viewModel.solicitarLimparHistorico()
+        viewModel.cancelarLimparHistorico()
+        assertFalse(viewModel.state.confirmacaoLimparHistoricoVisivel)
+        assertTrue(viewModel.state.historicoVisivel)
+        assertEquals(1, viewModel.state.historico.size)
+    }
+
+    @Test
+    fun confirmar_limpar_historico_deve_apagar_itens() {
+        val viewModel = novoViewModel()
+        viewModel.aplicarNovaCorrida(analiseFake())
+        viewModel.registrarAceiteCorrida()
+        viewModel.solicitarLimparHistorico()
+        viewModel.confirmarLimparHistorico()
+        assertFalse(viewModel.state.confirmacaoLimparHistoricoVisivel)
+        assertTrue(viewModel.state.historicoVisivel)
+        assertTrue(viewModel.state.historico.isEmpty())
+    }
+
     // =====================================================================
     // POSIÇÃO DO SELO
     // =====================================================================
@@ -547,6 +584,16 @@ class AppViewModelTest {
         assertTrue(viewModel.state.seloFlutuante)
         assertEquals(null, viewModel.state.analiseAtual)
         assertEquals("—", viewModel.state.corrida.camposCompactos.first { it.id == "valor_total" }.valor)
+    }
+
+    @Test
+    fun aceite_uber_repetido_nao_duplica_historico() {
+        val viewModel = novoViewModel()
+        viewModel.aplicarNovaCorrida(analiseFake())
+        viewModel.registrarAceiteCorrida()
+        viewModel.aplicarNovaCorrida(analiseFake())
+        viewModel.registrarAceiteCorrida()
+        assertEquals(1, viewModel.state.historico.size)
     }
 
     @Test

@@ -196,22 +196,25 @@ private fun PainelConta(
 
 @Composable
 private fun CampoEmailOnboarding(valor: String, onChange: (String) -> Unit) {
-    androidx.compose.foundation.text.BasicTextField(
-        value = valor,
-        onValueChange = onChange,
-        singleLine = true,
-        textStyle = androidx.compose.ui.text.TextStyle(color = TextoPrincipal, fontSize = 13.sp),
-        modifier = Modifier
-            .fillMaxWidth()
-            .border(1.dp, Borda, Forma)
-            .padding(8.dp),
-        decorationBox = { inner ->
-            if (valor.isBlank()) {
-                Text("e-mail", color = TextoSecundario, fontSize = 13.sp)
-            }
-            inner()
-        },
-    )
+    Column(modifier = Modifier.fillMaxWidth()) {
+        Text("E-mail", color = TextoSecundario, fontSize = 12.sp)
+        androidx.compose.foundation.text.BasicTextField(
+            value = valor,
+            onValueChange = onChange,
+            singleLine = true,
+            textStyle = androidx.compose.ui.text.TextStyle(color = TextoPrincipal, fontSize = 13.sp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .border(1.dp, Borda, Forma)
+                .padding(8.dp),
+            decorationBox = { inner ->
+                if (valor.isBlank()) {
+                    Text("e-mail", color = TextoSecundario, fontSize = 13.sp)
+                }
+                inner()
+            },
+        )
+    }
 }
 
 @Composable

@@ -42,6 +42,9 @@ interface HistoricoDao {
 
     @Insert(onConflict = OnConflictStrategy.IGNORE)
     fun inserir(entity: HistoricoCorridaEntity)
+
+    @Query("DELETE FROM historico_corridas_aceitas")
+    fun limpar()
 }
 
 @androidx.room.Database(
@@ -61,6 +64,10 @@ class RoomHistoricoRepository(
 
     override fun salvar(item: HistoricoItemPresentation) {
         dao.inserir(item.paraEntity())
+    }
+
+    override fun limpar() {
+        dao.limpar()
     }
 }
 

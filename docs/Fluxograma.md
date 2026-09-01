@@ -129,10 +129,10 @@ Nova oferta substitui a corrida atual. Sem oferta = selo. Histórico só muda no
 
           EXPANDIDA (overlay, altura do conteúdo)
           │
-          ├── 📜 HISTÓRICO → painel overlay abaixo (⤴️ recolhe)
-          ├── ⚙️ CONFIG → painel overlay abaixo (abas VEÍCULO / CUSTOS / CLASSIFICAÇÃO / APP)
+          ├── 📜 Histórico → painel overlay abaixo (⤴️ Histórico recolhe; ⬅️➡️ e deslize trocam Uber/99/inDrive)
+          ├── ⚙️ Config → painel overlay abaixo (abas VEÍCULO / CUSTOS / CALIBRAR / APP; ⬅️➡️ nas abas)
           ├── ⬆️ retrai para compacta (toque fora → selo imediato; senão 5 s → selo, mesmo com oferta)
-          └── ❎ OCULTAR → selo (fecha histórico e config)
+          └── ❎ Ocultar → selo (fecha histórico e config)
 
 #5. Fluxo de encerramento
 
@@ -152,12 +152,14 @@ Nova oferta substitui a corrida atual. Sem oferta = selo. Histórico só muda no
 
 Fonte da verdade: R$/KM → faixa → classificação → cor. A interface não escolhe a cor.
 
-Corrida atual (borda grossa):
+Corrida atual (borda grossa, 5 dp):
 
 - 🔴 Ruim = vermelho
 - 🟠 Regular = laranja
 - 🟢 Boa = verde
 - 🔵 Ótima = azul
+
+Janelas Histórico e Configuração: borda cinza fina (2 dp), fundo semitransparente.
 
 Histórico (borda neutra **somente nos itens das listas** Uber / 99 / inDrive): a classificação aparece no marcador colorido. Compacta/expandida com oferta ou item selecionado **mantém a borda colorida**.
 

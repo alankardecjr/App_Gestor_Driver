@@ -47,28 +47,29 @@ object OverlayPaineis {
     private const val AMARELO = "#FFD54F"
     private const val VERDE = "#7CB342"
 
-    fun criarHistorico(context: Context): ScrollView {
-        val scroll = ScrollView(context)
-        scroll.background = fundoNeutro(context)
-        scroll.clipToOutline = true
+    fun criarHistorico(context: Context): LinearLayout {
         val coluna = LinearLayout(context).apply {
             orientation = LinearLayout.VERTICAL
-            setPadding(dp(context, 8), dp(context, 6), dp(context, 8), dp(context, 6))
+            background = fundoNeutro(context)
+            clipToOutline = true
+            setPadding(0, dp(context, 6), 0, dp(context, 6))
             tag = "historico_coluna"
         }
         coluna.addView(
-            TextView(context).apply {
-                text = "HISTÓRICO"
-                setTextColor(Color.WHITE)
-                textSize = 14f
-                gravity = Gravity.CENTER
-                setPadding(0, 0, 0, dp(context, 6))
+            tituloComSetas(
+                context,
+                "HISTÓRICO",
+                onEsquerda = { avancarAbaHistorico(-1) },
+                onDireita = { avancarAbaHistorico(1) },
+            ).apply {
+                setPadding(dp(context, 8), 0, dp(context, 8), dp(context, 6))
             },
         )
         val abas = LinearLayout(context).apply {
             orientation = LinearLayout.HORIZONTAL
             tag = "historico_abas"
             gravity = Gravity.CENTER
+            setPadding(dp(context, 8), 0, dp(context, 8), 0)
         }
         listOf("Uber", "99", "inDrive").forEach { aba ->
             abas.addView(
@@ -86,19 +87,42 @@ object OverlayPaineis {
             )
         }
         coluna.addView(abas)
+        val lista = LinearLayout(context).apply {
+            orientation = LinearLayout.VERTICAL
+            tag = "historico_lista"
+        }
+        val scroll = ScrollView(context).apply {
+            tag = "historico_scroll"
+            isFillViewport = true
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                0,
+                1f,
+            )
+            barraJuntoDaBorda(paddingInicioDp = 8)
+            addView(lista)
+        }
+        coluna.addView(scroll)
         coluna.addView(
-            LinearLayout(context).apply {
-                orientation = LinearLayout.VERTICAL
-                tag = "historico_lista"
+            TextView(context).apply {
+                text = "🗑️ Limpar histórico"
+                setTextColor(Color.parseColor(AMARELO))
+                textSize = 13f
+                gravity = Gravity.CENTER
+                setPadding(dp(context, 8), dp(context, 10), dp(context, 8), dp(context, 4))
+                layoutParams = LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT,
+                    LinearLayout.LayoutParams.WRAP_CONTENT,
+                )
+                setOnClickListener { OverlayBridge.emitir(OverlayAcao.SolicitarLimparHistorico) }
             },
         )
-        scroll.addView(coluna)
         escutarFlingAbas(
-            scroll,
+            coluna,
             onProxima = { avancarAbaHistorico(1) },
             onAnterior = { avancarAbaHistorico(-1) },
         )
-        return scroll
+        return coluna
     }
 
     fun criarConfirmacaoFechar(context: Context): LinearLayout {
@@ -109,6 +133,7 @@ object OverlayPaineis {
         }
         coluna.addView(
             TextView(context).apply {
+                tag = "confirmacao_titulo"
                 text = "Fechar gestor driver"
                 setTextColor(Color.WHITE)
                 textSize = 13f
@@ -118,6 +143,7 @@ object OverlayPaineis {
         )
         coluna.addView(
             TextView(context).apply {
+                tag = "confirmacao_mensagem"
                 text = "Deseja encerrar o aplicativo e parar o monitoramento de corridas?"
                 setTextColor(Color.parseColor(SECUNDARIO))
                 textSize = 12f
@@ -131,32 +157,62 @@ object OverlayPaineis {
         }
         acoes.addView(
             TextView(context).apply {
+                tag = "confirmacao_cancelar"
                 text = "Cancelar"
                 setTextColor(Color.parseColor(SECUNDARIO))
                 textSize = 13f
                 gravity = Gravity.CENTER
                 setPadding(dp(context, 16), dp(context, 8), dp(context, 16), dp(context, 8))
                 layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
-                setOnClickListener { OverlayBridge.emitir(OverlayAcao.CancelarFechar) }
             },
         )
         acoes.addView(
             TextView(context).apply {
+                tag = "confirmacao_confirmar"
                 text = "Fechar"
                 setTextColor(Color.parseColor(AMARELO))
                 textSize = 13f
                 gravity = Gravity.CENTER
                 setPadding(dp(context, 16), dp(context, 8), dp(context, 16), dp(context, 8))
                 layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
-                setOnClickListener { OverlayBridge.emitir(OverlayAcao.ConfirmarFechar) }
             },
         )
         coluna.addView(acoes)
+        atualizarConfirmacao(coluna, limparHistorico = false)
         return coluna
     }
 
+    fun atualizarConfirmacao(view: View, limparHistorico: Boolean) {
+        view.findViewWithTag<TextView>("confirmacao_titulo")?.text =
+            if (limparHistorico) "Limpar histórico" else "Fechar gestor driver"
+        view.findViewWithTag<TextView>("confirmacao_mensagem")?.text =
+            if (limparHistorico) {
+                "Deseja apagar todas as corridas aceitas do histórico?"
+            } else {
+                "Deseja encerrar o aplicativo e parar o monitoramento de corridas?"
+            }
+        view.findViewWithTag<TextView>("confirmacao_confirmar")?.apply {
+            text = if (limparHistorico) "Limpar" else "Fechar"
+            setOnClickListener {
+                OverlayBridge.emitir(
+                    if (limparHistorico) OverlayAcao.ConfirmarLimparHistorico else OverlayAcao.ConfirmarFechar,
+                )
+            }
+        }
+        view.findViewWithTag<TextView>("confirmacao_cancelar")?.setOnClickListener {
+            OverlayBridge.emitir(
+                if (limparHistorico) OverlayAcao.CancelarLimparHistorico else OverlayAcao.CancelarFechar,
+            )
+        }
+    }
+
     fun atualizarHistorico(view: View, snapshot: OverlaySnapshot) {
-        val coluna = (view as ScrollView).getChildAt(0) as LinearLayout
+        val coluna = if (view.tag == "historico_coluna") {
+            view as LinearLayout
+        } else {
+            view.findViewWithTag("historico_coluna") ?: return
+        }
+        coluna.background = fundoNeutro(coluna.context)
         val abas = coluna.findViewWithTag<LinearLayout>("historico_abas")
         listOf("Uber", "99", "inDrive").forEach { aba ->
             val rotulo = abas.findViewWithTag<TextView>("aba_$aba")
@@ -164,9 +220,15 @@ object OverlayPaineis {
             rotulo.setTextColor(Color.parseColor(if (selecionada) VERDE else SECUNDARIO))
             rotulo.typeface = if (selecionada) Typeface.DEFAULT_BOLD else Typeface.DEFAULT
         }
-        val lista = coluna.findViewWithTag<LinearLayout>("historico_lista")
+        val lista = coluna.findViewWithTag<LinearLayout>("historico_lista") ?: return
         lista.removeAllViews()
-        lista.addView(linhaHistorico(view.context, titulosHistorico, cabecalho = true))
+        lista.addView(
+            encapsularLinhaHistorico(
+                view.context,
+                cabecalho = true,
+                linhaHistorico(view.context, titulosHistorico, cabecalho = true),
+            ),
+        )
         if (snapshot.historicoItens.isEmpty()) {
             lista.addView(
                 TextView(view.context).apply {
@@ -195,24 +257,26 @@ object OverlayPaineis {
             descendantFocusability = ViewGroup.FOCUS_BEFORE_DESCENDANTS
             isFocusable = true
             isFocusableInTouchMode = true
-            setPadding(dp(ctx, 8), dp(ctx, 6), dp(ctx, 8), dp(ctx, 6))
+            setPadding(0, dp(ctx, 8), 0, dp(ctx, 8))
             tag = "config_coluna"
         }
         raiz.addView(
-            TextView(ctx).apply {
-                text = "CONFIGURAÇÃO"
-                setTextColor(Color.WHITE)
-                textSize = 14f
-                gravity = Gravity.CENTER
-                setPadding(0, 0, 0, dp(ctx, 6))
+            tituloComSetas(
+                ctx,
+                "CONFIGURAÇÃO",
+                onEsquerda = { avancarAbaConfig(-1) },
+                onDireita = { avancarAbaConfig(1) },
+            ).apply {
+                setPadding(dp(ctx, 8), 0, dp(ctx, 8), dp(ctx, 6))
             },
         )
         val abas = LinearLayout(ctx).apply {
             orientation = LinearLayout.HORIZONTAL
             tag = "config_abas"
             gravity = Gravity.CENTER
+            setPadding(dp(ctx, 8), 0, dp(ctx, 8), 0)
         }
-        listOf("VEÍCULO", "CUSTOS", "CLASSIFICAÇÃO", "APP").forEachIndexed { indice, titulo ->
+        listOf("VEÍCULO", "CUSTOS", "CALIBRAR", "APP").forEachIndexed { indice, titulo ->
             abas.addView(
                 TextView(ctx).apply {
                     text = titulo
@@ -242,6 +306,7 @@ object OverlayPaineis {
                 0,
                 1f,
             )
+            barraJuntoDaBorda(paddingInicioDp = 8)
         }
         scroll.addView(
             LinearLayout(ctx).apply {
@@ -254,7 +319,7 @@ object OverlayPaineis {
         val rodape = LinearLayout(ctx).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER
-            setPadding(0, dp(ctx, 6), 0, 0)
+            setPadding(dp(ctx, 8), dp(ctx, 6), dp(ctx, 8), 0)
         }
         rodape.addView(
             TextView(ctx).apply {
@@ -318,6 +383,7 @@ object OverlayPaineis {
             return
         }
         atualizarConfigInterno(view, snapshot)
+        view.findViewWithTag<View>("config_coluna")?.background = fundoNeutro(view.context)
     }
 
     private fun selecionarAbaConfig(indice: Int) {
@@ -451,8 +517,16 @@ object OverlayPaineis {
         imm?.hideSoftInputFromWindow(view.windowToken, 0)
     }
 
-    private val titulosHistorico = listOf("Data", "Hora", "R$/km", "Valor", "Km", "Tempo", "Nota", "⭐")
-    private val pesosHistorico = listOf(0.95f, 0.7f, 0.8f, 0.8f, 0.9f, 0.55f, 0.55f, 0.35f)
+    private val titulosHistorico = listOf(
+        "🗓️Data",
+        "🕓Hora",
+        "💵R$/Km",
+        "💰VALOR",
+        "🛞DIST.",
+        "🕐TEMPO",
+        "⭐NOTA",
+        "Class.",
+    )
 
     private fun linhaHistorico(
         context: Context,
@@ -464,66 +538,120 @@ object OverlayPaineis {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
             valores.forEachIndexed { indice, valor ->
-                addView(
-                    TextView(context).apply {
-                        text = valor
-                        setTextColor(
-                            Color.parseColor(
-                                when {
-                                    indice == valores.lastIndex && !cabecalho -> corMarcador
-                                    cabecalho -> SECUNDARIO
-                                    else -> TEXTO
-                                },
-                            ),
-                        )
-                        textSize = if (cabecalho) 11.5f else 12f
-                        maxLines = 1
-                        ellipsize = TextUtils.TruncateAt.END
-                        gravity = Gravity.CENTER
-                        typeface = if (cabecalho) Typeface.DEFAULT_BOLD else Typeface.DEFAULT
-                        layoutParams = LinearLayout.LayoutParams(
-                            0,
-                            LinearLayout.LayoutParams.WRAP_CONTENT,
-                            pesosHistorico.getOrElse(indice) { 1f },
-                        )
-                    },
+                val params = LinearLayout.LayoutParams(
+                    0,
+                    LinearLayout.LayoutParams.WRAP_CONTENT,
+                    1f,
                 )
+                val ultima = indice == valores.lastIndex
+                if (ultima) {
+                    addView(
+                        FrameLayout(context).apply {
+                            layoutParams = params
+                            if (!cabecalho) {
+                                addView(
+                                    View(context).apply {
+                                        val tamanho = dp(context, 8)
+                                        layoutParams = FrameLayout.LayoutParams(tamanho, tamanho).apply {
+                                            gravity = Gravity.CENTER
+                                        }
+                                        background = GradientDrawable().apply {
+                                            shape = GradientDrawable.OVAL
+                                            setColor(Color.parseColor(corMarcador))
+                                        }
+                                    },
+                                )
+                            } else {
+                                addView(
+                                    TextView(context).apply {
+                                        text = valor
+                                        setTextColor(Color.parseColor(SECUNDARIO))
+                                        textSize = 8.5f
+                                        maxLines = 1
+                                        ellipsize = TextUtils.TruncateAt.END
+                                        gravity = Gravity.CENTER
+                                        includeFontPadding = false
+                                        typeface = Typeface.DEFAULT_BOLD
+                                        layoutParams = FrameLayout.LayoutParams(
+                                            FrameLayout.LayoutParams.MATCH_PARENT,
+                                            FrameLayout.LayoutParams.WRAP_CONTENT,
+                                            Gravity.CENTER,
+                                        )
+                                    },
+                                )
+                            }
+                        },
+                    )
+                } else {
+                    addView(
+                        TextView(context).apply {
+                            text = valor
+                            setTextColor(Color.parseColor(if (cabecalho) SECUNDARIO else TEXTO))
+                            textSize = 8.5f
+                            maxLines = 1
+                            ellipsize = TextUtils.TruncateAt.END
+                            gravity = Gravity.CENTER
+                            includeFontPadding = false
+                            setPadding(0, 0, 0, 0)
+                            typeface = if (cabecalho) Typeface.DEFAULT_BOLD else Typeface.DEFAULT
+                            layoutParams = params
+                        },
+                    )
+                }
             }
         }
     }
 
-    private fun criarItemHistorico(context: Context, item: OverlayHistoricoItem): View {
+    private fun encapsularLinhaHistorico(
+        context: Context,
+        cabecalho: Boolean,
+        linha: View,
+    ): LinearLayout {
         return LinearLayout(context).apply {
             orientation = LinearLayout.VERTICAL
             background = GradientDrawable().apply {
                 setColor(Color.TRANSPARENT)
-                setStroke(dp(context, 1), Color.parseColor(ClassificacaoConstantes.COR_BORDA_NEUTRA))
+                setStroke(
+                    dp(context, 1),
+                    Color.parseColor(
+                        if (cabecalho) "#00000000" else ClassificacaoConstantes.COR_BORDA_NEUTRA,
+                    ),
+                )
                 cornerRadius = dp(context, 8).toFloat()
             }
-            setPadding(dp(context, 4), dp(context, 5), dp(context, 4), dp(context, 5))
+            setPadding(dp(context, 2), dp(context, 3), dp(context, 2), dp(context, 3))
             val params = LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT,
                 LinearLayout.LayoutParams.WRAP_CONTENT,
             )
-            params.topMargin = dp(context, 5)
+            if (!cabecalho) {
+                params.topMargin = dp(context, 5)
+            }
             layoutParams = params
-            addView(
-                linhaHistorico(
-                    context,
-                    listOf(
-                        item.data,
-                        item.hora,
-                        item.valorPorKm,
-                        item.valor,
-                        item.km,
-                        item.tempo,
-                        item.nota,
-                        item.marcador,
-                    ),
-                    cabecalho = false,
-                    corMarcador = item.corMarcador,
+            addView(linha)
+        }
+    }
+
+    private fun criarItemHistorico(context: Context, item: OverlayHistoricoItem): View {
+        return encapsularLinhaHistorico(
+            context,
+            cabecalho = false,
+            linhaHistorico(
+                context,
+                listOf(
+                    item.data,
+                    item.hora,
+                    item.valorPorKm,
+                    item.valor,
+                    item.km,
+                    item.tempo,
+                    item.nota,
+                    item.marcador,
                 ),
-            )
+                cabecalho = false,
+                corMarcador = item.corMarcador,
+            ),
+        ).apply {
             setOnClickListener { OverlayBridge.emitir(OverlayAcao.SelecionarHistorico(item.chave)) }
         }
     }
@@ -748,7 +876,10 @@ object OverlayPaineis {
         )
         destino.addView(logVersao)
         destino.addView(rotulo(context, "App de corrida", secao = true))
-        val apps = LinearLayout(context).apply { orientation = LinearLayout.HORIZONTAL }
+        val apps = LinearLayout(context).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER
+        }
         listOf(
             Plataforma.UBER to "Uber",
             Plataforma.NOVE_NOVE to "99",
@@ -934,7 +1065,7 @@ object OverlayPaineis {
                 setPadding(0, 0, 0, dp(context, 8))
             },
         )
-        val campoEmail = campo(context, "E-MAIL", "", "cfg_conta_email", compacto = true).first
+        val campoEmail = campo(context, "E-mail", "", "cfg_conta_email", compacto = true).first
         coluna.addView(campoEmail)
         val aviso = TextView(context).apply {
             tag = "cfg_conta_email_erro"
@@ -996,7 +1127,7 @@ object OverlayPaineis {
 
     private fun montarClassificacao(destino: LinearLayout, config: ConfiguracaoUsuario) {
         val ctx = destino.context
-        destino.addView(rotulo(ctx, "Classificação", secao = true))
+        destino.addView(rotulo(ctx, "Calibrar classificações", secao = true))
         data class Faixa(
             val titulo: String,
             val cor: String,
@@ -1156,6 +1287,11 @@ object OverlayPaineis {
     ): LinearLayout =
         LinearLayout(context).apply {
             orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER
+            val laterais = if (itens.size <= 2) 0.45f else 0f
+            if (laterais > 0f) {
+                addView(View(context), LinearLayout.LayoutParams(0, 1, laterais))
+            }
             itens.forEach { item ->
                 addView(
                     linhaPermissao(
@@ -1165,9 +1301,13 @@ object OverlayPaineis {
                         destacar && item.obrigatoria && !item.ok,
                         item.onClick,
                     ).apply {
+                        gravity = Gravity.CENTER
                         layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
                     },
                 )
+            }
+            if (laterais > 0f) {
+                addView(View(context), LinearLayout.LayoutParams(0, 1, laterais))
             }
         }
 
@@ -1177,11 +1317,11 @@ object OverlayPaineis {
                 colorirPermissao(it, titulo, ok, snapshot.destacarPermissoes && obrigatoria && !ok)
             }
         }
-        pintar("NOTIFICAÇÕES", PermissoesMonitoramento.listenerNotificacoesAtivo(context), true)
-        pintar("SOBREPOR", PermissoesMonitoramento.overlayConcedida(context), true)
-        pintar("ACESSIB.", PermissoesMonitoramento.acessibilidadeAtiva(context), true)
-        pintar("BATERIA", PermissoesMonitoramento.bateriaLiberada(context), true)
-        pintar("LOCALIZAÇÃO", PermissoesMonitoramento.localizacaoConcedida(context), false)
+        pintar("Notificações", PermissoesMonitoramento.listenerNotificacoesAtivo(context), true)
+        pintar("Sobrepor", PermissoesMonitoramento.overlayConcedida(context), true)
+        pintar("Acessib.", PermissoesMonitoramento.acessibilidadeAtiva(context), true)
+        pintar("Bateria", PermissoesMonitoramento.bateriaLiberada(context), true)
+        pintar("Localização", PermissoesMonitoramento.localizacaoConcedida(context), false)
     }
 
     private fun linhaPermissao(
@@ -1426,6 +1566,48 @@ object OverlayPaineis {
             }
         }
 
+    private fun tituloComSetas(
+        context: Context,
+        titulo: String,
+        onEsquerda: () -> Unit,
+        onDireita: () -> Unit,
+    ): LinearLayout =
+        LinearLayout(context).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            setPadding(0, 0, 0, dp(context, 6))
+            addView(
+                TextView(context).apply {
+                    text = "⬅️"
+                    textSize = 14f
+                    gravity = Gravity.CENTER
+                    setPadding(dp(context, 4), dp(context, 2), dp(context, 4), dp(context, 2))
+                    background = null
+                    setOnClickListener { onEsquerda() }
+                },
+            )
+            addView(
+                TextView(context).apply {
+                    text = titulo
+                    setTextColor(Color.WHITE)
+                    textSize = 14f
+                    gravity = Gravity.CENTER
+                    typeface = Typeface.DEFAULT_BOLD
+                    layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+                },
+            )
+            addView(
+                TextView(context).apply {
+                    text = "➡️"
+                    textSize = 14f
+                    gravity = Gravity.CENTER
+                    setPadding(dp(context, 4), dp(context, 2), dp(context, 4), dp(context, 2))
+                    background = null
+                    setOnClickListener { onDireita() }
+                },
+            )
+        }
+
     private fun escutarFlingAbas(
         view: View,
         onProxima: () -> Unit,
@@ -1454,6 +1636,26 @@ object OverlayPaineis {
             detector.onTouchEvent(evento)
             false
         }
+    }
+
+    fun aplicarBordaNeutra(view: View) {
+        view.background = fundoNeutro(view.context)
+    }
+
+    private fun ScrollView.barraJuntoDaBorda(paddingInicioDp: Int) {
+        isVerticalScrollBarEnabled = true
+        isHorizontalScrollBarEnabled = false
+        isScrollbarFadingEnabled = true
+        scrollBarStyle = View.SCROLLBARS_INSIDE_INSET
+        clipToPadding = true
+        setPadding(dp(context, paddingInicioDp), 0, dp(context, 12), 0)
+        val polegar = GradientDrawable().apply {
+            setColor(Color.parseColor("#B8C5D1"))
+            cornerRadius = dp(context, 2).toFloat()
+            setSize(dp(context, 4), dp(context, 28))
+        }
+        setVerticalScrollbarThumbDrawable(polegar)
+        setVerticalScrollbarTrackDrawable(null)
     }
 
     private fun fundoNeutro(context: Context): GradientDrawable =

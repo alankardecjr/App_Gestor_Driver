@@ -40,6 +40,7 @@ class AppViewModel(
     private val scope: CoroutineScope = coroutineScope ?: viewModelScope
     private var compactaTemporariaJob: Job? = null
     private var estadoAntesFechar: AppState? = null
+    private var estadoAntesLimparHistorico: AppState? = null
     private var ofertaParaHistorico: AnaliseCorrida? = null
 
     // ================================================================
@@ -140,6 +141,9 @@ class AppViewModel(
                     OverlayAcao.Fechar -> solicitarFecharApp()
                     OverlayAcao.CancelarFechar -> cancelarFecharApp()
                     OverlayAcao.ConfirmarFechar -> confirmarFecharApp()
+                    OverlayAcao.SolicitarLimparHistorico -> solicitarLimparHistorico()
+                    OverlayAcao.CancelarLimparHistorico -> cancelarLimparHistorico()
+                    OverlayAcao.ConfirmarLimparHistorico -> confirmarLimparHistorico()
                     is OverlayAcao.SelecionarHistorico -> selecionarHistoricoPorChave(acao.chave)
                     is OverlayAcao.AbaHistorico -> selecionarAbaHistorico(acao.aba)
                     is OverlayAcao.AbaConfiguracao -> {
@@ -675,6 +679,7 @@ class AppViewModel(
         estadoAntesFechar = state
         state = state.copy(
             confirmacaoFecharVisivel = true,
+            confirmacaoLimparHistoricoVisivel = false,
             historicoVisivel = false,
             configuracoesVisivel = false,
             seloFlutuante = false,
@@ -722,6 +727,63 @@ class AppViewModel(
 
         _fecharApp.tryEmit(Unit)
         publicarOverlay()
+    }
+
+    fun solicitarLimparHistorico() {
+        estadoAntesLimparHistorico = state
+        state = state.copy(
+            confirmacaoLimparHistoricoVisivel = true,
+            confirmacaoFecharVisivel = false,
+            historicoVisivel = false,
+            configuracoesVisivel = false,
+            seloFlutuante = false,
+            corrida = state.corrida.copy(
+                modo = ModoApresentacao.DETALHES,
+                acaoDetalhes = "Menos detalhes",
+            ),
+        )
+        publicarOverlay()
+        if (state.interfaceOculta) {
+            _irParaSegundoPlano.tryEmit(Unit)
+        }
+    }
+
+    fun cancelarLimparHistorico() {
+        val anterior = estadoAntesLimparHistorico
+        estadoAntesLimparHistorico = null
+        if (anterior != null) {
+            state = anterior.copy(confirmacaoLimparHistoricoVisivel = false)
+            publicarOverlay()
+            if (state.interfaceOculta) {
+                _irParaSegundoPlano.tryEmit(Unit)
+            }
+            return
+        }
+        state = state.copy(
+            confirmacaoLimparHistoricoVisivel = false,
+            historicoVisivel = true,
+        )
+        publicarOverlay()
+    }
+
+    fun confirmarLimparHistorico() {
+        historicoRepository.limpar()
+        estadoAntesLimparHistorico = null
+        state = state.copy(
+            historico = emptyList(),
+            historicoSelecionado = null,
+            confirmacaoLimparHistoricoVisivel = false,
+            historicoVisivel = true,
+            configuracoesVisivel = false,
+            corrida = state.corrida.copy(
+                modo = ModoApresentacao.DETALHES,
+                acaoDetalhes = "Menos detalhes",
+            ),
+        )
+        publicarOverlay()
+        if (state.interfaceOculta) {
+            _irParaSegundoPlano.tryEmit(Unit)
+        }
     }
 
     // ================================================================
@@ -916,10 +978,10 @@ class AppViewModel(
                     chave = item.chaveHistorico(),
                     data = item.dataLista,
                     hora = item.horaLista,
-                    valorPorKm = PresentationBuilder.formatarDecimalPublico(item.valorPorKm),
-                    valor = PresentationBuilder.formatarDecimalPublico(item.valorTotal),
-                    km = PresentationBuilder.formatarKmPublico(item.kmTotal),
-                    tempo = item.tempoEstimado?.toString() ?: "—",
+                    valorPorKm = PresentationBuilder.formatarDinheiroHistorico(item.valorPorKm),
+                    valor = PresentationBuilder.formatarDinheiroHistorico(item.valorTotal),
+                    km = PresentationBuilder.formatarDistanciaHistorico(item.kmTotal),
+                    tempo = PresentationBuilder.formatarTempoHistorico(item.tempoEstimado),
                     nota = item.notaPassageiro?.let { PresentationBuilder.formatarDecimalPublico(it) } ?: "—",
                     marcador = item.classificacao.marcador,
                     corMarcador = item.corClassificacao,
@@ -935,6 +997,7 @@ class AppViewModel(
                 historicoVisivel = expandidaVisivel && state.historicoVisivel,
                 configuracoesVisivel = expandidaVisivel && state.configuracoesVisivel,
                 confirmacaoFecharVisivel = expandidaVisivel && state.confirmacaoFecharVisivel,
+                confirmacaoLimparHistoricoVisivel = expandidaVisivel && state.confirmacaoLimparHistoricoVisivel,
                 historicoAba = state.abaHistorico,
                 historicoItens = itensHistorico,
                 destacarPermissoes = state.destacarPermissoes,

@@ -31,6 +31,7 @@ data class OverlaySnapshot(
     val historicoVisivel: Boolean = false,
     val configuracoesVisivel: Boolean = false,
     val confirmacaoFecharVisivel: Boolean = false,
+    val confirmacaoLimparHistoricoVisivel: Boolean = false,
     val historicoAba: String = "Uber",
     val historicoItens: List<OverlayHistoricoItem> = emptyList(),
     val destacarPermissoes: Boolean = false,
@@ -54,7 +55,10 @@ data class OverlaySnapshot(
     val enderecoDestino: String? = null,
     val corridaAceita: Boolean = false,
     val corClassificacao: String = ClassificacaoConstantes.COR_BORDA_NEUTRA,
-)
+) {
+    val confirmacaoVisivel: Boolean
+        get() = confirmacaoFecharVisivel || confirmacaoLimparHistoricoVisivel
+}
 
 sealed class OverlayAcao {
     data class Reabrir(val origemCompacta: Boolean = false) : OverlayAcao()
@@ -69,6 +73,9 @@ sealed class OverlayAcao {
     data object Fechar : OverlayAcao()
     data object CancelarFechar : OverlayAcao()
     data object ConfirmarFechar : OverlayAcao()
+    data object SolicitarLimparHistorico : OverlayAcao()
+    data object CancelarLimparHistorico : OverlayAcao()
+    data object ConfirmarLimparHistorico : OverlayAcao()
     data class SelecionarHistorico(val chave: String) : OverlayAcao()
     data class AbaHistorico(val aba: String) : OverlayAcao()
     data class AbaConfiguracao(val indice: Int) : OverlayAcao()
