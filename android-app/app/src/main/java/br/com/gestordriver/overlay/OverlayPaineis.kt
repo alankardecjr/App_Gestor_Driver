@@ -122,6 +122,11 @@ object OverlayPaineis {
             onProxima = { avancarAbaHistorico(1) },
             onAnterior = { avancarAbaHistorico(-1) },
         )
+        escutarFlingAbas(
+            scroll,
+            onProxima = { avancarAbaHistorico(1) },
+            onAnterior = { avancarAbaHistorico(-1) },
+        )
         return coluna
     }
 

@@ -779,9 +779,7 @@ private fun HistoricoSection(
         modifier = Modifier
             .fillMaxWidth()
             .height(AlturaPainelSecundario)
-            .deslizeHorizontalAbas(indice, plataformas.size) { novo ->
-                onAba(plataformas[novo])
-            }
+            .deslizeHorizontalAbas(indice, plataformas.size) { onAba(plataformas[it]) }
             .border(
                 width = 2.dp,
                 color = BordaNeutra,

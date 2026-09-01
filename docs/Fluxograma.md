@@ -129,8 +129,8 @@ Nova oferta substitui a corrida atual. Sem oferta = selo. Histórico só muda no
 
           EXPANDIDA (overlay, altura do conteúdo)
           │
-          ├── 📜 Histórico → painel overlay abaixo (⤴️ Histórico recolhe; ⬅️➡️ e deslize trocam Uber/99/inDrive)
-          ├── ⚙️ Config → painel overlay abaixo (abas VEÍCULO / CUSTOS / CALIBRAR / APP; ⬅️➡️ nas abas)
+          ├── 📜 Histórico → painel overlay abaixo (⤴️ Histórico recolhe; ⬅️➡️, deslize ou clique no rótulo trocam Uber/99/inDrive)
+          ├── ⚙️ Config → painel overlay abaixo (abas VEÍCULO / CUSTOS / CALIBRAR / APP; ⬅️➡️, deslize ou clique no rótulo; mais alto que o Histórico)
           ├── ⬆️ retrai para compacta (toque fora → selo imediato; senão 5 s → selo, mesmo com oferta)
           └── ❎ Ocultar → selo (fecha histórico e config)
 

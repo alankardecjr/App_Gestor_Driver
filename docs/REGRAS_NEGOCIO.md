@@ -295,7 +295,7 @@ O histórico contém exclusivamente:
 
 CORRIDAS ACEITAS
 
-Abre como **painel overlay abaixo da expandida** (não tela cheia). Título **⬅️ HISTÓRICO ➡️** (as setas e o deslize horizontal trocam de aba). Abas: Uber | 99 | inDrive. Mais recente primeiro. Toque no item preenche a expandida (sem data/hora no painel da corrida).
+Abre como **painel overlay abaixo da expandida** (não tela cheia). Título **⬅️ HISTÓRICO ➡️**. Troca de aba por **deslize horizontal**, **setas** ou **clique no rótulo** (Uber | 99 | inDrive). Mais recente primeiro. Toque no item preenche a expandida (sem data/hora no painel da corrida). A altura do painel **não** acompanha o extra da Configuração.
 
 Janela do painel: **borda cinza fina (2 dp)** e fundo semitransparente (o mesmo recorte da Configuração). A borda **grossa colorida** fica só na compacta/expandida da corrida.
 
@@ -493,7 +493,7 @@ O monitoramento continua ativo.
 
 23. Configurações
 
-A configuração abre como **painel overlay abaixo da expandida** (mesmo recorte do histórico: título **⬅️ CONFIGURAÇÃO ➡️**, bordas arredondadas, **borda cinza fina de 2 dp**, fundo semitransparente, mesmo recuo lateral). As quatro abas usam a **mesma altura vertical**. Rolagem vertical só se o conteúdo não couber abaixo da expandida; a barra aparece no toque e some depois, junto da borda da janela.
+A configuração abre como **painel overlay abaixo da expandida** (mesmo recorte do histórico: título **⬅️ CONFIGURAÇÃO ➡️**, bordas arredondadas, **borda cinza fina de 2 dp**, fundo semitransparente, mesmo recuo lateral). Troca de aba por **deslize horizontal**, **setas** ou **clique no rótulo** (VEÍCULO / CUSTOS / CALIBRAR / APP). As quatro abas usam a **mesma altura vertical**, um pouco maior que o Histórico, para **Combustível atual** (Gasolina/Etanol) aparecer sem esconder o campo. Rolagem vertical só se o conteúdo não couber abaixo da expandida; a barra aparece no toque e some depois, junto da borda da janela.
 
 - **VEÍCULO** — descrição (marca, modelo, versão, ano, **final da placa**), consumo km/L gasolina e etanol, combustível atual (marca exclusiva). Pro: vencimento do IPVA e **calcular abastecimento**.
 - **CUSTOS** — preços gasolina/etanol (R$/L). Pro (estruturado, bloqueado): troca de óleo (valor, km, data) e pneus dianteiro/traseiro (valor, rodagem, data).
@@ -1040,8 +1040,8 @@ Telas congeladas:
 - selo flutuante
 - compacta
 - expandida (cabeçalho, DISTÂNCIAS, CUSTOS (ESTIMADO), botões)
-- histórico (⬅️ HISTÓRICO ➡️, abas Uber / 99 / inDrive, deslize horizontal, 🗑️ Limpar histórico)
-- configuração (⬅️ CONFIGURAÇÃO ➡️, abas VEÍCULO / CUSTOS / CALIBRAR / APP, deslize horizontal, CANCELAR / SALVAR)
+- histórico (⬅️ HISTÓRICO ➡️, abas Uber / 99 / inDrive, deslize / setas / clique no rótulo, 🗑️ Limpar histórico)
+- configuração (⬅️ CONFIGURAÇÃO ➡️, abas VEÍCULO / CUSTOS / CALIBRAR / APP, deslize / setas / clique no rótulo, CANCELAR / SALVAR; painel mais alto que o Histórico para mostrar Combustível atual)
 - confirmação de fechar e de limpar histórico
 
 Exceção autorizada na Beta: layout da configuração (abas VEÍCULO / CUSTOS / CALIBRAR / APP), campos Pro com 🔒 no título + **versão pro**, e vínculo de conta Google/e-mail sem habilitar edição dos campos Pro.

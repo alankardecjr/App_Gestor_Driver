@@ -64,7 +64,7 @@ private val TextoAmareloConfig = Color(0xFFFFD54F)
 private val FundoCaixa = Color(0x33000000)
 private val FormaPainel = RoundedCornerShape(10.dp)
 private val FormaCaixa = RoundedCornerShape(6.dp)
-private val AlturaAba = 268.dp + 188.dp
+private val AlturaAba = 268.dp + 188.dp + 76.dp
 
 private val FonteAba = 13.sp
 private val FonteCampo = 12.sp

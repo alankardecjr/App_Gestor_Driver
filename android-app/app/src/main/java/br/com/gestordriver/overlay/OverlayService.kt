@@ -272,7 +272,7 @@ class OverlayService : Service() {
             historicoView = nova
         }
         OverlayPaineis.atualizarHistorico(view, snapshot)
-        aplicarAlturaPainelSecundario(view, params)
+        aplicarAlturaPainelSecundario(view, params, extraMm = 0)
     }
 
     private fun garantirConfig(snapshot: OverlaySnapshot) {
@@ -296,9 +296,9 @@ class OverlayService : Service() {
         OverlayPaineis.atualizarConfig(view, snapshot)
         params.softInputMode = WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_HIDDEN or
             WindowManager.LayoutParams.SOFT_INPUT_ADJUST_PAN
-        aplicarAlturaPainelSecundario(view, params)
+        aplicarAlturaPainelSecundario(view, params, extraMm = 12)
         view.post {
-            aplicarAlturaPainelSecundario(view, params)
+            aplicarAlturaPainelSecundario(view, params, extraMm = 12)
         }
     }
 
@@ -782,17 +782,18 @@ class OverlayService : Service() {
         return (bounds.height() - insets.bottom - yAbaixoExpandida() - dp(8)).coerceAtLeast(dp(96))
     }
 
-    private fun alturaPainelConfig(): Int =
+    private fun alturaPainelSecundario(extraMm: Int): Int =
         alturaMaximaAbaixoExpandida()
-            .coerceAtMost(dp(268) + mm(30))
+            .coerceAtMost(dp(268) + mm(30) + mm(extraMm))
             .coerceAtLeast(dp(220).coerceAtMost(alturaMaximaAbaixoExpandida()))
 
     private fun aplicarAlturaPainelSecundario(
         view: View,
         params: WindowManager.LayoutParams,
+        extraMm: Int = 0,
     ) {
         params.width = larguraPaineis()
-        params.height = alturaPainelConfig()
+        params.height = alturaPainelSecundario(extraMm)
         params.x = 0
         params.y = yAbaixoExpandida()
         runCatching { windowManager.updateViewLayout(view, params) }
@@ -840,12 +841,12 @@ class OverlayService : Service() {
         }
         if (snapshot.historicoVisivel && !snapshot.configuracoesVisivel && !snapshot.confirmacaoVisivel) {
             historicoParams?.let { params ->
-                historicoView?.let { view -> aplicarAlturaPainelSecundario(view, params) }
+                historicoView?.let { view -> aplicarAlturaPainelSecundario(view, params, extraMm = 0) }
             }
         }
         if (snapshot.configuracoesVisivel && !snapshot.confirmacaoVisivel) {
             configParams?.let { params ->
-                configView?.let { view -> aplicarAlturaPainelSecundario(view, params) }
+                configView?.let { view -> aplicarAlturaPainelSecundario(view, params, extraMm = 12) }
             }
         }
         if (snapshot.confirmacaoVisivel) {

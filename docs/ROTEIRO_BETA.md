@@ -37,7 +37,8 @@ Pro (custo operacional, R$ líquido, relatórios). Free na loja (mesma UI, **sem
 | Oferta chega | Compacta: R$/KM, VALOR, DIST., TEMPO, NOTA, borda da classificação |
 | Recusa / some a oferta | Volta ao selo, **não** entra no histórico |
 | `⬇️` ou toque no selo | Expandida com Distâncias + Custos; mapa visível atrás |
-| Config / Histórico | Painel abaixo da expandida (não tela cheia) |
+| Config / Histórico | Painel abaixo da expandida; abas mudam por deslize, setas ou clique no nome |
+| Config VEÍCULO | Combustível atual (Gasolina/Etanol) visível; Config é mais alta que o Histórico |
 | Aceita na plataforma | Uma linha no histórico; interface vai ao **selo** |
 | Recolher (`⬆️`) | Compacta; toque fora das janelas do Gestor → selo na hora (senão, 5 s) |
 | Compacta + toque no mapa / recusar da 99 | Selo imediato; o toque chega na plataforma |
