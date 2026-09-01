@@ -321,6 +321,7 @@ private fun CabecalhoCorrida(
 
                     CampoCabecalho(
                         campo = campo,
+                        compacta = modo == ModoApresentacao.COMPACTA,
                     )
                 }
             }
@@ -400,7 +401,9 @@ private fun CabecalhoCorrida(
 @Composable
 private fun CampoCabecalho(
     campo: CampoApresentacao,
+    compacta: Boolean,
 ) {
+    fun titulo(caixaAlta: String, frase: String) = if (compacta) caixaAlta else frase
 
     when (campo.id) {
 
@@ -408,7 +411,7 @@ private fun CampoCabecalho(
 
                 CabecalhoSimples(
                     icone = "💵",
-                    titulo = "R$/KM",
+                    titulo = titulo("R$/KM", "R$/km"),
                     valor = campo.valor,
                     destaque = campo.destaque,
                     corTitulo = TextoVerde,
@@ -419,7 +422,7 @@ private fun CampoCabecalho(
 
             CabecalhoSimples(
                 icone = "💰",
-                titulo = "VALOR",
+                titulo = titulo("VALOR", "Valor"),
                 valor = removerPrefixoReal(
                     campo.valor,
                 ),
@@ -432,7 +435,7 @@ private fun CampoCabecalho(
 
             CabecalhoSimples(
                 icone = "🛞",
-                titulo = "DIST.",
+                titulo = titulo("DIST.", "Dist."),
                 valor = campo.valor,
                 destaque = campo.destaque,
                 corTitulo = TextoAzul,
@@ -443,7 +446,7 @@ private fun CampoCabecalho(
 
             CabecalhoSimples(
                 icone = "🕐",
-                titulo = "TEMPO",
+                titulo = titulo("TEMPO", "Tempo"),
                 valor = campo.valor,
                 destaque = campo.destaque,
                 corTitulo = TextoLaranja,
@@ -454,7 +457,7 @@ private fun CampoCabecalho(
 
             CabecalhoSimples(
                 icone = "⭐",
-                titulo = "NOTA",
+                titulo = titulo("NOTA", "Nota"),
                 valor = campo.valor,
                 destaque = campo.destaque,
                 corTitulo = TextoAmarelo,
@@ -515,7 +518,7 @@ private fun CabecalhoSimples(
             Text(
                 text = valor,
                 color = TextoPrincipal,
-                fontSize = if (destaque) 16.sp else 14.sp,
+                fontSize = 13.sp,
                 fontWeight = FontWeight.SemiBold,
                 maxLines = 1,
             )
@@ -602,7 +605,7 @@ private fun ColunaDetalhes(
         Text(
             text = "$icone $titulo",
             color = corTitulo,
-            style = MaterialTheme.typography.labelSmall,
+            fontSize = 12.sp,
             fontWeight = FontWeight.SemiBold,
             maxLines = 1,
         )
@@ -675,9 +678,9 @@ private fun ControlesInterface(
         TextButton(onClick = onConfig) {
             Text(
                 text = if (configuracoesVisivel) {
-                    "⤴️CONFIG"
+                    "⤴️ Config"
                 } else {
-                    "⚙️CONFIG"
+                    "⚙️ Config"
                 },
                 color = TextoAmarelo,
                 style = MaterialTheme.typography.labelSmall,
@@ -729,6 +732,7 @@ private fun HistoricoSection(
     Column(
         modifier = Modifier
             .fillMaxWidth()
+            .height(268.dp)
             .deslizeHorizontalAbas(indice, plataformas.size) { novo ->
                 onAba(plataformas[novo])
             }
@@ -737,7 +741,8 @@ private fun HistoricoSection(
                 color = Color(0xFF607D8B),
                 shape = CardDefaults.shape,
             )
-            .padding(horizontal = 8.dp, vertical = 8.dp),
+            .background(Color(0xF2050809), CardDefaults.shape)
+            .padding(horizontal = 8.dp, vertical = 6.dp),
         verticalArrangement = Arrangement.spacedBy(6.dp),
     ) {
         Box(
@@ -747,7 +752,7 @@ private fun HistoricoSection(
             Text(
                 text = "HISTÓRICO",
                 color = TextoPrincipal,
-                style = MaterialTheme.typography.titleSmall,
+                fontSize = 14.sp,
                 fontWeight = FontWeight.SemiBold,
             )
         }
@@ -758,43 +763,50 @@ private fun HistoricoSection(
         ) {
             plataformas.forEach { plataforma ->
                 Text(
-                    text = plataforma,
+                    text = plataforma.uppercase(),
                     color = if (aba.equals(plataforma, ignoreCase = true)) TextoVerde else TextoSecundario,
-                    style = MaterialTheme.typography.labelMedium,
+                    fontSize = 12.sp,
                     fontWeight = if (aba.equals(plataforma, ignoreCase = true)) FontWeight.SemiBold else FontWeight.Normal,
                     modifier = Modifier.clickable { onAba(plataforma) },
                 )
             }
         }
 
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .weight(1f, fill = true)
+                .verticalScroll(rememberScrollState()),
         ) {
-            listOf("DATA", "HORA", "R$/KM", "VALOR", "KM", "TEMPO", "NOTA", "⭐").forEachIndexed { indice, titulo ->
-                Text(
-                    text = titulo,
-                    color = TextoHistorico,
-                    style = MaterialTheme.typography.labelSmall,
-                    maxLines = 1,
-                    fontWeight = FontWeight.SemiBold,
-                    modifier = Modifier.weight(pesosColunaHistorico[indice]),
-                )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                listOf("Data", "Hora", "R$/km", "Valor", "Km", "Tempo", "Nota", "⭐").forEachIndexed { indice, titulo ->
+                    Text(
+                        text = titulo,
+                        color = TextoHistorico,
+                        fontSize = 11.5.sp,
+                        maxLines = 1,
+                        fontWeight = FontWeight.SemiBold,
+                        modifier = Modifier.weight(pesosColunaHistorico[indice]),
+                    )
+                }
             }
-        }
 
-        if (itens.isEmpty()) {
-            Text(
-                text = "Nenhuma corrida aceita.",
-                color = TextoSecundario,
-                style = MaterialTheme.typography.bodySmall,
-            )
-        } else {
-            itens.forEach { item ->
-                HistoricoItemLista(
-                    item = item,
-                    onClick = { onSelecionarHistorico(item) },
+            if (itens.isEmpty()) {
+                Text(
+                    text = "Nenhuma corrida aceita.",
+                    color = TextoSecundario,
+                    fontSize = 12.sp,
                 )
+            } else {
+                itens.forEach { item ->
+                    HistoricoItemLista(
+                        item = item,
+                        onClick = { onSelecionarHistorico(item) },
+                    )
+                }
             }
         }
     }
@@ -818,7 +830,7 @@ private fun ConfirmacaoFecharSection(
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Text(
-            text = "FECHAR GESTOR DRIVER",
+            text = "Fechar gestor driver",
             color = TextoPrincipal,
             style = MaterialTheme.typography.titleSmall,
             fontWeight = FontWeight.SemiBold,
@@ -891,7 +903,7 @@ private fun HistoricoItemLista(
                 } else {
                     TextoPrincipal
                 },
-                style = MaterialTheme.typography.labelSmall,
+                fontSize = 12.sp,
                 maxLines = 1,
                 modifier = Modifier.weight(pesosColunaHistorico[indice]),
             )

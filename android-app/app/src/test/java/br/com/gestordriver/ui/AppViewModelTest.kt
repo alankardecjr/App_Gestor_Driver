@@ -721,7 +721,7 @@ class AppViewModelTest {
         assertEquals("99", viewModel.state.abaHistorico)
         assertTrue(viewModel.state.ofertaAtiva)
         assertEquals(40.0, viewModel.state.analiseAtual?.valorTotal ?: 0.0, 0.001)
-        assertFalse(viewModel.state.seloFlutuante)
+        assertTrue(viewModel.state.seloFlutuante)
     }
 
     private fun analiseFake(valor: Double = 38.0, plataforma: String = "Uber") =

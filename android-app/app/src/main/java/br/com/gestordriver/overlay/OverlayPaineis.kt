@@ -23,6 +23,7 @@ import android.widget.TextView
 import br.com.gestordriver.GestorDriverApp
 import br.com.gestordriver.core.FaixasClassificacao
 import br.com.gestordriver.MainActivity
+import br.com.gestordriver.core.Classificacao
 import br.com.gestordriver.core.ClassificacaoConstantes
 import br.com.gestordriver.data.ContaVinculo
 import br.com.gestordriver.model.AppNavegacao
@@ -52,14 +53,14 @@ object OverlayPaineis {
         scroll.clipToOutline = true
         val coluna = LinearLayout(context).apply {
             orientation = LinearLayout.VERTICAL
-            setPadding(dp(context, 10), dp(context, 8), dp(context, 10), dp(context, 8))
+            setPadding(dp(context, 8), dp(context, 6), dp(context, 8), dp(context, 6))
             tag = "historico_coluna"
         }
         coluna.addView(
             TextView(context).apply {
                 text = "HISTÓRICO"
                 setTextColor(Color.WHITE)
-                textSize = 13f
+                textSize = 14f
                 gravity = Gravity.CENTER
                 setPadding(0, 0, 0, dp(context, 6))
             },
@@ -72,12 +73,13 @@ object OverlayPaineis {
         listOf("Uber", "99", "inDrive").forEach { aba ->
             abas.addView(
                 TextView(context).apply {
-                    text = aba
+                    text = aba.uppercase()
                     tag = "aba_$aba"
                     setTextColor(Color.parseColor(SECUNDARIO))
                     textSize = 12f
                     gravity = Gravity.CENTER
-                    setPadding(dp(context, 10), dp(context, 4), dp(context, 10), dp(context, 4))
+                    maxLines = 1
+                    setPadding(dp(context, 2), dp(context, 5), dp(context, 2), dp(context, 5))
                     layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
                     setOnClickListener { OverlayBridge.emitir(OverlayAcao.AbaHistorico(aba)) }
                 },
@@ -107,7 +109,7 @@ object OverlayPaineis {
         }
         coluna.addView(
             TextView(context).apply {
-                text = "FECHAR GESTOR DRIVER"
+                text = "Fechar gestor driver"
                 setTextColor(Color.WHITE)
                 textSize = 13f
                 gravity = Gravity.CENTER
@@ -170,7 +172,7 @@ object OverlayPaineis {
                 TextView(view.context).apply {
                     text = "Nenhuma corrida aceita."
                     setTextColor(Color.parseColor(SECUNDARIO))
-                    textSize = 11f
+                    textSize = 12f
                     setPadding(0, dp(view.context, 8), 0, 0)
                 },
             )
@@ -256,9 +258,9 @@ object OverlayPaineis {
         }
         rodape.addView(
             TextView(ctx).apply {
-                text = "CANCELAR"
+                text = "Cancelar"
                 setTextColor(Color.parseColor(SECUNDARIO))
-                textSize = 13f
+                textSize = 12f
                 gravity = Gravity.CENTER
                 isClickable = true
                 setPadding(dp(ctx, 8), dp(ctx, 8), dp(ctx, 8), dp(ctx, 8))
@@ -268,9 +270,9 @@ object OverlayPaineis {
         )
         rodape.addView(
             TextView(ctx).apply {
-                text = "SALVAR"
+                text = "Salvar"
                 setTextColor(Color.parseColor(VERDE))
-                textSize = 13f
+                textSize = 12f
                 gravity = Gravity.CENTER
                 isClickable = true
                 setPadding(dp(ctx, 8), dp(ctx, 8), dp(ctx, 8), dp(ctx, 8))
@@ -449,7 +451,7 @@ object OverlayPaineis {
         imm?.hideSoftInputFromWindow(view.windowToken, 0)
     }
 
-    private val titulosHistorico = listOf("DATA", "HORA", "R$/KM", "VALOR", "KM", "TEMPO", "NOTA", "⭐")
+    private val titulosHistorico = listOf("Data", "Hora", "R$/km", "Valor", "Km", "Tempo", "Nota", "⭐")
     private val pesosHistorico = listOf(0.95f, 0.7f, 0.8f, 0.8f, 0.9f, 0.55f, 0.55f, 0.35f)
 
     private fun linhaHistorico(
@@ -474,7 +476,7 @@ object OverlayPaineis {
                                 },
                             ),
                         )
-                        textSize = if (cabecalho) 8f else 9f
+                        textSize = if (cabecalho) 11.5f else 12f
                         maxLines = 1
                         ellipsize = TextUtils.TruncateAt.END
                         gravity = Gravity.CENTER
@@ -531,67 +533,52 @@ object OverlayPaineis {
         config: ConfiguracaoUsuario,
     ) {
         val ctx = destino.context
-        destino.addView(rotulo(ctx, "DESCRIÇÃO VEÍCULO", secao = true))
+        destino.addView(rotulo(ctx, "Descrição veículo", secao = true))
         destino.addView(
             linha(
                 ctx,
-                campo(ctx, "MARCA", config.marcaVeiculo, "cfg_marca", compacto = true).first,
-                campo(ctx, "MODELO", config.modeloVeiculo, "cfg_modelo", compacto = true).first,
+                campo(ctx, "Marca", config.marcaVeiculo, "cfg_marca", compacto = true).first,
+                campo(ctx, "Modelo", config.modeloVeiculo, "cfg_modelo", compacto = true).first,
             ),
         )
         destino.addView(
             linha(
                 ctx,
-                campo(ctx, "VERSÃO", config.versaoVeiculo, "cfg_versao", compacto = true).first,
-                campo(ctx, "ANO", config.anoVeiculo, "cfg_ano", compacto = true).first,
+                campo(ctx, "Versão", config.versaoVeiculo, "cfg_versao", compacto = true).first,
+                campo(ctx, "Ano", config.anoVeiculo, "cfg_ano", compacto = true).first,
             ),
         )
         destino.addView(
             linha(
                 ctx,
-                campo(ctx, "FINAL DA PLACA", config.finalPlaca, "cfg_placa", compacto = true).first,
-                campo(ctx, "IPVA", config.ipvaVencimento, "cfg_ipva", bloqueado = true, compacto = true, pro = true).first,
+                campo(ctx, "Final da placa", config.finalPlaca, "cfg_placa", compacto = true).first,
+                campo(ctx, "Ipva", config.ipvaVencimento, "cfg_ipva", bloqueado = true, compacto = true, pro = true).first,
             ),
         )
-        destino.addView(rotulo(ctx, "CONSUMO KM", secao = true))
+        destino.addView(rotulo(ctx, "Consumo km", secao = true))
         destino.addView(
             linha(
                 ctx,
-                campo(ctx, "GASOLINA", DecimalInput.formatar(config.consumoGasolina), "cfg_consumo_g", compacto = true).first,
-                campo(ctx, "ETANOL", DecimalInput.formatar(config.consumoEtanol), "cfg_consumo_e", compacto = true).first,
+                campo(ctx, "Gasolina", DecimalInput.formatar(config.consumoGasolina), "cfg_consumo_g", compacto = true).first,
+                campo(ctx, "Etanol", DecimalInput.formatar(config.consumoEtanol), "cfg_consumo_e", compacto = true).first,
             ),
         )
-        destino.addView(rotuloPro(ctx, "CALCULAR ABASTECIMENTO"))
-        destino.addView(
-            linha(
-                ctx,
-                campo(ctx, "VALOR TOTAL", "", "cfg_abast_valor", bloqueado = true, compacto = true).first,
-                campo(ctx, "LITROS TOTAL", "", "cfg_abast_litros", bloqueado = true, compacto = true).first,
-            ),
-        )
-        destino.addView(
-            linha(
-                ctx,
-                campo(ctx, "KM INICIAL", "", "cfg_abast_km_ini", bloqueado = true, compacto = true).first,
-                campo(ctx, "KM FINAL", "", "cfg_abast_km_fim", bloqueado = true, compacto = true).first,
-            ),
-        )
-        destino.addView(rotulo(ctx, "COMBUSTÍVEL ATUAL", secao = true))
+        destino.addView(rotulo(ctx, "Combustível atual", secao = true))
         val ckG = CheckBox(ctx).apply {
-            text = "GASOLINA"
+            text = "Gasolina"
             tag = "cfg_ck_gasolina"
             setTextColor(Color.WHITE)
-            textSize = 11f
+            textSize = 12f
             scaleX = 0.82f
             scaleY = 0.82f
             isFocusableInTouchMode = false
             isChecked = config.combustivel == Combustivel.GASOLINA
         }
         val ckE = CheckBox(ctx).apply {
-            text = "ETANOL"
+            text = "Etanol"
             tag = "cfg_ck_etanol"
             setTextColor(Color.WHITE)
-            textSize = 11f
+            textSize = 12f
             scaleX = 0.82f
             scaleY = 0.82f
             isFocusableInTouchMode = false
@@ -610,6 +597,21 @@ object OverlayPaineis {
             }
         }
         destino.addView(linha(ctx, ckG, ckE))
+        destino.addView(rotuloPro(ctx, "Calcular abastecimento", compacto = true))
+        destino.addView(
+            linha(
+                ctx,
+                campo(ctx, "Valor total", "", "cfg_abast_valor", bloqueado = true, compacto = true).first,
+                campo(ctx, "Litros total", "", "cfg_abast_litros", bloqueado = true, compacto = true).first,
+            ),
+        )
+        destino.addView(
+            linha(
+                ctx,
+                campo(ctx, "Km inicial", "", "cfg_abast_km_ini", bloqueado = true, compacto = true).first,
+                campo(ctx, "Km final", "", "cfg_abast_km_fim", bloqueado = true, compacto = true).first,
+            ),
+        )
     }
 
     private fun montarCustos(
@@ -617,40 +619,40 @@ object OverlayPaineis {
         config: ConfiguracaoUsuario,
     ) {
         val ctx = destino.context
-        destino.addView(rotulo(ctx, "VALOR DO COMBUSTÍVEL", secao = true))
+        destino.addView(rotulo(ctx, "Valor do combustível", secao = true))
         destino.addView(
             linha(
                 ctx,
-                campo(ctx, "LITRO GASOLINA", DecimalInput.formatar(config.precoGasolina), "cfg_preco_g").first,
-                campo(ctx, "LITRO ETANOL", DecimalInput.formatar(config.precoEtanol), "cfg_preco_e").first,
+                campo(ctx, "Litro gasolina", DecimalInput.formatar(config.precoGasolina), "cfg_preco_g").first,
+                campo(ctx, "Litro etanol", DecimalInput.formatar(config.precoEtanol), "cfg_preco_e").first,
             ),
         )
-        destino.addView(rotuloPro(ctx, "TROCA DE ÓLEO (ÓLEO E FILTROS)"))
+        destino.addView(rotuloPro(ctx, "Troca de óleo (óleo e filtros)", compacto = true))
         destino.addView(
             linha(
                 ctx,
-                campo(ctx, "VALOR", "", "cfg_oleo_valor", bloqueado = true, compacto = true).first,
-                campo(ctx, "KM", "", "cfg_oleo_km", bloqueado = true, compacto = true).first,
-                campo(ctx, "DATA", "", "cfg_oleo_data", bloqueado = true, compacto = true).first,
+                campo(ctx, "Valor", "", "cfg_oleo_valor", bloqueado = true, compacto = true).first,
+                campo(ctx, "Km", "", "cfg_oleo_km", bloqueado = true, compacto = true).first,
+                campo(ctx, "Data", "", "cfg_oleo_data", bloqueado = true, compacto = true).first,
             ),
         )
-        destino.addView(rotuloPro(ctx, "CUSTO ESTIMADO DOS PNEUS"))
-        destino.addView(rotulo(ctx, "DIANTEIRO", compacto = true))
+        destino.addView(rotuloPro(ctx, "Custo estimado dos pneus", compacto = true))
+        destino.addView(rotulo(ctx, "Dianteiro", compacto = true))
         destino.addView(
             linha(
                 ctx,
-                campo(ctx, "VALOR", "", "cfg_pneu_d_valor", bloqueado = true, compacto = true).first,
-                campo(ctx, "RODAGEM", "", "cfg_pneu_d_km", bloqueado = true, compacto = true).first,
-                campo(ctx, "DATA", "", "cfg_pneu_d_data", bloqueado = true, compacto = true).first,
+                campo(ctx, "Valor", "", "cfg_pneu_d_valor", bloqueado = true, compacto = true).first,
+                campo(ctx, "Rodagem", "", "cfg_pneu_d_km", bloqueado = true, compacto = true).first,
+                campo(ctx, "Data", "", "cfg_pneu_d_data", bloqueado = true, compacto = true).first,
             ),
         )
-        destino.addView(rotulo(ctx, "TRASEIRO", compacto = true))
+        destino.addView(rotulo(ctx, "Traseiro", compacto = true))
         destino.addView(
             linha(
                 ctx,
-                campo(ctx, "VALOR", "", "cfg_pneu_t_valor", bloqueado = true, compacto = true).first,
-                campo(ctx, "RODAGEM", "", "cfg_pneu_t_km", bloqueado = true, compacto = true).first,
-                campo(ctx, "DATA", "", "cfg_pneu_t_data", bloqueado = true, compacto = true).first,
+                campo(ctx, "Valor", "", "cfg_pneu_t_valor", bloqueado = true, compacto = true).first,
+                campo(ctx, "Rodagem", "", "cfg_pneu_t_km", bloqueado = true, compacto = true).first,
+                campo(ctx, "Data", "", "cfg_pneu_t_data", bloqueado = true, compacto = true).first,
             ),
         )
     }
@@ -661,18 +663,18 @@ object OverlayPaineis {
         snapshot: OverlaySnapshot,
         context: Context,
     ) {
-        destino.addView(rotulo(context, "PERMISSÕES", secao = true))
+        destino.addView(rotulo(context, "Permissões", secao = true))
         destino.addView(
             linhaPermissoes(
                 context,
                 snapshot.destacarPermissoes,
-                ItemPermissao("NOTIFICAÇÕES", PermissoesMonitoramento.listenerNotificacoesAtivo(context)) {
+                ItemPermissao("Notificações", PermissoesMonitoramento.listenerNotificacoesAtivo(context)) {
                     context.startActivity(PermissoesMonitoramento.intentNotificacoes().addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
                 },
-                ItemPermissao("SOBREPOR", PermissoesMonitoramento.overlayConcedida(context)) {
+                ItemPermissao("Sobrepor", PermissoesMonitoramento.overlayConcedida(context)) {
                     context.startActivity(PermissoesMonitoramento.intentSobrepor(context).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
                 },
-                ItemPermissao("ACESSIB.", PermissoesMonitoramento.acessibilidadeAtiva(context)) {
+                ItemPermissao("Acessib.", PermissoesMonitoramento.acessibilidadeAtiva(context)) {
                     context.startActivity(
                         Intent(context, MainActivity::class.java)
                             .putExtra(MainActivity.EXTRA_PEDIR_ACESSIBILIDADE, true)
@@ -685,7 +687,7 @@ object OverlayPaineis {
             linhaPermissoes(
                 context,
                 snapshot.destacarPermissoes,
-                ItemPermissao("BATERIA", PermissoesMonitoramento.bateriaLiberada(context)) {
+                ItemPermissao("Bateria", PermissoesMonitoramento.bateriaLiberada(context)) {
                     context.startActivity(
                         Intent(context, MainActivity::class.java)
                             .putExtra(MainActivity.EXTRA_PEDIR_BATERIA, true)
@@ -693,7 +695,7 @@ object OverlayPaineis {
                     )
                 },
                 ItemPermissao(
-                    "LOCALIZAÇÃO",
+                    "Localização",
                     PermissoesMonitoramento.localizacaoConcedida(context),
                     obrigatoria = false,
                 ) {
@@ -707,7 +709,7 @@ object OverlayPaineis {
         )
         destino.addView(
             TextView(context).apply {
-                text = "ACESSIB. lê o card. BATERIA evita o overlay sumir. LOCALIZAÇÃO opcional."
+                text = "Acessib. lê o card. Bateria evita o overlay sumir. Localização opcional."
                 setTextColor(Color.parseColor(SECUNDARIO))
                 textSize = 10f
                 setPadding(0, dp(context, 2), 0, dp(context, 4))
@@ -719,7 +721,7 @@ object OverlayPaineis {
         }
         logVersao.addView(
             TextView(context).apply {
-                text = "ENVIAR LOG"
+                text = "Enviar log"
                 setTextColor(Color.parseColor(AMARELO))
                 textSize = 12f
                 gravity = Gravity.CENTER
@@ -745,12 +747,12 @@ object OverlayPaineis {
             },
         )
         destino.addView(logVersao)
-        destino.addView(rotulo(context, "APP DE CORRIDA", secao = true))
+        destino.addView(rotulo(context, "App de corrida", secao = true))
         val apps = LinearLayout(context).apply { orientation = LinearLayout.HORIZONTAL }
         listOf(
-            Plataforma.UBER to "UBER",
+            Plataforma.UBER to "Uber",
             Plataforma.NOVE_NOVE to "99",
-            Plataforma.INDRIVE to "INDRIVE",
+            Plataforma.INDRIVE to "Indrive",
         ).forEach { (plataforma, titulo) ->
             val ok = PlataformasMotorista.instalada(context, plataforma)
             apps.addView(
@@ -765,16 +767,16 @@ object OverlayPaineis {
             )
         }
         destino.addView(apps)
-        destino.addView(rotulo(context, "NAVEGAÇÃO", secao = true))
+        destino.addView(rotulo(context, "Navegação", secao = true))
         val maps = CheckBox(context).apply {
-            text = "GOOGLE MAPS"
+            text = "Google maps"
             tag = "cfg_ck_maps"
             setTextColor(Color.WHITE)
             isFocusableInTouchMode = false
             isChecked = config.navegacao == AppNavegacao.GOOGLE_MAPS
         }
         val waze = CheckBox(context).apply {
-            text = "WAZE"
+            text = "Waze"
             tag = "cfg_ck_waze"
             setTextColor(Color.WHITE)
             isFocusableInTouchMode = false
@@ -795,7 +797,7 @@ object OverlayPaineis {
             }
         }
         destino.addView(linha(context, maps, waze))
-        destino.addView(rotulo(context, "CONECTAR CONTA EMAIL", secao = true))
+        destino.addView(rotulo(context, "Conectar conta email", secao = true))
         val contas = LinearLayout(context).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER
@@ -803,14 +805,14 @@ object OverlayPaineis {
         contas.addView(
             botaoConta(
                 context,
-                if (config.contaTipo == TipoContaVinculada.GOOGLE) "CONTA GOOGLE 🆗" else "CONTA GOOGLE",
+                if (config.contaTipo == TipoContaVinculada.GOOGLE) "Conta google 🆗" else "Conta google",
                 "dialogo_conta_google",
             ),
         )
         contas.addView(
             botaoConta(
                 context,
-                if (config.contaTipo == TipoContaVinculada.EMAIL) "CONTA EMAIL 🆗" else "CONTA EMAIL",
+                if (config.contaTipo == TipoContaVinculada.EMAIL) "Conta email 🆗" else "Conta email",
                 "dialogo_conta_email",
             ),
         )
@@ -868,7 +870,7 @@ object OverlayPaineis {
         val coluna = molduraDialogo(context, "dialogo_conta_google")
         coluna.addView(
             TextView(context).apply {
-                text = "CONTA GOOGLE"
+                text = "Conta google"
                 setTextColor(Color.WHITE)
                 textSize = 13f
                 gravity = Gravity.CENTER
@@ -925,7 +927,7 @@ object OverlayPaineis {
         val coluna = molduraDialogo(context, "dialogo_conta_email")
         coluna.addView(
             TextView(context).apply {
-                text = "CONTA EMAIL"
+                text = "Conta email"
                 setTextColor(Color.WHITE)
                 textSize = 13f
                 gravity = Gravity.CENTER
@@ -994,46 +996,50 @@ object OverlayPaineis {
 
     private fun montarClassificacao(destino: LinearLayout, config: ConfiguracaoUsuario) {
         val ctx = destino.context
-        destino.addView(rotulo(ctx, "CLASSIFICAÇÃO", secao = true))
+        destino.addView(rotulo(ctx, "Classificação", secao = true))
         data class Faixa(
             val titulo: String,
+            val cor: String,
             val minTexto: String,
             val maxTexto: String,
             val tagMin: String?,
             val tagMax: String?,
         )
         val faixas = listOf(
-            Faixa("RUIM", "MIN", FaixasClassificacao.formatar(config.limiteRuimMax), null, "cfg_ruim_max"),
+            Faixa("Ruim", ClassificacaoConstantes.CORES.getValue(Classificacao.RUIM), "Min", FaixasClassificacao.formatar(config.limiteRuimMax), null, "cfg_ruim_max"),
             Faixa(
-                "REGULAR",
+                "Regular",
+                ClassificacaoConstantes.CORES.getValue(Classificacao.REGULAR),
                 FaixasClassificacao.formatar(config.limiteRegularMin),
                 FaixasClassificacao.formatar(config.limiteRegularMax),
                 "cfg_reg_min",
                 "cfg_reg_max",
             ),
             Faixa(
-                "BOA",
+                "Boa",
+                ClassificacaoConstantes.CORES.getValue(Classificacao.BOA),
                 FaixasClassificacao.formatar(config.limiteBoaMin),
                 FaixasClassificacao.formatar(config.limiteBoaMax),
                 "cfg_boa_min",
                 "cfg_boa_max",
             ),
             Faixa(
-                "ÓTIMA",
+                "Ótima",
+                ClassificacaoConstantes.CORES.getValue(Classificacao.EXCELENTE),
                 FaixasClassificacao.formatar(config.limiteOtimaMin),
-                "MAX",
+                "Max",
                 "cfg_otima_min",
                 null,
             ),
         )
         faixas.forEach { faixa ->
-            destino.addView(rotulo(ctx, faixa.titulo, compacto = true))
+            destino.addView(rotuloFaixa(ctx, faixa.titulo, faixa.cor))
             destino.addView(
                 linha(
                     ctx,
                     stepper(
                         ctx,
-                        "MIN",
+                        "Min",
                         faixa.minTexto,
                         faixa.tagMin ?: "cfg_${faixa.titulo}_min_fixo",
                         faixa.tagMin != null,
@@ -1041,7 +1047,7 @@ object OverlayPaineis {
                     ),
                     stepper(
                         ctx,
-                        "MAX",
+                        "Max",
                         faixa.maxTexto,
                         faixa.tagMax ?: "cfg_${faixa.titulo}_max_fixo",
                         faixa.tagMax != null,
@@ -1240,7 +1246,7 @@ object OverlayPaineis {
             setPadding(0, dp(context, if (compacto) 2 else 4), 0, dp(context, if (compacto) 2 else 4))
         }
         if (pro) {
-            bloco.addView(rotuloPro(context, label))
+            bloco.addView(rotuloPro(context, label, compacto = compacto))
         } else {
             bloco.addView(
                 rotulo(context, label, compacto = compacto).apply {
@@ -1270,6 +1276,33 @@ object OverlayPaineis {
         return bloco to campo
     }
 
+    private fun rotuloFaixa(context: Context, texto: String, corHex: String): LinearLayout =
+        LinearLayout(context).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            setPadding(0, dp(context, 8), 0, dp(context, 4))
+            addView(
+                TextView(context).apply {
+                    text = texto
+                    setTextColor(Color.WHITE)
+                    textSize = 12f
+                    typeface = Typeface.DEFAULT_BOLD
+                },
+            )
+            addView(
+                View(context).apply {
+                    val tamanho = dp(context, 8)
+                    layoutParams = LinearLayout.LayoutParams(tamanho, tamanho).apply {
+                        marginStart = dp(context, 8)
+                    }
+                    background = GradientDrawable().apply {
+                        shape = GradientDrawable.OVAL
+                        setColor(Color.parseColor(corHex))
+                    }
+                },
+            )
+        }
+
     private fun rotulo(
         context: Context,
         texto: String,
@@ -1279,18 +1312,21 @@ object OverlayPaineis {
         TextView(context).apply {
             text = texto
             setTextColor(Color.parseColor(if (secao) SECUNDARIO else SECUNDARIO))
-            textSize = if (secao) 12f else 11.5f
+            textSize = 12f
             typeface = if (secao) Typeface.DEFAULT_BOLD else Typeface.DEFAULT
-            val padTopo = if (secao) 8 else if (compacto) 3 else 6
-            val padBase = if (secao) 4 else if (compacto) 2 else 3
+            val padTopo = if (secao) 4 else if (compacto) 2 else 4
+            val padBase = if (secao) 2 else if (compacto) 1 else 2
             setPadding(0, dp(context, padTopo), 0, dp(context, padBase))
         }
 
-    private fun rotuloPro(context: Context, texto: String): LinearLayout =
+    private fun rotuloPro(context: Context, texto: String, compacto: Boolean = false): LinearLayout =
         LinearLayout(context).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
-            setPadding(0, dp(context, 8), 0, dp(context, 4))
+            val padTopo = if (compacto) 2 else 4
+            val padBase = if (compacto) 1 else 2
+            setPadding(0, dp(context, padTopo), 0, dp(context, padBase))
+            minimumHeight = dp(context, 16)
             addView(
                 TextView(context).apply {
                     text = "🔒 $texto"
@@ -1305,7 +1341,8 @@ object OverlayPaineis {
                 TextView(context).apply {
                     text = "versão pro"
                     setTextColor(Color.parseColor(AMARELO))
-                    textSize = 10f
+                    textSize = 9f
+                    maxLines = 1
                 },
             )
         }
@@ -1378,11 +1415,11 @@ object OverlayPaineis {
     private fun linha(context: Context, vararg filhos: View): LinearLayout =
         LinearLayout(context).apply {
             orientation = LinearLayout.HORIZONTAL
-            gravity = Gravity.TOP
-            setPadding(0, dp(context, 4), 0, dp(context, 4))
+            gravity = Gravity.BOTTOM
+            setPadding(0, dp(context, 2), 0, dp(context, 2))
             filhos.forEach { filho ->
                 filho.layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f).apply {
-                    gravity = Gravity.TOP
+                    gravity = Gravity.BOTTOM
                     marginEnd = dp(context, 4)
                 }
                 addView(filho)

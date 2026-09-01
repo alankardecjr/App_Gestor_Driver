@@ -77,22 +77,22 @@ private fun PainelPermissoes(
     val leituraOk = PermissoesMonitoramento.acessibilidadeAtiva(contexto)
     val bateriaOk = PermissoesMonitoramento.bateriaLiberada(contexto)
     val prontas = PermissoesMonitoramento.permissoesIniciaisOk(contexto)
-    CaixaOnboarding("PERMISSÕES") {
+    CaixaOnboarding("Permissões") {
         Text(
             "Toque em cada item e autorize. Sem isso o Gestor não lê a oferta nem fica sobre o mapa.",
             color = TextoSecundario,
             fontSize = 12.sp,
         )
-        LinhaStatus("NOTIFICAÇÕES", listenerOk) {
+        LinhaStatus("Notificações", listenerOk) {
             contexto.startActivity(PermissoesMonitoramento.intentNotificacoes())
         }
-        LinhaStatus("SOBREPOR", overlayOk) {
+        LinhaStatus("Sobrepor", overlayOk) {
             contexto.startActivity(PermissoesMonitoramento.intentSobrepor(contexto))
         }
-        LinhaStatus("ACESSIB.", leituraOk) {
+        LinhaStatus("Acessib.", leituraOk) {
             contexto.startActivity(PermissoesMonitoramento.intentAcessibilidade())
         }
-        LinhaStatus("BATERIA", bateriaOk) {
+        LinhaStatus("Bateria", bateriaOk) {
             contexto.startActivity(PermissoesMonitoramento.intentBateria(contexto))
         }
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center) {
@@ -101,7 +101,7 @@ private fun PainelPermissoes(
                 enabled = prontas,
             ) {
                 Text(
-                    if (prontas) "SEGUIR" else "AUTORIZE PARA SEGUIR",
+                    if (prontas) "Seguir" else "Autorize para seguir",
                     color = if (prontas) TextoVerde else TextoSecundario,
                     fontWeight = FontWeight.SemiBold,
                 )
@@ -124,7 +124,7 @@ private fun PainelConta(
         }
     }
     val conectado = viewModel.configuracao.contaTipo != TipoContaVinculada.NENHUMA
-    CaixaOnboarding("CONTA") {
+    CaixaOnboarding("Conta") {
         Text(
             "Primeiro uso: conecte Google ou e-mail para identificar o motorista nas versões Free e Beta. Nada é enviado para a nuvem agora.",
             color = TextoSecundario,
@@ -133,9 +133,9 @@ private fun PainelConta(
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
             Text(
                 text = if (viewModel.configuracao.contaTipo == TipoContaVinculada.GOOGLE) {
-                    "CONTA GOOGLE 🆗"
+                    "Conta google 🆗"
                 } else {
-                    "CONTA GOOGLE"
+                    "Conta google"
                 },
                 color = TextoAmarelo,
                 fontSize = 12.sp,
@@ -143,9 +143,9 @@ private fun PainelConta(
             )
             Text(
                 text = if (viewModel.configuracao.contaTipo == TipoContaVinculada.EMAIL) {
-                    "CONTA EMAIL 🆗"
+                    "Conta email 🆗"
                 } else {
-                    "CONTA EMAIL"
+                    "Conta email"
                 },
                 color = TextoAmarelo,
                 fontSize = 12.sp,
@@ -186,7 +186,7 @@ private fun PainelConta(
             modifier = Modifier.align(Alignment.CenterHorizontally),
         ) {
             Text(
-                if (conectado) "SEGUIR" else "CONECTE PARA SEGUIR",
+                if (conectado) "Seguir" else "Conecte para seguir",
                 color = if (conectado) TextoVerde else TextoSecundario,
                 fontWeight = FontWeight.SemiBold,
             )
@@ -228,11 +228,11 @@ private fun PainelTutorial(
             horizontalArrangement = Arrangement.SpaceEvenly,
         ) {
             TextButton(onClick = onPular) {
-                Text("PULAR", color = TextoSecundario)
+                Text("Pular", color = TextoSecundario)
             }
             TextButton(onClick = onSeguir) {
                 Text(
-                    if (passo >= TutorialConteudo.passos.lastIndex) "INICIAR" else "SEGUIR",
+                    if (passo >= TutorialConteudo.passos.lastIndex) "Iniciar" else "Seguir",
                     color = TextoVerde,
                     fontWeight = FontWeight.SemiBold,
                 )

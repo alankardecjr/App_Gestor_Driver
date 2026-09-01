@@ -128,6 +128,9 @@ class OverlayService : Service() {
             confirmacaoView?.visibility = View.INVISIBLE
             return
         }
+        if (snapshot.seloVisivel && !snapshot.compactaVisivel && !snapshot.expandidaVisivel) {
+            mostrarSeloImediato()
+        }
         garantirSelo(snapshot)
         seloView?.visibility = if (snapshot.seloVisivel) View.VISIBLE else View.INVISIBLE
         if (snapshot.compactaVisivel) {
@@ -293,9 +296,9 @@ class OverlayService : Service() {
         OverlayPaineis.atualizarConfig(view, snapshot)
         params.softInputMode = WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_HIDDEN or
             WindowManager.LayoutParams.SOFT_INPUT_ADJUST_PAN
-        aplicarTamanhoDoConteudo(view, params, alturaMaximaAbaixoExpandida())
+        aplicarAlturaPainelSecundario(view, params)
         view.post {
-            aplicarTamanhoDoConteudo(view, params, alturaMaximaAbaixoExpandida())
+            aplicarAlturaPainelSecundario(view, params)
         }
     }
 
@@ -385,7 +388,7 @@ class OverlayService : Service() {
         }
         listOf(
             "📴 Fechar" to { OverlayBridge.emitir(OverlayAcao.Fechar) },
-            "⚙️CONFIG" to { OverlayBridge.emitir(OverlayAcao.AbrirConfig) },
+            "⚙️ Config" to { OverlayBridge.emitir(OverlayAcao.AbrirConfig) },
             "❎ Ocultar" to {
                 mostrarSeloImediato()
                 OverlayBridge.emitir(OverlayAcao.Ocultar)
@@ -401,7 +404,7 @@ class OverlayService : Service() {
                     }
                     text = rotulo
                     setTextColor(Color.parseColor("#FFD54F"))
-                    textSize = 13f
+                    textSize = 12f
                     setPadding(dp(4), dp(8), dp(4), dp(8))
                     layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
                     gravity = Gravity.CENTER
@@ -426,13 +429,13 @@ class OverlayService : Service() {
         listOf("💵", "💰", "🛞", "🕐", "⭐").forEachIndexed { index, icone ->
             val bloco = metricas.getChildAt(index) as LinearLayout
             (bloco.getChildAt(0) as TextView).apply {
-                text = "$icone ${listOf("R$/KM", "VALOR", "DIST.", "TEMPO", "NOTA")[index]}"
-                textSize = 11.5f
+                text = "$icone ${listOf("R$/km", "Valor", "Dist.", "Tempo", "Nota")[index]}"
+                textSize = 12f
                 gravity = Gravity.CENTER
             }
             (bloco.getChildAt(1) as TextView).apply {
                 text = valores[index]
-                textSize = 14.5f
+                textSize = 13f
                 gravity = Gravity.CENTER
             }
         }
@@ -440,7 +443,7 @@ class OverlayService : Service() {
         val historicoBotao = acoes.findViewWithTag<TextView>("botao_historico")
         historicoBotao?.text = if (snapshot.historicoVisivel) "⤴️ Histórico" else "📜 Histórico"
         val configBotao = acoes.findViewWithTag<TextView>("botao_config")
-        configBotao?.text = if (snapshot.configuracoesVisivel) "⤴️CONFIG" else "⚙️CONFIG"
+        configBotao?.text = if (snapshot.configuracoesVisivel) "⤴️ Config" else "⚙️ Config"
         val distancias = coluna.findViewWithTag<LinearLayout>("distancias")
         distancias.gravity = Gravity.TOP
         distancias.setPadding(dp(8), 0, dp(6), 0)
@@ -578,7 +581,7 @@ class OverlayService : Service() {
                 TextView(this@OverlayService).apply {
                     text = "$icone $titulo"
                     setTextColor(Color.parseColor("#7CB342"))
-                    textSize = 11.5f
+                    textSize = 12f
                     gravity = Gravity.CENTER
                     maxLines = 1
                 },
@@ -586,7 +589,7 @@ class OverlayService : Service() {
             addView(
                 TextView(this@OverlayService).apply {
                     setTextColor(Color.WHITE)
-                    textSize = 14.5f
+                    textSize = 13f
                     gravity = Gravity.CENTER
                     maxLines = 1
                     text = "—"
@@ -619,7 +622,7 @@ class OverlayService : Service() {
             TextView(this).apply {
                 text = texto
                 setTextColor(Color.parseColor(cor))
-                textSize = 11.5f
+                textSize = 12f
                 gravity = Gravity.START
                 setPadding(0, 0, 0, dp(2))
             },
@@ -640,7 +643,7 @@ class OverlayService : Service() {
             TextView(this).apply {
                 text = titulo
                 setTextColor(Color.parseColor("#D0D9E2"))
-                textSize = 11.5f
+                textSize = 12f
                 maxLines = 1
                 ellipsize = TextUtils.TruncateAt.END
                 layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
@@ -650,7 +653,7 @@ class OverlayService : Service() {
             TextView(this).apply {
                 text = valor
                 setTextColor(Color.parseColor("#D0D9E2"))
-                textSize = 11.5f
+                textSize = 12f
                 gravity = Gravity.END
                 maxLines = 1
             },
@@ -783,8 +786,8 @@ class OverlayService : Service() {
 
     private fun alturaPainelConfig(): Int =
         alturaMaximaAbaixoExpandida()
-            .coerceAtMost(dp(318) + mm(20) + mm(1))
-            .coerceAtLeast((dp(240) + mm(20) + mm(1)).coerceAtMost(alturaMaximaAbaixoExpandida()))
+            .coerceAtMost(dp(268))
+            .coerceAtLeast(dp(220).coerceAtMost(alturaMaximaAbaixoExpandida()))
 
     private fun aplicarAlturaPainelSecundario(
         view: View,
@@ -844,9 +847,7 @@ class OverlayService : Service() {
         }
         if (snapshot.configuracoesVisivel) {
             configParams?.let { params ->
-                configView?.let { view ->
-                    aplicarTamanhoDoConteudo(view, params, alturaMaximaAbaixoExpandida())
-                }
+                configView?.let { view -> aplicarAlturaPainelSecundario(view, params) }
             }
         }
         if (snapshot.confirmacaoFecharVisivel) {

@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
@@ -41,8 +42,11 @@ import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import br.com.gestordriver.core.Classificacao
+import br.com.gestordriver.core.ClassificacaoConstantes
 import br.com.gestordriver.core.FaixasClassificacao
 import br.com.gestordriver.data.ContaVinculo
 import br.com.gestordriver.model.AppNavegacao
@@ -60,7 +64,7 @@ private val TextoAmareloConfig = Color(0xFFFFD54F)
 private val FundoCaixa = Color(0x33000000)
 private val FormaPainel = RoundedCornerShape(10.dp)
 private val FormaCaixa = RoundedCornerShape(6.dp)
-private val AlturaAba = 348.dp
+private val AlturaAba = 268.dp
 
 private val FonteAba = 13.sp
 private val FonteCampo = 12.sp
@@ -96,9 +100,9 @@ fun ConfiguracoesScreen(
             .deslizeHorizontalAbas(aba, abas.size) { aba = it }
             .border(width = 2.dp, color = BordaPainel, shape = FormaPainel)
             .background(Color(0xF2050809), FormaPainel)
-            .padding(horizontal = 10.dp, vertical = 8.dp),
+            .padding(horizontal = 8.dp, vertical = 6.dp),
     ) {
-        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
             Box(
                 modifier = Modifier.fillMaxWidth(),
                 contentAlignment = Alignment.Center,
@@ -133,7 +137,7 @@ fun ConfiguracoesScreen(
                     .fillMaxWidth()
                     .heightIn(min = AlturaAba, max = AlturaAba)
                     .verticalScroll(rolagem),
-                verticalArrangement = Arrangement.spacedBy(10.dp),
+                verticalArrangement = Arrangement.spacedBy(6.dp),
             ) {
                 when (aba) {
                     0 -> AbaVeiculo(viewModel)
@@ -159,7 +163,7 @@ fun ConfiguracoesScreen(
                         onVoltar()
                     },
                 ) {
-                    Text(text = "CANCELAR", color = TextoSecundario, fontSize = FonteCampo)
+                    Text(text = "Cancelar", color = TextoSecundario, fontSize = FonteCampo)
                 }
                 TextButton(
                     onClick = {
@@ -168,7 +172,7 @@ fun ConfiguracoesScreen(
                     },
                 ) {
                     Text(
-                        text = "SALVAR",
+                        text = "Salvar",
                         color = DestaqueSelecionado,
                         fontSize = FonteCampo,
                         fontWeight = FontWeight.SemiBold,
@@ -214,19 +218,19 @@ fun ConfiguracoesScreen(
 @Composable
 private fun AbaVeiculo(viewModel: ConfiguracoesViewModel) {
     val configuracao = viewModel.configuracao
-    SubtituloSecao("DESCRIÇÃO VEÍCULO")
+    SubtituloSecao("Descrição veículo")
     LinhaCampos {
-        CampoCaixa("MARCA", configuracao.marcaVeiculo, viewModel::atualizarMarca, Modifier.weight(1f))
-        CampoCaixa("MODELO", configuracao.modeloVeiculo, viewModel::atualizarModelo, Modifier.weight(1f))
+        CampoCaixa("Marca", configuracao.marcaVeiculo, viewModel::atualizarMarca, Modifier.weight(1f))
+        CampoCaixa("Modelo", configuracao.modeloVeiculo, viewModel::atualizarModelo, Modifier.weight(1f))
     }
     LinhaCampos {
-        CampoCaixa("VERSÃO", configuracao.versaoVeiculo, viewModel::atualizarVersao, Modifier.weight(1f))
-        CampoCaixa("ANO", configuracao.anoVeiculo, viewModel::atualizarAno, Modifier.weight(1f))
+        CampoCaixa("Versão", configuracao.versaoVeiculo, viewModel::atualizarVersao, Modifier.weight(1f))
+        CampoCaixa("Ano", configuracao.anoVeiculo, viewModel::atualizarAno, Modifier.weight(1f))
     }
     LinhaCampos {
-        CampoCaixa("FINAL DA PLACA", configuracao.finalPlaca, viewModel::atualizarFinalPlaca, Modifier.weight(1f))
+        CampoCaixa("Final da placa", configuracao.finalPlaca, viewModel::atualizarFinalPlaca, Modifier.weight(1f))
         CampoCaixa(
-            label = "IPVA",
+            label = "Ipva",
             valor = configuracao.ipvaVencimento,
             onValorChange = {},
             modifier = Modifier.weight(1f),
@@ -234,76 +238,112 @@ private fun AbaVeiculo(viewModel: ConfiguracoesViewModel) {
             pro = true,
         )
     }
-    SubtituloSecao("CONSUMO KM")
+    SubtituloSecao("Consumo km")
     LinhaCampos {
-        CampoNumericoCaixa("GASOLINA", configuracao.consumoGasolina, viewModel::atualizarConsumoGasolina, Modifier.weight(1f))
-        CampoNumericoCaixa("ETANOL", configuracao.consumoEtanol, viewModel::atualizarConsumoEtanol, Modifier.weight(1f))
+        CampoNumericoCaixa("Gasolina", configuracao.consumoGasolina, viewModel::atualizarConsumoGasolina, Modifier.weight(1f))
+        CampoNumericoCaixa("Etanol", configuracao.consumoEtanol, viewModel::atualizarConsumoEtanol, Modifier.weight(1f))
     }
-    TituloPro("CALCULAR ABASTECIMENTO")
-    LinhaCampos {
-        CampoCaixa("VALOR TOTAL", "", {}, Modifier.weight(1f), bloqueado = true)
-        CampoCaixa("LITROS TOTAL", "", {}, Modifier.weight(1f), bloqueado = true)
-    }
-    LinhaCampos {
-        CampoCaixa("KM INICIAL", "", {}, Modifier.weight(1f), bloqueado = true)
-        CampoCaixa("KM FINAL", "", {}, Modifier.weight(1f), bloqueado = true)
-    }
-    SubtituloSecao("COMBUSTÍVEL ATUAL")
+    SubtituloSecao("Combustível atual")
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(16.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         OpcaoMarca(
-            texto = "GASOLINA",
+            texto = "Gasolina",
             marcado = configuracao.combustivel == Combustivel.GASOLINA,
             onMarcar = { viewModel.selecionarCombustivel(Combustivel.GASOLINA) },
         )
         OpcaoMarca(
-            texto = "ETANOL",
+            texto = "Etanol",
             marcado = configuracao.combustivel == Combustivel.ETANOL,
             onMarcar = { viewModel.selecionarCombustivel(Combustivel.ETANOL) },
         )
+    }
+    TituloPro("Calcular abastecimento")
+    LinhaCampos {
+        CampoCaixa("Valor total", "", {}, Modifier.weight(1f), bloqueado = true)
+        CampoCaixa("Litros total", "", {}, Modifier.weight(1f), bloqueado = true)
+    }
+    LinhaCampos {
+        CampoCaixa("Km inicial", "", {}, Modifier.weight(1f), bloqueado = true)
+        CampoCaixa("Km final", "", {}, Modifier.weight(1f), bloqueado = true)
     }
 }
 
 @Composable
 private fun AbaCustos(viewModel: ConfiguracoesViewModel) {
     val configuracao = viewModel.configuracao
-    SubtituloSecao("VALOR DO COMBUSTÍVEL")
+    SubtituloSecao("Valor do combustível")
     LinhaCampos {
-        CampoNumericoCaixa("LITRO GASOLINA", configuracao.precoGasolina, viewModel::atualizarPrecoGasolina, Modifier.weight(1f))
-        CampoNumericoCaixa("LITRO ETANOL", configuracao.precoEtanol, viewModel::atualizarPrecoEtanol, Modifier.weight(1f))
+        CampoNumericoCaixa("Litro gasolina", configuracao.precoGasolina, viewModel::atualizarPrecoGasolina, Modifier.weight(1f))
+        CampoNumericoCaixa("Litro etanol", configuracao.precoEtanol, viewModel::atualizarPrecoEtanol, Modifier.weight(1f))
     }
-    TituloPro("TROCA DE ÓLEO (ÓLEO E FILTROS)")
+    TituloPro("Troca de óleo (óleo e filtros)")
     LinhaCampos {
-        CampoCaixa("VALOR", "", {}, Modifier.weight(1f), bloqueado = true)
-        CampoCaixa("KM", "", {}, Modifier.weight(1f), bloqueado = true)
-        CampoCaixa("DATA", "", {}, Modifier.weight(1f), bloqueado = true)
+        CampoCaixa("Valor", "", {}, Modifier.weight(1f), bloqueado = true)
+        CampoCaixa("Km", "", {}, Modifier.weight(1f), bloqueado = true)
+        CampoCaixa("Data", "", {}, Modifier.weight(1f), bloqueado = true)
     }
-    TituloPro("CUSTO ESTIMADO DOS PNEUS")
-    Text("DIANTEIRO", color = TextoPrincipal, fontSize = FonteCampo, fontWeight = FontWeight.Medium)
+    TituloPro("Custo estimado dos pneus")
+    Text("Dianteiro", color = TextoPrincipal, fontSize = FonteCampo, fontWeight = FontWeight.Medium)
     LinhaCampos {
-        CampoCaixa("VALOR", "", {}, Modifier.weight(1f), bloqueado = true)
-        CampoCaixa("RODAGEM", "", {}, Modifier.weight(1f), bloqueado = true)
-        CampoCaixa("DATA", "", {}, Modifier.weight(1f), bloqueado = true)
+        CampoCaixa("Valor", "", {}, Modifier.weight(1f), bloqueado = true)
+        CampoCaixa("Rodagem", "", {}, Modifier.weight(1f), bloqueado = true)
+        CampoCaixa("Data", "", {}, Modifier.weight(1f), bloqueado = true)
     }
-    Text("TRASEIRO", color = TextoPrincipal, fontSize = FonteCampo, fontWeight = FontWeight.Medium)
+    Text("Traseiro", color = TextoPrincipal, fontSize = FonteCampo, fontWeight = FontWeight.Medium)
     LinhaCampos {
-        CampoCaixa("VALOR", "", {}, Modifier.weight(1f), bloqueado = true)
-        CampoCaixa("RODAGEM", "", {}, Modifier.weight(1f), bloqueado = true)
-        CampoCaixa("DATA", "", {}, Modifier.weight(1f), bloqueado = true)
+        CampoCaixa("Valor", "", {}, Modifier.weight(1f), bloqueado = true)
+        CampoCaixa("Rodagem", "", {}, Modifier.weight(1f), bloqueado = true)
+        CampoCaixa("Data", "", {}, Modifier.weight(1f), bloqueado = true)
     }
 }
 
 @Composable
 private fun AbaClassificacao(viewModel: ConfiguracoesViewModel) {
     val configuracao = viewModel.configuracao
-    SubtituloSecao("CLASSIFICAÇÃO")
-    FaixaClassificacao("RUIM", configuracao.limiteRuimMin, configuracao.limiteRuimMax, "MIN", null, viewModel::atualizarLimiteRuimMin, viewModel::atualizarLimiteRuimMax)
-    FaixaClassificacao("REGULAR", configuracao.limiteRegularMin, configuracao.limiteRegularMax, null, null, viewModel::atualizarLimiteRegularMin, viewModel::atualizarLimiteRegularMax)
-    FaixaClassificacao("BOA", configuracao.limiteBoaMin, configuracao.limiteBoaMax, null, null, viewModel::atualizarLimiteBoaMin, viewModel::atualizarLimiteBoaMax)
-    FaixaClassificacao("ÓTIMA", configuracao.limiteOtimaMin, configuracao.limiteOtimaMax, null, "MAX", viewModel::atualizarLimiteOtimaMin, viewModel::atualizarLimiteOtimaMax)
+    SubtituloSecao("Classificação")
+    FaixaClassificacao(
+        "Ruim",
+        ClassificacaoConstantes.CORES.getValue(Classificacao.RUIM),
+        configuracao.limiteRuimMin,
+        configuracao.limiteRuimMax,
+        "Min",
+        null,
+        viewModel::atualizarLimiteRuimMin,
+        viewModel::atualizarLimiteRuimMax,
+    )
+    FaixaClassificacao(
+        "Regular",
+        ClassificacaoConstantes.CORES.getValue(Classificacao.REGULAR),
+        configuracao.limiteRegularMin,
+        configuracao.limiteRegularMax,
+        null,
+        null,
+        viewModel::atualizarLimiteRegularMin,
+        viewModel::atualizarLimiteRegularMax,
+    )
+    FaixaClassificacao(
+        "Boa",
+        ClassificacaoConstantes.CORES.getValue(Classificacao.BOA),
+        configuracao.limiteBoaMin,
+        configuracao.limiteBoaMax,
+        null,
+        null,
+        viewModel::atualizarLimiteBoaMin,
+        viewModel::atualizarLimiteBoaMax,
+    )
+    FaixaClassificacao(
+        "Ótima",
+        ClassificacaoConstantes.CORES.getValue(Classificacao.EXCELENTE),
+        configuracao.limiteOtimaMin,
+        configuracao.limiteOtimaMax,
+        null,
+        "Max",
+        viewModel::atualizarLimiteOtimaMin,
+        viewModel::atualizarLimiteOtimaMax,
+    )
 }
 
 @Composable
@@ -320,22 +360,22 @@ private fun AbaApp(
     val leituraOk = PermissoesMonitoramento.acessibilidadeAtiva(contexto)
     val bateriaOk = PermissoesMonitoramento.bateriaLiberada(contexto)
     val localizacaoOk = PermissoesMonitoramento.localizacaoConcedida(contexto)
-    SubtituloSecao("PERMISSÕES")
+    SubtituloSecao("Permissões")
     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
         StatusToque(
-            titulo = "NOTIFICAÇÕES",
+            titulo = "Notificações",
             ok = listenerOk,
             destacar = destacarPermissoes && !listenerOk,
             onClick = { contexto.startActivity(PermissoesMonitoramento.intentNotificacoes()) },
         )
         StatusToque(
-            titulo = "SOBREPOR",
+            titulo = "Sobrepor",
             ok = overlayOk,
             destacar = destacarPermissoes && !overlayOk,
             onClick = { contexto.startActivity(PermissoesMonitoramento.intentSobrepor(contexto)) },
         )
         StatusToque(
-            titulo = "ACESSIB.",
+            titulo = "Acessib.",
             ok = leituraOk,
             destacar = destacarPermissoes && !leituraOk,
             onClick = { contexto.startActivity(PermissoesMonitoramento.intentAcessibilidade()) },
@@ -343,26 +383,26 @@ private fun AbaApp(
     }
     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
         StatusToque(
-            titulo = "BATERIA",
+            titulo = "Bateria",
             ok = bateriaOk,
             destacar = destacarPermissoes && !bateriaOk,
             onClick = { contexto.startActivity(PermissoesMonitoramento.intentBateria(contexto)) },
         )
         StatusToque(
-            titulo = "LOCALIZAÇÃO",
+            titulo = "Localização",
             ok = localizacaoOk,
             destacar = false,
             onClick = { (contexto as? br.com.gestordriver.MainActivity)?.pedirLocalizacao() },
         )
     }
     Text(
-        text = "ACESSIB. lê o card na tela (Uber/99). BATERIA evita o overlay sumir. LOCALIZAÇÃO é opcional.",
+        text = "Acessib. lê o card na tela (Uber/99). Bateria evita o overlay sumir. Localização é opcional.",
         color = TextoSecundario,
         fontSize = 10.sp,
     )
     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
         Text(
-            text = "ENVIAR LOG",
+            text = "Enviar log",
             color = TextoAmareloConfig,
             fontSize = FonteCampo,
             modifier = Modifier.clickable {
@@ -378,12 +418,12 @@ private fun AbaApp(
             modifier = Modifier.padding(6.dp),
         )
     }
-    SubtituloSecao("APP DE CORRIDA")
+    SubtituloSecao("App de corrida")
     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
         listOf(
-            br.com.gestordriver.notification.Plataforma.UBER to "UBER",
+            br.com.gestordriver.notification.Plataforma.UBER to "Uber",
             br.com.gestordriver.notification.Plataforma.NOVE_NOVE to "99",
-            br.com.gestordriver.notification.Plataforma.INDRIVE to "INDRIVE",
+            br.com.gestordriver.notification.Plataforma.INDRIVE to "Indrive",
         ).forEach { (plataforma, titulo) ->
             val ok = br.com.gestordriver.notification.PlataformasMotorista.instalada(contexto, plataforma)
             Text(
@@ -393,10 +433,10 @@ private fun AbaApp(
             )
         }
     }
-    SubtituloSecao("NAVEGAÇÃO")
+    SubtituloSecao("Navegação")
     Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
         OpcaoMarca(
-            texto = "GOOGLE MAPS",
+            texto = "Google maps",
             marcado = configuracao.navegacao == AppNavegacao.GOOGLE_MAPS,
             onMarcar = {
                 viewModel.selecionarNavegacao(AppNavegacao.GOOGLE_MAPS)
@@ -404,7 +444,7 @@ private fun AbaApp(
             },
         )
         OpcaoMarca(
-            texto = "WAZE",
+            texto = "Waze",
             marcado = configuracao.navegacao == AppNavegacao.WAZE,
             onMarcar = {
                 viewModel.selecionarNavegacao(AppNavegacao.WAZE)
@@ -412,18 +452,18 @@ private fun AbaApp(
             },
         )
     }
-    SubtituloSecao("CONECTAR CONTA EMAIL")
+    SubtituloSecao("Conectar conta email")
     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
         val googleOk = configuracao.contaTipo == TipoContaVinculada.GOOGLE
         val emailOk = configuracao.contaTipo == TipoContaVinculada.EMAIL
         Text(
-            text = if (googleOk) "CONTA GOOGLE 🆗" else "CONTA GOOGLE",
+            text = if (googleOk) "Conta google 🆗" else "Conta google",
             color = TextoAmareloConfig,
             fontSize = FonteCampo,
             modifier = Modifier.clickable(onClick = onGoogle).padding(8.dp),
         )
         Text(
-            text = if (emailOk) "CONTA EMAIL 🆗" else "CONTA EMAIL",
+            text = if (emailOk) "Conta email 🆗" else "Conta email",
             color = TextoAmareloConfig,
             fontSize = FonteCampo,
             modifier = Modifier.clickable(onClick = onEmail).padding(8.dp),
@@ -443,7 +483,7 @@ private fun DialogoContaGoogle(
             ContaVinculo.emailDaResposta(resultado.data)?.let(onConectar)
         }
     }
-    CaixaDialogo("CONTA GOOGLE", modifier) {
+    CaixaDialogo("Conta google", modifier) {
         Text(
             text = if (emailAtual.isBlank()) {
                 "Conecte a conta Google do motorista. Isso identifica o usuário nas versões Free e Beta, sem sincronizar dados agora."
@@ -475,8 +515,8 @@ private fun DialogoContaEmail(
 ) {
     var email by remember(emailAtual) { mutableStateOf(emailAtual) }
     var erro by remember { mutableStateOf(false) }
-    CaixaDialogo("CONTA EMAIL", modifier) {
-        CampoCaixa("E-MAIL", email, {
+    CaixaDialogo("Conta email", modifier) {
+        CampoCaixa("E-mail", email, {
             email = it
             erro = false
         })
@@ -560,7 +600,7 @@ private fun LinhaCampos(conteudo: @Composable androidx.compose.foundation.layout
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(8.dp),
-        verticalAlignment = Alignment.Top,
+        verticalAlignment = Alignment.Bottom,
         content = conteudo,
     )
 }
@@ -577,14 +617,36 @@ private fun CampoCaixa(
     Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(3.dp)) {
         if (pro) {
             Row(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(18.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
             ) {
-                Text("🔒 $label", color = TextoSecundario, fontSize = FonteCampo)
-                Text("versão pro", color = TextoAmareloConfig, fontSize = 10.sp)
+                Text(
+                    "🔒 $label",
+                    color = TextoSecundario,
+                    fontSize = FonteCampo,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f),
+                )
+                Text(
+                    text = "versão pro",
+                    color = TextoAmareloConfig,
+                    fontSize = 9.sp,
+                    maxLines = 1,
+                )
             }
         } else {
-            Text(text = label, color = TextoSecundario, fontSize = FonteCampo)
+            Text(
+                text = label,
+                color = TextoSecundario,
+                fontSize = FonteCampo,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.height(18.dp),
+            )
         }
         Box(
             modifier = Modifier
@@ -648,6 +710,7 @@ private fun CampoNumericoCaixa(
 @Composable
 private fun FaixaClassificacao(
     titulo: String,
+    corHex: String,
     min: Double,
     max: Double,
     minFixo: String?,
@@ -655,15 +718,28 @@ private fun FaixaClassificacao(
     onMinChange: (Double) -> Unit,
     onMaxChange: (Double) -> Unit,
 ) {
-    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-        Text(text = titulo, color = TextoPrincipal, fontSize = FonteCampo, fontWeight = FontWeight.SemiBold)
+    Column(
+        modifier = Modifier.padding(top = 4.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            Text(text = titulo, color = TextoPrincipal, fontSize = FonteCampo, fontWeight = FontWeight.SemiBold)
+            Box(
+                modifier = Modifier
+                    .size(8.dp)
+                    .background(Color(android.graphics.Color.parseColor(corHex)), CircleShape),
+            )
+        }
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(10.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             CampoStepper(
-                label = "MIN",
+                label = "Min",
                 valorTexto = minFixo ?: FaixasClassificacao.formatar(min),
                 editavel = minFixo == null,
                 onMenos = { onMinChange(min - FaixasClassificacao.PASSO) },
@@ -671,7 +747,7 @@ private fun FaixaClassificacao(
                 modifier = Modifier.weight(1f),
             )
             CampoStepper(
-                label = "MAX",
+                label = "Max",
                 valorTexto = maxFixo ?: FaixasClassificacao.formatar(max),
                 editavel = maxFixo == null,
                 onMenos = { onMaxChange(max - FaixasClassificacao.PASSO) },

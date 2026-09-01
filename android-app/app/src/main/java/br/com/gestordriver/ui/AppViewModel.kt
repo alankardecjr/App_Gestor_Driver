@@ -520,7 +520,7 @@ class AppViewModel(
                 interfaceOculta = true,
                 overlayAtivo = true,
                 notificacaoDisponivel = true,
-                seloFlutuante = false,
+                seloFlutuante = true,
                 compactaTemporaria = false,
                 monitorando = true,
                 seloOffsetX = state.seloOffsetX,

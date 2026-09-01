@@ -275,7 +275,7 @@ object PresentationBuilder {
             CampoApresentacao(id = "nota_passageiro", titulo = "NOTA", valor = "—"),
         )
         val camposDetalhes = listOf(
-            CampoApresentacao(id = "km_ate_passageiro", titulo = "Até o Passageiro", valor = "—"),
+            CampoApresentacao(id = "km_ate_passageiro", titulo = "Até o passageiro", valor = "—"),
             CampoApresentacao(id = "km_viagem", titulo = "Até o destino", valor = "—"),
             CampoApresentacao(id = "km_total_detalhe", titulo = "Total percorrido", valor = "—"),
             CampoApresentacao(id = "combustivel_estimado", titulo = "Combustível estimado", valor = "—"),
@@ -392,7 +392,7 @@ object PresentationBuilder {
 
                 CampoApresentacao(
                     id = "km_ate_passageiro",
-                    titulo = "Até o Passageiro",
+                    titulo = "Até o passageiro",
                     valor =
                         formatKm(
                             analise.kmAtePassageiro,
