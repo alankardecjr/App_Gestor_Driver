@@ -295,15 +295,21 @@ O histórico contém exclusivamente:
 
 CORRIDAS ACEITAS
 
-Abre como **painel overlay abaixo da expandida** (não tela cheia). Título **⬅️ HISTÓRICO ➡️**. Troca de aba por **deslize horizontal**, **setas** ou **clique no rótulo** (Uber | 99 | inDrive). Mais recente primeiro. Toque no item preenche a expandida (sem data/hora no painel da corrida). A altura do painel **não** acompanha o extra da Configuração.
+Abre como **painel overlay abaixo da expandida** (não tela cheia). Título **⬅️ HISTÓRICO ➡️**. Troca de aba por **deslize horizontal**, **setas** ou **clique no rótulo** (Uber | 99 | inDrive). Mais recente primeiro. Toque no item preenche a expandida (sem data/hora no painel da corrida). A janela usa a **mesma altura** da Configuração. A janela **não** cresce para mostrar todos os campos: o que não couber rola na barra.
 
 Janela do painel: **borda cinza fina (2 dp)** e fundo semitransparente (o mesmo recorte da Configuração). A borda **grossa colorida** fica só na compacta/expandida da corrida.
 
 Rodapé **🗑️ Limpar histórico**: pede confirmação (**Cancelar** / **Limpar**), no mesmo estilo do Fechar. Limpar apaga as corridas aceitas gravadas.
 
-Cabeçalho oficial de cada item:
+Cabeçalho da lista (sem emoji, fonte 11, borda cinza 2 dp, cantos arredondados):
 
-DATA | HORA | R$/KM | VALOR | KM | TEMPO | NOTA | ⭐
+Data | Hora | R$/Km | Valor | Dist. | Tempo | Nota
+
+Linha da corrida aceita (fonte 9, borda **2 dp na cor da classificação**, alinhada ao cabeçalho):
+
+01/09 | 11:06 | R$1,60 | R$18,10 | 16,0Km | 24,13Min | 4,97
+
+A classificação fica na **borda fina** do item (ótima azul, boa verde, regular laranja, ruim vermelho). Colunas com a mesma largura no cabeçalho e nos dados: Data/Hora/Nota mais estreitas; Valor/Dist./Tempo mais largas; R$/Km no meio. Toque na linha preenche a expandida.
 
 Não adicionar outros campos ao cabeçalho sem alteração formal desta especificação.
 
@@ -493,12 +499,12 @@ O monitoramento continua ativo.
 
 23. Configurações
 
-A configuração abre como **painel overlay abaixo da expandida** (mesmo recorte do histórico: título **⬅️ CONFIGURAÇÃO ➡️**, bordas arredondadas, **borda cinza fina de 2 dp**, fundo semitransparente, mesmo recuo lateral). Troca de aba por **deslize horizontal**, **setas** ou **clique no rótulo** (VEÍCULO / CUSTOS / CALIBRAR / APP). As quatro abas usam a **mesma altura vertical**, um pouco maior que o Histórico, para **Combustível atual** (Gasolina/Etanol) aparecer sem esconder o campo. Rolagem vertical só se o conteúdo não couber abaixo da expandida; a barra aparece no toque e some depois, junto da borda da janela.
+A configuração abre como **painel overlay abaixo da expandida** (mesmo recorte e **mesma altura** do histórico: título **⬅️ CONFIGURAÇÃO ➡️**, bordas arredondadas, **borda cinza fina de 2 dp**, fundo semitransparente, mesmo recuo lateral). A janela fica **compacta** de propósito: **Combustível atual** e o restante que não couber usam a **barra de rolagem**. Não ampliar Config/Histórico só para evitar rolar. Troca de aba por **deslize horizontal**, **setas** ou **clique no rótulo** (VEÍCULO / CUSTOS / CALIBRAR / APP). As quatro abas usam a **mesma altura vertical**. A barra aparece no toque e some depois, junto da borda da janela.
 
-- **VEÍCULO** — descrição (marca, modelo, versão, ano, **final da placa**), consumo km/L gasolina e etanol, combustível atual (marca exclusiva). Pro: vencimento do IPVA e **calcular abastecimento**.
-- **CUSTOS** — preços gasolina/etanol (R$/L). Pro (estruturado, bloqueado): troca de óleo (valor, km, data) e pneus dianteiro/traseiro (valor, rodagem, data).
+- **VEÍCULO** — descrição (marca, modelo, versão, ano, **final da placa**), consumo km/L gasolina e etanol. Pro: vencimento do IPVA e **calcular abastecimento**.
+- **CUSTOS** — preços gasolina/etanol (R$/L), **combustível atual** (marca exclusiva Gasolina/Etanol). Pro (estruturado, bloqueado): troca de óleo (valor, km, data) e pneus dianteiro/traseiro (valor, rodagem, data).
 - **CALIBRAR** — título interno **Calibrar classificações**. Faixas R$/km encadeadas. Botões **−** e **+** mudam o valor daquele campo em 0,01. Ruim MIN e Ótima MAX são rótulos fixos. Ao **SALVAR**, se min/max vizinhos se cruzarem, o app **normaliza** a cadeia automaticamente.
-- **APP** — permissões (🆗/❎), apps de motorista instalados (🆗/❎), Maps ou Waze, **conectar conta** (Google ou e-mail). Campo de e-mail com título **E-mail**.
+- **APP** — título interno **Configurar aplicativo**, depois permissões (🆗/❎), apps de motorista instalados (🆗/❎), Maps ou Waze, **conectar conta** (Google ou e-mail). Campo de e-mail com título **E-mail**.
 
 Permissão **obrigatória** para monitorar: notificações, sobrepor e acessibilidade (leitura do card). Bateria (ignorar otimização) evita o overlay sumir. Localização é opcional e **não** trava o monitoramento. Permissão faltando: abrir a aba APP e destacar o que falta. **ENVIAR LOG** compartilha `notificacoes_diagnostico.txt` (não entra no backup da nuvem).
 
@@ -512,7 +518,8 @@ Custo da corrida usa **combustível atual + km/L desse combustível + preço do 
   - R$/L = valor pago ÷ litros → grava o **preço do litro do combustível atual** na aba CUSTOS.
   - km/L = (km final − km inicial) ÷ litros → grava o **consumo do combustível atual**.
   - Só calcula com litros > 0 e km final > km inicial. Não altera o outro combustível.
-- **COMBUSTÍVEL ATUAL:** checkbox exclusivo GASOLINA / ETANOL (define qual combustível entra no custo da oferta e no cálculo Pro acima).
+
+**Aba CUSTOS (layout)** — VALOR DO COMBUSTÍVEL: LITRO GASOLINA | LITRO ETANOL. **COMBUSTÍVEL ATUAL:** marca exclusiva GASOLINA / ETANOL (define qual combustível entra no estimado). Os demais campos Pro da aba não mudam.
 
 Campos Pro: emoji 🔒 no **início do título** e o aviso **versão pro** no final. O valor do campo não leva cadeado.
 
@@ -923,24 +930,11 @@ A borda funciona como alerta visual imediato para ajudar o motorista a decidir s
 
 Histórico
 
-No histórico, as corridas já aceitas são exibidas **em listas** (Uber | 99 | inDrive). Portanto, a borda de cada **item da lista** não deve ter o mesmo destaque da corrida atual.
+No histórico, as corridas já aceitas são exibidas **em listas** (Uber | 99 | inDrive). A borda de cada **item da lista** usa a **mesma cor** da classificação, porém **fina (2 dp)** — não o destaque grosso da oferta atual.
 
 A **janela** dos painéis Histórico e Configuração usa borda **cinza fina (2 dp)**, não a borda grossa da classificação.
 
-A borda neutra **não** se aplica ao painel compacta/expandida quando uma corrida do histórico está selecionada: esse painel continua com a borda colorida da classificação.
-
-Recomendo:
-
-borda neutra/padrão;
-classificação indicada por um pequeno marcador ou texto colorido;
-manter a cor da classificação sem transformar cada item histórico em uma caixa fortemente colorida.
-
-Exemplo:
-
-╭────────────────────────────╮
-│ R$/KM │ R$/TOTAL │ KM │ TEMPO │ ⭐│
-│ 2,38  │ R$ 38,00 │16,0│ 24min │ 🟢│
-╰────────────────────────────╯
+A borda neutra **não** se aplica ao painel compacta/expandida quando uma corrida do histórico está selecionada: esse painel continua com a borda colorida da classificação (5 dp).
 
 Regra visual definitiva
 
@@ -950,29 +944,22 @@ Regra visual definitiva
                  classificação
                        │
                        ▼
-                BORDA COLORIDA
+              BORDA COLORIDA GROSSA (5 dp)
                        │
         ┌──────────┼──────────────┐
         ▼             ▼         ▼	      ▼
       🔴 Ruim   🟠 Regular   🟢 Boa  🔵 Ótima
-                                             
-                    
 
-
-                  HISTÓRICO
+                  HISTÓRICO (item da lista)
                        │
                        ▼
-                borda neutra
-                       │
-                       ▼
-             classificação indicada
-               por marcador/cor
+              BORDA COLORIDA FINA (2 dp)
 
 Em resumo:
 
 Painel compacta/expandida (oferta atual ou corrida do histórico selecionada) = borda colorida e destacada (5 dp).
 Janelas Histórico e Configuração = borda cinza fina (2 dp), fundo semitransparente.
-Itens das listas do Histórico = borda neutra, com a classificação no marcador/texto colorido.
+Itens das listas do Histórico = borda fina na cor da classificação.
 
 38. Versões do produto (Beta, Pro, Free)
 
@@ -1040,8 +1027,8 @@ Telas congeladas:
 - selo flutuante
 - compacta
 - expandida (cabeçalho, DISTÂNCIAS, CUSTOS (ESTIMADO), botões)
-- histórico (⬅️ HISTÓRICO ➡️, abas Uber / 99 / inDrive, deslize / setas / clique no rótulo, 🗑️ Limpar histórico)
-- configuração (⬅️ CONFIGURAÇÃO ➡️, abas VEÍCULO / CUSTOS / CALIBRAR / APP, deslize / setas / clique no rótulo, CANCELAR / SALVAR; painel mais alto que o Histórico para mostrar Combustível atual)
+- histórico (⬅️ HISTÓRICO ➡️, abas Uber / 99 / inDrive, deslize / setas / clique no rótulo, cabeçalho Data…Nota sem emoji, linhas com borda fina da classificação, 🗑️ Limpar histórico; mesma altura compacta da Configuração)
+- configuração (⬅️ CONFIGURAÇÃO ➡️, abas VEÍCULO / CUSTOS / CALIBRAR / APP, deslize / setas / clique no rótulo, CANCELAR / SALVAR; mesma altura compacta do Histórico; conteúdo extra rola)
 - confirmação de fechar e de limpar histórico
 
 Exceção autorizada na Beta: layout da configuração (abas VEÍCULO / CUSTOS / CALIBRAR / APP), campos Pro com 🔒 no título + **versão pro**, e vínculo de conta Google/e-mail sem habilitar edição dos campos Pro.

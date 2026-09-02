@@ -111,7 +111,9 @@ object RideEventClassifier {
     )
 
     fun pareceAceite(notification: NotificationData): Boolean {
-        if (OfertaTextoFiltro.ehInterfaceGestor(notification.fullText)) {
+        if (OfertaTextoFiltro.ehInterfaceGestor(notification.fullText) ||
+            OfertaTextoFiltro.ehTelaCancelamento(notification.fullText)
+        ) {
             return false
         }
         val texto = notification.fullText.lowercase()

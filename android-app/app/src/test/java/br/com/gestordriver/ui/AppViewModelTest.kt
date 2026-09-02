@@ -653,6 +653,29 @@ class AppViewModelTest {
     }
 
     @Test
+    fun barra_inferior_recolhe_expandida_e_historico_ao_selo() {
+        val viewModel = novoViewModel()
+        viewModel.iniciarMonitoramento()
+        viewModel.aplicarNovaCorrida(analiseFake())
+        viewModel.reabrirInterface()
+        viewModel.abrirHistoricoPeloOverlay()
+        assertFalse(viewModel.state.seloFlutuante)
+        OverlayBridge.emitir(OverlayAcao.RecolherParaSelo)
+        assertTrue(viewModel.state.seloFlutuante)
+        assertFalse(viewModel.state.historicoVisivel)
+        assertEquals(ModoApresentacao.COMPACTA, viewModel.state.corrida.modo)
+    }
+
+    @Test
+    fun barra_inferior_no_selo_nao_muda() {
+        val viewModel = novoViewModel()
+        viewModel.iniciarMonitoramento()
+        assertTrue(viewModel.state.seloFlutuante)
+        OverlayBridge.emitir(OverlayAcao.RecolherParaSelo)
+        assertTrue(viewModel.state.seloFlutuante)
+    }
+
+    @Test
     fun toque_fora_da_compacta_com_oferta_vai_ao_selo() {
         val viewModel = novoViewModel()
         viewModel.aplicarNovaCorrida(analiseFake())
@@ -744,6 +767,9 @@ class AppViewModelTest {
         assertTrue(viewModel.state.seloFlutuante)
         assertEquals(1, viewModel.state.historico.size)
         assertEquals(40.0, viewModel.state.historico.first().valorTotal, 0.001)
+        assertEquals(ModoApresentacao.COMPACTA, viewModel.state.corrida.modo)
+        assertEquals("—", viewModel.state.corrida.camposCompactos.first { it.id == "valor_total" }.valor)
+        assertEquals("—", viewModel.state.corrida.camposDetalhes.first { it.id == "km_ate_passageiro" }.valor)
     }
 
     @Test

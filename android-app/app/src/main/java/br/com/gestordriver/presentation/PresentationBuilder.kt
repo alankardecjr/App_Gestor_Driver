@@ -268,6 +268,18 @@ object PresentationBuilder {
     fun formatarTempoHistorico(minutos: Int?): String =
         minutos?.let { formatarQuantidade(it.toDouble()) + " Min" } ?: "—"
 
+    fun formatarCelulaHistoricoValorPorKm(valor: Double): String = "R$" + formatarQuantidade(valor)
+
+    fun formatarCelulaHistoricoValor(valor: Double): String = "R$" + formatarQuantidade(valor)
+
+    fun formatarCelulaHistoricoDist(valor: Double): String = formatarQuantidade(valor) + "Km"
+
+    fun formatarCelulaHistoricoTempo(minutos: Int?): String =
+        minutos?.let { formatarQuantidade(it.toDouble()) + "Min" } ?: "—"
+
+    fun formatarCelulaHistoricoNota(valor: Double?): String =
+        valor?.let { formatarQuantidade(it) } ?: "—"
+
     fun formatarKmPublico(valor: Double): String = formatKm(valor)
 
     // =====================================================================

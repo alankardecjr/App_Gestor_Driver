@@ -52,7 +52,7 @@ object OverlayPaineis {
             orientation = LinearLayout.VERTICAL
             background = fundoNeutro(context)
             clipToOutline = true
-            setPadding(0, dp(context, 6), 0, dp(context, 6))
+            setPadding(0, dp(context, 8), 0, dp(context, 8))
             tag = "historico_coluna"
         }
         coluna.addView(
@@ -262,7 +262,7 @@ object OverlayPaineis {
             descendantFocusability = ViewGroup.FOCUS_BEFORE_DESCENDANTS
             isFocusable = true
             isFocusableInTouchMode = true
-            setPadding(0, dp(ctx, 8), 0, dp(ctx, 8))
+            setPadding(0, dp(ctx, 12), 0, dp(ctx, 12))
             tag = "config_coluna"
         }
         raiz.addView(
@@ -272,14 +272,14 @@ object OverlayPaineis {
                 onEsquerda = { avancarAbaConfig(-1) },
                 onDireita = { avancarAbaConfig(1) },
             ).apply {
-                setPadding(dp(ctx, 8), 0, dp(ctx, 8), dp(ctx, 6))
+                setPadding(dp(ctx, 12), 0, dp(ctx, 12), dp(ctx, 6))
             },
         )
         val abas = LinearLayout(ctx).apply {
             orientation = LinearLayout.HORIZONTAL
             tag = "config_abas"
             gravity = Gravity.CENTER
-            setPadding(dp(ctx, 8), 0, dp(ctx, 8), 0)
+            setPadding(dp(ctx, 12), 0, dp(ctx, 12), 0)
         }
         listOf("VEÍCULO", "CUSTOS", "CALIBRAR", "APP").forEachIndexed { indice, titulo ->
             abas.addView(
@@ -311,7 +311,7 @@ object OverlayPaineis {
                 0,
                 1f,
             )
-            barraJuntoDaBorda(paddingInicioDp = 8)
+            barraJuntoDaBorda(paddingInicioDp = 12)
         }
         scroll.addView(
             LinearLayout(ctx).apply {
@@ -324,7 +324,7 @@ object OverlayPaineis {
         val rodape = LinearLayout(ctx).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER
-            setPadding(dp(ctx, 8), dp(ctx, 6), dp(ctx, 8), 0)
+            setPadding(dp(ctx, 12), dp(ctx, 6), dp(ctx, 12), 0)
         }
         rodape.addView(
             TextView(ctx).apply {
@@ -523,86 +523,43 @@ object OverlayPaineis {
     }
 
     private val titulosHistorico = listOf(
-        "🗓️Data",
-        "🕓Hora",
-        "💵R$/Km",
-        "💰VALOR",
-        "🛞DIST.",
-        "🕐TEMPO",
-        "⭐NOTA",
-        "Class.",
+        "Data",
+        "Hora",
+        "R$/Km",
+        "Valor",
+        "Dist.",
+        "Tempo",
+        "Nota",
     )
+    private val pesosColunaHistorico = floatArrayOf(0.85f, 0.75f, 1f, 1.2f, 1.15f, 1.2f, 0.85f)
 
     private fun linhaHistorico(
         context: Context,
         valores: List<String>,
         cabecalho: Boolean,
-        corMarcador: String = SECUNDARIO,
     ): LinearLayout {
         return LinearLayout(context).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
             valores.forEachIndexed { indice, valor ->
-                val params = LinearLayout.LayoutParams(
-                    0,
-                    LinearLayout.LayoutParams.WRAP_CONTENT,
-                    1f,
+                addView(
+                    TextView(context).apply {
+                        text = valor
+                        setTextColor(Color.parseColor(if (cabecalho) SECUNDARIO else TEXTO))
+                        textSize = if (cabecalho) 11f else 9f
+                        maxLines = 1
+                        ellipsize = TextUtils.TruncateAt.END
+                        gravity = Gravity.CENTER
+                        includeFontPadding = false
+                        setPadding(0, 0, 0, 0)
+                        typeface = if (cabecalho) Typeface.DEFAULT_BOLD else Typeface.DEFAULT
+                        layoutParams = LinearLayout.LayoutParams(
+                            0,
+                            LinearLayout.LayoutParams.WRAP_CONTENT,
+                            pesosColunaHistorico.getOrElse(indice) { 1f },
+                        )
+                    },
                 )
-                val ultima = indice == valores.lastIndex
-                if (ultima) {
-                    addView(
-                        FrameLayout(context).apply {
-                            layoutParams = params
-                            if (!cabecalho) {
-                                addView(
-                                    View(context).apply {
-                                        val tamanho = dp(context, 8)
-                                        layoutParams = FrameLayout.LayoutParams(tamanho, tamanho).apply {
-                                            gravity = Gravity.CENTER
-                                        }
-                                        background = GradientDrawable().apply {
-                                            shape = GradientDrawable.OVAL
-                                            setColor(Color.parseColor(corMarcador))
-                                        }
-                                    },
-                                )
-                            } else {
-                                addView(
-                                    TextView(context).apply {
-                                        text = valor
-                                        setTextColor(Color.parseColor(SECUNDARIO))
-                                        textSize = 8.5f
-                                        maxLines = 1
-                                        ellipsize = TextUtils.TruncateAt.END
-                                        gravity = Gravity.CENTER
-                                        includeFontPadding = false
-                                        typeface = Typeface.DEFAULT_BOLD
-                                        layoutParams = FrameLayout.LayoutParams(
-                                            FrameLayout.LayoutParams.MATCH_PARENT,
-                                            FrameLayout.LayoutParams.WRAP_CONTENT,
-                                            Gravity.CENTER,
-                                        )
-                                    },
-                                )
-                            }
-                        },
-                    )
-                } else {
-                    addView(
-                        TextView(context).apply {
-                            text = valor
-                            setTextColor(Color.parseColor(if (cabecalho) SECUNDARIO else TEXTO))
-                            textSize = 8.5f
-                            maxLines = 1
-                            ellipsize = TextUtils.TruncateAt.END
-                            gravity = Gravity.CENTER
-                            includeFontPadding = false
-                            setPadding(0, 0, 0, 0)
-                            typeface = if (cabecalho) Typeface.DEFAULT_BOLD else Typeface.DEFAULT
-                            layoutParams = params
-                        },
-                    )
-                }
             }
         }
     }
@@ -611,20 +568,24 @@ object OverlayPaineis {
         context: Context,
         cabecalho: Boolean,
         linha: View,
+        corBorda: String = ClassificacaoConstantes.COR_BORDA_NEUTRA,
     ): LinearLayout {
         return LinearLayout(context).apply {
             orientation = LinearLayout.VERTICAL
             background = GradientDrawable().apply {
                 setColor(Color.TRANSPARENT)
                 setStroke(
-                    dp(context, 1),
-                    Color.parseColor(
-                        if (cabecalho) "#00000000" else ClassificacaoConstantes.COR_BORDA_NEUTRA,
-                    ),
+                    dp(context, 2),
+                    Color.parseColor(corBorda),
                 )
                 cornerRadius = dp(context, 8).toFloat()
             }
-            setPadding(dp(context, 2), dp(context, 3), dp(context, 2), dp(context, 3))
+            setPadding(
+                dp(context, if (cabecalho) 3 else 4),
+                dp(context, 3),
+                dp(context, if (cabecalho) 3 else 4),
+                dp(context, 3),
+            )
             val params = LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT,
                 LinearLayout.LayoutParams.WRAP_CONTENT,
@@ -651,11 +612,10 @@ object OverlayPaineis {
                     item.km,
                     item.tempo,
                     item.nota,
-                    item.marcador,
                 ),
                 cabecalho = false,
-                corMarcador = item.corMarcador,
             ),
+            corBorda = item.corMarcador,
         ).apply {
             setOnClickListener { OverlayBridge.emitir(OverlayAcao.SelecionarHistorico(item.chave)) }
         }
@@ -696,6 +656,36 @@ object OverlayPaineis {
                 campo(ctx, "Etanol", DecimalInput.formatar(config.consumoEtanol), "cfg_consumo_e", compacto = true).first,
             ),
         )
+        destino.addView(rotuloPro(ctx, "Calcular abastecimento", compacto = true))
+        destino.addView(
+            linha(
+                ctx,
+                campo(ctx, "Valor total", "", "cfg_abast_valor", bloqueado = true, compacto = true).first,
+                campo(ctx, "Litros total", "", "cfg_abast_litros", bloqueado = true, compacto = true).first,
+            ),
+        )
+        destino.addView(
+            linha(
+                ctx,
+                campo(ctx, "Km inicial", "", "cfg_abast_km_ini", bloqueado = true, compacto = true).first,
+                campo(ctx, "Km final", "", "cfg_abast_km_fim", bloqueado = true, compacto = true).first,
+            ),
+        )
+    }
+
+    private fun montarCustos(
+        destino: LinearLayout,
+        config: ConfiguracaoUsuario,
+    ) {
+        val ctx = destino.context
+        destino.addView(rotulo(ctx, "Valor do combustível", secao = true))
+        destino.addView(
+            linha(
+                ctx,
+                campo(ctx, "Litro gasolina", DecimalInput.formatar(config.precoGasolina), "cfg_preco_g").first,
+                campo(ctx, "Litro etanol", DecimalInput.formatar(config.precoEtanol), "cfg_preco_e").first,
+            ),
+        )
         destino.addView(rotulo(ctx, "Combustível atual", secao = true))
         val ckG = CheckBox(ctx).apply {
             text = "Gasolina"
@@ -730,36 +720,6 @@ object OverlayPaineis {
             }
         }
         destino.addView(linha(ctx, ckG, ckE))
-        destino.addView(rotuloPro(ctx, "Calcular abastecimento", compacto = true))
-        destino.addView(
-            linha(
-                ctx,
-                campo(ctx, "Valor total", "", "cfg_abast_valor", bloqueado = true, compacto = true).first,
-                campo(ctx, "Litros total", "", "cfg_abast_litros", bloqueado = true, compacto = true).first,
-            ),
-        )
-        destino.addView(
-            linha(
-                ctx,
-                campo(ctx, "Km inicial", "", "cfg_abast_km_ini", bloqueado = true, compacto = true).first,
-                campo(ctx, "Km final", "", "cfg_abast_km_fim", bloqueado = true, compacto = true).first,
-            ),
-        )
-    }
-
-    private fun montarCustos(
-        destino: LinearLayout,
-        config: ConfiguracaoUsuario,
-    ) {
-        val ctx = destino.context
-        destino.addView(rotulo(ctx, "Valor do combustível", secao = true))
-        destino.addView(
-            linha(
-                ctx,
-                campo(ctx, "Litro gasolina", DecimalInput.formatar(config.precoGasolina), "cfg_preco_g").first,
-                campo(ctx, "Litro etanol", DecimalInput.formatar(config.precoEtanol), "cfg_preco_e").first,
-            ),
-        )
         destino.addView(rotuloPro(ctx, "Troca de óleo (óleo e filtros)", compacto = true))
         destino.addView(
             linha(
@@ -796,6 +756,7 @@ object OverlayPaineis {
         snapshot: OverlaySnapshot,
         context: Context,
     ) {
+        destino.addView(rotulo(context, "Configurar aplicativo", secao = true))
         destino.addView(rotulo(context, "Permissões", secao = true))
         destino.addView(
             linhaPermissoes(
@@ -1230,9 +1191,7 @@ object OverlayPaineis {
         fun txt(tag: String): String? = raiz.findViewWithTag<EditText>(tag)?.text?.toString()
         fun num(tag: String, atual: Double): Double = DecimalInput.parse(txt(tag) ?: "") ?: atual
         return when (aba) {
-            0 -> {
-                val gasolinaMarcada = raiz.findViewWithTag<CheckBox>("cfg_ck_gasolina")?.isChecked
-                base.copy(
+            0 -> base.copy(
                     marcaVeiculo = txt("cfg_marca") ?: base.marcaVeiculo,
                     modeloVeiculo = txt("cfg_modelo") ?: base.modeloVeiculo,
                     versaoVeiculo = txt("cfg_versao") ?: base.versaoVeiculo,
@@ -1240,6 +1199,12 @@ object OverlayPaineis {
                     finalPlaca = txt("cfg_placa") ?: base.finalPlaca,
                     consumoGasolina = num("cfg_consumo_g", base.consumoGasolina),
                     consumoEtanol = num("cfg_consumo_e", base.consumoEtanol),
+                )
+            1 -> {
+                val gasolinaMarcada = raiz.findViewWithTag<CheckBox>("cfg_ck_gasolina")?.isChecked
+                base.copy(
+                    precoGasolina = num("cfg_preco_g", base.precoGasolina),
+                    precoEtanol = num("cfg_preco_e", base.precoEtanol),
                     combustivel = when (gasolinaMarcada) {
                         true -> Combustivel.GASOLINA
                         false -> Combustivel.ETANOL
@@ -1247,10 +1212,6 @@ object OverlayPaineis {
                     },
                 )
             }
-            1 -> base.copy(
-                precoGasolina = num("cfg_preco_g", base.precoGasolina),
-                precoEtanol = num("cfg_preco_e", base.precoEtanol),
-            )
             2 -> {
                 fun faixa(tag: String, atual: Double): Double {
                     val texto = raiz.findViewWithTag<TextView>(tag)?.text?.toString()
@@ -1425,7 +1386,7 @@ object OverlayPaineis {
         LinearLayout(context).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
-            setPadding(0, dp(context, 8), 0, dp(context, 4))
+            setPadding(0, dp(context, 4), 0, dp(context, 2))
             addView(
                 TextView(context).apply {
                     text = texto

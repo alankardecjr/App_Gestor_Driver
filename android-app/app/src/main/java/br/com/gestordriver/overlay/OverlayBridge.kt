@@ -70,6 +70,7 @@ sealed class OverlayAcao {
     data object Ocultar : OverlayAcao()
     data object Retratil : OverlayAcao()
     data object ToqueForaDaCompacta : OverlayAcao()
+    data object RecolherParaSelo : OverlayAcao()
     data object Fechar : OverlayAcao()
     data object CancelarFechar : OverlayAcao()
     data object ConfirmarFechar : OverlayAcao()

@@ -6,10 +6,13 @@ import android.graphics.Bitmap
 import android.os.Handler
 import android.os.Looper
 import android.view.Display
+import android.view.KeyEvent
 import android.view.accessibility.AccessibilityEvent
 import android.view.accessibility.AccessibilityNodeInfo
 import android.view.accessibility.AccessibilityWindowInfo
 import br.com.gestordriver.GestorDriverApp
+import br.com.gestordriver.overlay.BarraSistema
+import br.com.gestordriver.overlay.OverlayAcao
 import br.com.gestordriver.overlay.OverlayBridge
 import com.google.mlkit.vision.common.InputImage
 import com.google.mlkit.vision.text.TextRecognition
@@ -74,17 +77,38 @@ class RideScreenReaderService : AccessibilityService() {
             flags = flags or
                 AccessibilityServiceInfo.FLAG_INCLUDE_NOT_IMPORTANT_VIEWS or
                 AccessibilityServiceInfo.FLAG_REPORT_VIEW_IDS or
-                AccessibilityServiceInfo.FLAG_RETRIEVE_INTERACTIVE_WINDOWS
+                AccessibilityServiceInfo.FLAG_RETRIEVE_INTERACTIVE_WINDOWS or
+                AccessibilityServiceInfo.FLAG_REQUEST_FILTER_KEY_EVENTS
             feedbackType = AccessibilityServiceInfo.FEEDBACK_GENERIC
             notificationTimeout = 400
-            packageNames = PlataformasMotorista.todosOsPacotes().toTypedArray()
+            packageNames = null
         }
         handler.removeCallbacks(poll)
         handler.post(poll)
     }
 
+    override fun onKeyEvent(event: KeyEvent): Boolean {
+        if (event.action == KeyEvent.ACTION_UP &&
+            (event.keyCode == KeyEvent.KEYCODE_BACK ||
+                event.keyCode == KeyEvent.KEYCODE_HOME ||
+                event.keyCode == KeyEvent.KEYCODE_APP_SWITCH)
+        ) {
+            OverlayBridge.emitir(OverlayAcao.RecolherParaSelo)
+        }
+        return false
+    }
+
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {
         val pacote = event?.packageName?.toString().orEmpty()
+        val classe = event?.className?.toString().orEmpty()
+        if (BarraSistema.deveRecolherParaSelo(
+                pacote = pacote,
+                classe = classe,
+                tipoJanelaAlterada = event?.eventType == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED,
+            )
+        ) {
+            OverlayBridge.emitir(OverlayAcao.RecolherParaSelo)
+        }
         if (!PlatformDetector.ehSuportada(pacote)) {
             return
         }
@@ -338,8 +362,16 @@ class RideScreenReaderService : AccessibilityService() {
             text = texto,
             key = "tela:$pacote",
         )
+        if (OfertaTextoFiltro.ehTelaCancelamento(texto)) {
+            registrarAmostra(pacote, texto, "TELA_CANCELAMENTO_$origem")
+            encerrarSessaoNaPlataforma(pacote)
+            return
+        }
         if (OfertaTextoFiltro.ehInterfaceGestor(texto)) {
             registrarAmostra(pacote, texto, "TELA_UI_GESTOR_$origem")
+            if (OfertaSessao.chaveAtiva(pacote)) {
+                tratarPerdaDeOferta(pacote, texto)
+            }
             return
         }
         val temOferta = OfertaTextoFiltro.temDadosParseaveis(texto) &&
@@ -355,6 +387,11 @@ class RideScreenReaderService : AccessibilityService() {
             },
         )
         if (temOferta) {
+            if (OfertaSessao.aceiteDetectado(pacote) &&
+                !OfertaTextoFiltro.pareceCardNovaOferta(texto)
+            ) {
+                return
+            }
             leiturasSemOferta = 0
             if (texto == ultimoTexto) {
                 return
@@ -386,7 +423,28 @@ class RideScreenReaderService : AccessibilityService() {
         )
     }
 
+    private fun encerrarSessaoNaPlataforma(pacote: String) {
+        if (!OfertaSessao.chaveAtiva(pacote) && !OfertaSessao.aceiteDetectado(pacote)) {
+            haviaOfertaNaTela = false
+            leiturasSemOferta = 0
+            return
+        }
+        OfertaSessao.limpar(pacote)
+        RideNotificationBus.publish(RideNotificationEvent.CorridaExpirada)
+        haviaOfertaNaTela = false
+        leiturasSemOferta = 0
+        ultimoTexto = ""
+    }
+
     private fun tratarPerdaDeOferta(pacote: String, texto: String) {
+        if (OfertaSessao.aceiteDetectado(pacote)) {
+            if (OfertaTextoFiltro.ehTelaCancelamento(texto) ||
+                OfertaTextoFiltro.ehMapaSemCard(texto)
+            ) {
+                encerrarSessaoNaPlataforma(pacote)
+            }
+            return
+        }
         if (!OfertaSessao.chaveAtiva(pacote)) {
             haviaOfertaNaTela = false
             leiturasSemOferta = 0

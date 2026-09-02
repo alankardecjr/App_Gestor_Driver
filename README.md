@@ -2,7 +2,7 @@
 
 Assistente Android para motoristas de Uber, 99 e inDrive. Lê a oferta (notificação + tela), calcula **R$/KM** e o custo de combustível, e mostra a decisão em um overlay sobre o mapa. **Não aceita a corrida** — o aceite continua no app da plataforma.
 
-**Status:** Beta `1.1.8` · sem Play Store · não afiliado às plataformas.
+**Status:** Beta `1.1.10` · sem Play Store · não afiliado às plataformas.
 
 | Plano | O que mostra |
 | --- | --- |

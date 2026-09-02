@@ -24,11 +24,13 @@ class RideOfferPipeline(
             is RideNotificationEvent.CorridaRecebida -> {
                 val assinatura = assinaturaDe(evento)
                 val pacote = notification.packageName
-                if (OfertaSessao.aceiteDetectado(pacote) &&
-                    (OfertaSessao.mesmaOferta(assinatura, pacote) || evento.aceiteImediato)
-                ) {
-                    diagnostico.registrar(notification, "POS_ACEITE")
-                    return
+                if (OfertaSessao.aceiteDetectado(pacote)) {
+                    if (OfertaTextoFiltro.pareceCardNovaOferta(notification.fullText)) {
+                        OfertaSessao.limpar(pacote)
+                    } else {
+                        diagnostico.registrar(notification, "POS_ACEITE")
+                        return
+                    }
                 }
                 if (OfertaSessao.chaveAtiva(pacote) &&
                     OfertaSessao.mesmaOferta(assinatura, pacote) &&

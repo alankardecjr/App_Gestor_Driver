@@ -129,8 +129,8 @@ Nova oferta substitui a corrida atual. Sem oferta = selo. Histórico só muda no
 
           EXPANDIDA (overlay, altura do conteúdo)
           │
-          ├── 📜 Histórico → painel overlay abaixo (⤴️ Histórico recolhe; ⬅️➡️, deslize ou clique no rótulo trocam Uber/99/inDrive)
-          ├── ⚙️ Config → painel overlay abaixo (abas VEÍCULO / CUSTOS / CALIBRAR / APP; ⬅️➡️, deslize ou clique no rótulo; mais alto que o Histórico)
+          ├── 📜 Histórico → painel overlay abaixo (⤴️ Histórico recolhe; ⬅️➡️, deslize ou clique no rótulo; cabeçalho Data…Nota; linha com borda fina da classificação; mesma altura compacta; lista rola)
+          ├── ⚙️ Config → painel overlay abaixo (abas VEÍCULO / CUSTOS / CALIBRAR / APP; ⬅️➡️, deslize ou clique no rótulo; mesma altura compacta; campos extra rolam)
           ├── ⬆️ retrai para compacta (toque fora → selo imediato; senão 5 s → selo, mesmo com oferta)
           └── ❎ Ocultar → selo (fecha histórico e config)
 
@@ -161,7 +161,7 @@ Corrida atual (borda grossa, 5 dp):
 
 Janelas Histórico e Configuração: borda cinza fina (2 dp), fundo semitransparente.
 
-Histórico (borda neutra **somente nos itens das listas** Uber / 99 / inDrive): a classificação aparece no marcador colorido. Compacta/expandida com oferta ou item selecionado **mantém a borda colorida**.
+Histórico (itens das listas Uber / 99 / inDrive): borda **fina** na cor da classificação. Compacta/expandida com oferta ou item selecionado **mantém a borda colorida grossa**.
 
 Custo (Beta): litros = km total ÷ km/L do combustível atual; gasto = litros × preço desse litro.
 

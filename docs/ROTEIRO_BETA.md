@@ -24,7 +24,7 @@ Pro (custo operacional, R$ líquido, relatórios). Free na loja (mesma UI, **sem
 2. Na **primeira abertura** o app confere permissões (notificações, sobrepor, acessibilidade, bateria). Autorize cada ❎ até virar 🆗 e toque **SEGUIR**.
 3. Conecte **conta Google** ou **e-mail** (identidade local). Sem conta o tutorial não abre.
 4. Tutorial: **SEGUIR** em cada janela ou **PULAR**. Depois disso o selo sobe e o monitoramento começa.
-5. Abra Config: VEÍCULO (consumo + combustível atual), CUSTOS (R$/L), CALIBRAR (−/+ das faixas), APP (**ENVIAR LOG** se a oferta não ler). Localização é opcional.
+5. Abra Config: VEÍCULO (consumo), CUSTOS (R$/L + combustível atual), CALIBRAR (−/+ das faixas), APP (título **Configurar aplicativo**, depois **ENVIAR LOG** se a oferta não ler). Localização é opcional.
 6. Feche e reabra — os valores precisam continuar iguais.
 7. Abra Uber Driver, 99 ou inDrive **logado**.
 8. Deixe o Gestor em segundo plano (selo visível sobre o mapa).
@@ -37,9 +37,8 @@ Pro (custo operacional, R$ líquido, relatórios). Free na loja (mesma UI, **sem
 | Oferta chega | Compacta: R$/KM, VALOR, DIST., TEMPO, NOTA, borda da classificação |
 | Recusa / some a oferta | Volta ao selo, **não** entra no histórico |
 | `⬇️` ou toque no selo | Expandida com Distâncias + Custos; mapa visível atrás |
-| Config / Histórico | Painel abaixo da expandida; abas mudam por deslize, setas ou clique no nome |
-| Config VEÍCULO | Combustível atual (Gasolina/Etanol) visível; Config é mais alta que o Histórico |
-| Aceita na plataforma | Uma linha no histórico; interface vai ao **selo** |
+| Config / Histórico | Painel abaixo da expandida, **mesma altura compacta**; o que não couber rola; abas por deslize, setas ou clique |
+| Aceita na plataforma | Uma linha no histórico (`R$` / `Km` / `Min`, borda fina da classificação); interface vai ao **selo** |
 | Recolher (`⬆️`) | Compacta; toque fora das janelas do Gestor → selo na hora (senão, 5 s) |
 | Compacta + toque no mapa / recusar da 99 | Selo imediato; o toque chega na plataforma |
 | Fecha e reabre | Configurações iguais |

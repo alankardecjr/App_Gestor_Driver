@@ -12,7 +12,7 @@ enum class TransicaoTelaOferta {
 }
 
 object OfertaTelaTransicao {
-    const val LEITURAS_PARA_EXPIRAR = 4
+    const val LEITURAS_PARA_EXPIRAR = 2
     const val LEITURAS_MAPA_PARA_EXPIRAR = 1
 
     fun decidir(
@@ -26,6 +26,9 @@ object OfertaTelaTransicao {
             text = textoAtual,
             key = "tela:$pacote",
         )
+        if (OfertaTextoFiltro.ehTelaCancelamento(textoAtual)) {
+            return TransicaoTelaOferta.EXPIRAR
+        }
         if (RideEventClassifier.pareceAceite(notification)) {
             return TransicaoTelaOferta.ACEITE
         }
@@ -34,7 +37,7 @@ object OfertaTelaTransicao {
             normal.contains("política de cancelamento") ||
             normal.contains("politica de cancelamento")
         ) {
-            return TransicaoTelaOferta.AGUARDAR
+            return TransicaoTelaOferta.EXPIRAR
         }
         if (OfertaTextoFiltro.ehMapaSemCard(textoAtual) &&
             leiturasSemOferta >= LEITURAS_MAPA_PARA_EXPIRAR

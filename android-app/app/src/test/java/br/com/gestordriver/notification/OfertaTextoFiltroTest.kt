@@ -75,6 +75,25 @@ class OfertaTextoFiltroTest {
     }
 
     @Test
+    fun tabela_historico_ocr_nao_e_oferta() {
+        val texto = "01/09 23:20 R$1,57 R$9,1\n5,8Km 20Min"
+        assertTrue(OfertaTextoFiltro.pareceTabelaHistorico(texto))
+        assertTrue(OfertaTextoFiltro.ehInterfaceGestor(texto))
+        assertFalse(OfertaTextoFiltro.temDadosParseaveis(texto))
+    }
+
+    @Test
+    fun tela_cancelou_nao_e_aceite() {
+        val texto = "Você cancelou a corrida\nContinuar conectado\nDesconectar"
+        assertTrue(OfertaTextoFiltro.ehTelaCancelamento(texto))
+        assertFalse(
+            RideEventClassifier.pareceAceite(
+                NotificationData("com.app99.driver", "", texto),
+            ),
+        )
+    }
+
+    @Test
     fun mapa_online_sem_card_nao_e_oferta() {
         val texto = """
             Você está online
@@ -122,9 +141,9 @@ class OfertaTelaTransicaoTest {
     }
 
     @Test
-    fun duas_leituras_vazias_aguardam() {
+    fun duas_leituras_vazias_expiram() {
         assertEquals(
-            TransicaoTelaOferta.AGUARDAR,
+            TransicaoTelaOferta.EXPIRAR,
             OfertaTelaTransicao.decidir("", leiturasSemOferta = 2),
         )
     }
@@ -138,12 +157,23 @@ class OfertaTelaTransicaoTest {
     }
 
     @Test
-    fun menu_desconectar_nao_expira() {
+    fun menu_desconectar_expira_na_hora() {
         assertEquals(
-            TransicaoTelaOferta.AGUARDAR,
+            TransicaoTelaOferta.EXPIRAR,
             OfertaTelaTransicao.decidir(
                 "Política de cancelamento\nContinuar conectado\nDesconectar",
-                leiturasSemOferta = 4,
+                leiturasSemOferta = 1,
+            ),
+        )
+    }
+
+    @Test
+    fun cancelou_a_corrida_expira_na_hora() {
+        assertEquals(
+            TransicaoTelaOferta.EXPIRAR,
+            OfertaTelaTransicao.decidir(
+                "Você cancelou a corrida\nContinuar conectado",
+                leiturasSemOferta = 1,
             ),
         )
     }

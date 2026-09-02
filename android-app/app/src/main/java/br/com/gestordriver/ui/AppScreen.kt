@@ -1,5 +1,9 @@
 package br.com.gestordriver.ui
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -13,7 +17,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.windowInsetsPadding
@@ -35,6 +38,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.PlatformTextStyle
 import androidx.compose.ui.text.TextStyle
@@ -42,7 +46,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.LineHeightStyle
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import br.com.gestordriver.model.CampoApresentacao
@@ -66,17 +72,17 @@ private val TextoAzul = Color(0xFF42A5F5)
 private val TextoVerde = Color(0xFF7CB342)
 private val TextoLaranja = Color(0xFFFF9800)
 private val TextoAmarelo = Color(0xFFFFD54F)
-private val AlturaPainelSecundario = 268.dp + 188.dp
+private val AlturaPainelSecundario = 268.dp + 188.dp + 15.dp
 private val titulosColunaHistorico = listOf(
-    "🗓️Data",
-    "🕓Hora",
-    "💵R$/Km",
-    "💰VALOR",
-    "🛞DIST.",
-    "🕐TEMPO",
-    "⭐NOTA",
-    "Class.",
+    "Data",
+    "Hora",
+    "R$/Km",
+    "Valor",
+    "Dist.",
+    "Tempo",
+    "Nota",
 )
+private val pesosColunaHistorico = listOf(0.85f, 0.75f, 1f, 1.2f, 1.15f, 1.2f, 0.85f)
 private val estiloCelulaHistorico = TextStyle(
     platformStyle = PlatformTextStyle(includeFontPadding = false),
     lineHeightStyle = LineHeightStyle(
@@ -190,6 +196,11 @@ private fun ConteudoPrincipal(
                 )
             }
 
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(0.dp),
+            ) {
+
             // =========================================================
             // CORRIDA ATUAL
             //
@@ -263,10 +274,11 @@ private fun ConteudoPrincipal(
             // SOMENTE NA TELA EXPANDIDA
             // =========================================================
 
-            if (
-                (state.confirmacaoFecharVisivel || state.confirmacaoLimparHistoricoVisivel) &&
-                state.corrida.modo ==
-                ModoApresentacao.DETALHES
+            AnimatedVisibility(
+                visible = (state.confirmacaoFecharVisivel || state.confirmacaoLimparHistoricoVisivel) &&
+                    state.corrida.modo == ModoApresentacao.DETALHES,
+                enter = slideInVertically(animationSpec = tween(220)) { -it },
+                exit = slideOutVertically(animationSpec = tween(180)) { -it },
             ) {
                 ConfirmacaoFecharSection(
                     titulo = if (state.confirmacaoLimparHistoricoVisivel) {
@@ -293,10 +305,11 @@ private fun ConteudoPrincipal(
                 )
             }
 
-            if (
-                state.configuracoesVisivel &&
-                state.corrida.modo ==
-                ModoApresentacao.DETALHES
+            AnimatedVisibility(
+                visible = state.configuracoesVisivel &&
+                    state.corrida.modo == ModoApresentacao.DETALHES,
+                enter = slideInVertically(animationSpec = tween(220)) { -it },
+                exit = slideOutVertically(animationSpec = tween(180)) { -it },
             ) {
                 ConfiguracoesScreen(
                     viewModel = configuracoesViewModel,
@@ -306,18 +319,19 @@ private fun ConteudoPrincipal(
                 )
             }
 
-            if (
-                state.historicoVisivel &&
-                state.corrida.modo ==
-                ModoApresentacao.DETALHES
+            AnimatedVisibility(
+                visible = state.historicoVisivel &&
+                    state.corrida.modo == ModoApresentacao.DETALHES,
+                enter = slideInVertically(animationSpec = tween(220)) { -it },
+                exit = slideOutVertically(animationSpec = tween(180)) { -it },
             ) {
-
                 HistoricoSection(
                     state = state,
                     onSelecionarHistorico = viewModel::selecionarHistorico,
                     onAba = viewModel::selecionarAbaHistorico,
                     onLimpar = viewModel::solicitarLimparHistorico,
                 )
+            }
             }
         }
 }
@@ -775,6 +789,7 @@ private fun HistoricoSection(
         .sortedByDescending { it.dataHoraRegistro ?: java.time.LocalDateTime.MIN }
         .filter { it.pertenceAba(aba) }
 
+    val formaPainel = RoundedCornerShape(10.dp)
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -783,10 +798,10 @@ private fun HistoricoSection(
             .border(
                 width = 2.dp,
                 color = BordaNeutra,
-                shape = CardDefaults.shape,
+                shape = formaPainel,
             )
-            .background(FundoPainel, CardDefaults.shape)
-            .padding(vertical = 4.dp),
+            .background(FundoPainel, formaPainel)
+            .padding(vertical = 8.dp),
         verticalArrangement = Arrangement.spacedBy(4.dp),
     ) {
         Box(modifier = Modifier.padding(horizontal = 8.dp)) {
@@ -813,7 +828,9 @@ private fun HistoricoSection(
                     color = if (aba.equals(plataforma, ignoreCase = true)) TextoVerde else TextoSecundario,
                     fontSize = 12.sp,
                     fontWeight = if (aba.equals(plataforma, ignoreCase = true)) FontWeight.SemiBold else FontWeight.Normal,
-                    modifier = Modifier.clickable { onAba(plataforma) },
+                    modifier = Modifier
+                        .clickable { onAba(plataforma) }
+                        .padding(horizontal = 2.dp, vertical = 2.dp),
                 )
             }
         }
@@ -827,11 +844,19 @@ private fun HistoricoSection(
                 .verticalScroll(rolagemHistorico)
                 .padding(start = 8.dp, end = 12.dp),
         ) {
-            GradeColunasHistorico {
-                titulosColunaHistorico.forEach { titulo ->
+            GradeColunasHistorico(
+                borda = 2.dp,
+                corBorda = BordaNeutra,
+                forma = RoundedCornerShape(8.dp),
+                paddingHorizontal = 2.dp,
+                paddingVertical = 6.dp,
+            ) {
+                titulosColunaHistorico.forEachIndexed { indice, titulo ->
                     CelulaHistorico(
                         texto = titulo,
                         destaque = true,
+                        fonte = 11.sp,
+                        peso = pesosColunaHistorico[indice],
                     )
                 }
             }
@@ -926,24 +951,24 @@ private fun ConfirmacaoFecharSection(
 // =====================================================================
 // ITEM DE LISTA DO HISTÓRICO
 //
-// BORDA NEUTRA; CLASSIFICAÇÃO = MARCADOR
+// BORDA FINA = CLASSIFICAÇÃO DA CORRIDA ACEITA
 // =====================================================================
 
 @Composable
 private fun GradeColunasHistorico(
     modifier: Modifier = Modifier,
-    comBorda: Boolean = false,
+    borda: Dp = 1.dp,
+    corBorda: Color = Color.Transparent,
+    forma: Shape = CardDefaults.shape,
+    paddingHorizontal: Dp = 2.dp,
+    paddingVertical: Dp = 3.dp,
     conteudo: @Composable RowScope.() -> Unit,
 ) {
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .border(
-                width = 1.dp,
-                color = if (comBorda) Color(0xFF3D4A57) else Color.Transparent,
-                shape = CardDefaults.shape,
-            )
-            .padding(horizontal = 1.dp, vertical = 3.dp),
+            .border(width = borda, color = corBorda, shape = forma)
+            .padding(horizontal = paddingHorizontal, vertical = paddingVertical),
         verticalAlignment = Alignment.CenterVertically,
         content = conteudo,
     )
@@ -953,18 +978,20 @@ private fun GradeColunasHistorico(
 private fun RowScope.CelulaHistorico(
     texto: String,
     destaque: Boolean = false,
+    fonte: TextUnit = 9.sp,
+    peso: Float = 1f,
 ) {
     Text(
         text = texto,
         color = if (destaque) TextoHistorico else TextoPrincipal,
-        fontSize = 8.5.sp,
-        lineHeight = 10.sp,
+        fontSize = fonte,
+        lineHeight = fonte * 1.15f,
         maxLines = 1,
         overflow = TextOverflow.Ellipsis,
         fontWeight = if (destaque) FontWeight.SemiBold else FontWeight.Normal,
         textAlign = TextAlign.Center,
         style = estiloCelulaHistorico,
-        modifier = Modifier.weight(1f, fill = true),
+        modifier = Modifier.weight(peso, fill = true),
     )
 }
 
@@ -973,32 +1000,25 @@ private fun HistoricoItemLista(
     item: HistoricoItemPresentation,
     onClick: () -> Unit,
 ) {
-    val nota = item.notaPassageiro?.let { PresentationBuilder.formatarDecimalPublico(it) } ?: "—"
     val valores = listOf(
         item.dataLista,
         item.horaLista,
-        PresentationBuilder.formatarDinheiroHistorico(item.valorPorKm),
-        PresentationBuilder.formatarDinheiroHistorico(item.valorTotal),
-        PresentationBuilder.formatarDistanciaHistorico(item.kmTotal),
-        PresentationBuilder.formatarTempoHistorico(item.tempoEstimado),
-        nota,
+        PresentationBuilder.formatarCelulaHistoricoValorPorKm(item.valorPorKm),
+        PresentationBuilder.formatarCelulaHistoricoValor(item.valorTotal),
+        PresentationBuilder.formatarCelulaHistoricoDist(item.kmTotal),
+        PresentationBuilder.formatarCelulaHistoricoTempo(item.tempoEstimado),
+        PresentationBuilder.formatarCelulaHistoricoNota(item.notaPassageiro),
     )
     GradeColunasHistorico(
         modifier = Modifier.clickable(onClick = onClick),
-        comBorda = true,
+        borda = 2.dp,
+        corBorda = parseColor(item.corClassificacao),
+        forma = CardDefaults.shape,
+        paddingHorizontal = 3.dp,
+        paddingVertical = 3.dp,
     ) {
-        valores.forEach { valor ->
-            CelulaHistorico(texto = valor)
-        }
-        Box(
-            modifier = Modifier.weight(1f, fill = true),
-            contentAlignment = Alignment.Center,
-        ) {
-            Box(
-                modifier = Modifier
-                    .size(8.dp)
-                    .background(parseColor(item.corClassificacao), CircleShape),
-            )
+        valores.forEachIndexed { indice, valor ->
+            CelulaHistorico(texto = valor, peso = pesosColunaHistorico[indice])
         }
     }
 }

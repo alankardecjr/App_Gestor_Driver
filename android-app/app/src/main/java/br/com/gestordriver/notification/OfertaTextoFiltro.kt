@@ -79,6 +79,9 @@ object OfertaTextoFiltro {
         "até o destino",
         "ate o destino",
         "nenhuma corrida aceita",
+        "limpar histórico",
+        "limpar historico",
+        "custos (estimado)",
     )
 
     private val telaHome = listOf(
@@ -99,7 +102,40 @@ object OfertaTextoFiltro {
             return false
         }
         val marcas = interfaceGestor.count { normal.contains(it) }
-        return marcas >= 2 || normal.contains("nenhuma corrida aceita")
+        return marcas >= 2 ||
+            normal.contains("nenhuma corrida aceita") ||
+            normal.contains("limpar historico") ||
+            pareceTabelaHistorico(texto)
+    }
+
+    fun pareceTabelaHistorico(texto: String): Boolean {
+        val data = Regex("""\d{2}/\d{2}""").containsMatchIn(texto)
+        val valores = NotificationPatterns.VALOR.findAll(texto).count()
+        return data && valores >= 2
+    }
+
+    fun ehTelaCancelamento(texto: String): Boolean {
+        val normal = normalizar(texto)
+        return normal.contains("você cancelou") ||
+            normal.contains("voce cancelou") ||
+            normal.contains("passageiro pediu para cancelar") ||
+            normal.contains("sua tx de corridas")
+    }
+
+    fun pareceCardNovaOferta(texto: String): Boolean {
+        if (ehTelaCancelamento(texto) || ehInterfaceGestor(texto)) {
+            return false
+        }
+        val normal = normalizar(texto)
+        if (normal.contains("corrida aceita") ||
+            normal.contains("cheguei no embarque") ||
+            normal.contains("chegue antes")
+        ) {
+            return false
+        }
+        val temAceitar = normal.contains("aceitar")
+        val temRecusar = normal.contains("recusar") || normal.contains("rejeitar")
+        return temAceitar && (temRecusar || temDadosParseaveis(texto))
     }
 
     fun ehMapaSemCard(texto: String): Boolean {

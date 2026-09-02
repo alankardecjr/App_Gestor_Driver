@@ -15,7 +15,10 @@ import android.service.notification.NotificationListenerService
 import android.util.TypedValue
 import android.os.Build
 import android.os.IBinder
+import android.view.animation.AccelerateInterpolator
+import android.view.animation.DecelerateInterpolator
 import android.view.Gravity
+import android.view.KeyEvent
 import android.view.MotionEvent
 import android.view.View
 import android.view.ViewOutlineProvider
@@ -54,6 +57,9 @@ class OverlayService : Service() {
     private var confirmacaoParams: WindowManager.LayoutParams? = null
     private var ultimoSnapshot: OverlaySnapshot? = null
     private var arrastandoSelo = false
+    private var historicoAberto = false
+    private var configAberto = false
+    private var confirmacaoAberto = false
 
     override fun onBind(intent: Intent?): IBinder? = null
 
@@ -148,25 +154,40 @@ class OverlayService : Service() {
         }
         if (snapshot.historicoVisivel && !snapshot.configuracoesVisivel && !snapshot.confirmacaoVisivel) {
             garantirHistorico(snapshot)
-            historicoView?.visibility = View.VISIBLE
+            animarPainelSecundario(historicoView, abrir = true, jaAberto = historicoAberto)
+            historicoAberto = true
         } else {
-            historicoView?.visibility = View.INVISIBLE
+            animarPainelSecundario(historicoView, abrir = false, jaAberto = historicoAberto)
+            historicoAberto = false
         }
         if (snapshot.configuracoesVisivel && !snapshot.confirmacaoVisivel) {
             garantirConfig(snapshot)
-            configView?.visibility = View.VISIBLE
+            animarPainelSecundario(configView, abrir = true, jaAberto = configAberto)
+            configAberto = true
         } else {
-            configView?.visibility = View.INVISIBLE
+            animarPainelSecundario(configView, abrir = false, jaAberto = configAberto)
+            configAberto = false
         }
         if (snapshot.confirmacaoVisivel) {
             garantirConfirmacao(snapshot)
-            confirmacaoView?.visibility = View.VISIBLE
+            animarPainelSecundario(confirmacaoView, abrir = true, jaAberto = confirmacaoAberto)
+            confirmacaoAberto = true
         } else {
-            confirmacaoView?.visibility = View.INVISIBLE
+            animarPainelSecundario(confirmacaoView, abrir = false, jaAberto = confirmacaoAberto)
+            confirmacaoAberto = false
         }
     }
 
     private fun mostrarSeloImediato() {
+        historicoView?.animate()?.cancel()
+        configView?.animate()?.cancel()
+        confirmacaoView?.animate()?.cancel()
+        historicoView?.translationY = 0f
+        configView?.translationY = 0f
+        confirmacaoView?.translationY = 0f
+        historicoAberto = false
+        configAberto = false
+        confirmacaoAberto = false
         compactaView?.visibility = View.INVISIBLE
         expandidaView?.visibility = View.INVISIBLE
         historicoView?.visibility = View.INVISIBLE
@@ -174,6 +195,46 @@ class OverlayService : Service() {
         confirmacaoView?.visibility = View.INVISIBLE
         desligarToqueForaCompacta()
         seloView?.visibility = View.VISIBLE
+    }
+
+    private fun animarPainelSecundario(view: View?, abrir: Boolean, jaAberto: Boolean) {
+        val alvo = view ?: return
+        alvo.animate().cancel()
+        if (abrir) {
+            alvo.visibility = View.VISIBLE
+            if (jaAberto) {
+                alvo.translationY = 0f
+                return
+            }
+            val descer = Runnable {
+                val altura = alvo.height.coerceAtLeast(dp(120)).toFloat()
+                alvo.translationY = -altura
+                alvo.animate()
+                    .translationY(0f)
+                    .setDuration(220)
+                    .setInterpolator(DecelerateInterpolator())
+                    .start()
+            }
+            if (alvo.height > 0) {
+                descer.run()
+            } else {
+                alvo.post(descer)
+            }
+        } else if (jaAberto && alvo.visibility == View.VISIBLE) {
+            val altura = alvo.height.coerceAtLeast(dp(120)).toFloat()
+            alvo.animate()
+                .translationY(-altura)
+                .setDuration(180)
+                .setInterpolator(AccelerateInterpolator())
+                .withEndAction {
+                    alvo.visibility = View.INVISIBLE
+                    alvo.translationY = 0f
+                }
+                .start()
+        } else {
+            alvo.visibility = View.INVISIBLE
+            alvo.translationY = 0f
+        }
     }
 
     private fun garantirSelo(snapshot: OverlaySnapshot) {
@@ -207,6 +268,7 @@ class OverlayService : Service() {
             0,
             insets.top + dp(8),
             Gravity.TOP or Gravity.CENTER_HORIZONTAL,
+            focavel = true,
         ).also { compactaParams = it }
         params.width = larguraPaineis()
         params.height = WindowManager.LayoutParams.WRAP_CONTENT
@@ -218,6 +280,7 @@ class OverlayService : Service() {
                 return
             }
             compactaView = nova
+            escutarBarraInferior(nova)
         }
         atualizarCompacta(view, snapshot)
         aplicarFlagsToqueFora(params, ativo = true)
@@ -237,6 +300,7 @@ class OverlayService : Service() {
             0,
             insets.top + dp(6),
             Gravity.TOP or Gravity.CENTER_HORIZONTAL,
+            focavel = true,
         ).also { expandidaParams = it }
         params.width = larguraPaineis()
         params.height = WindowManager.LayoutParams.WRAP_CONTENT
@@ -248,6 +312,7 @@ class OverlayService : Service() {
                 return
             }
             expandidaView = nova
+            escutarBarraInferior(nova)
         }
         atualizarExpandida(view, snapshot)
         aplicarTamanhoDoConteudo(view, params)
@@ -259,6 +324,7 @@ class OverlayService : Service() {
             0,
             yAbaixoExpandida(),
             Gravity.TOP or Gravity.CENTER_HORIZONTAL,
+            focavel = true,
         ).also { historicoParams = it }
         params.width = larguraPaineis()
         params.height = WindowManager.LayoutParams.WRAP_CONTENT
@@ -270,9 +336,10 @@ class OverlayService : Service() {
                 return
             }
             historicoView = nova
+            escutarBarraInferior(nova)
         }
         OverlayPaineis.atualizarHistorico(view, snapshot)
-        aplicarAlturaPainelSecundario(view, params, extraMm = 0)
+        aplicarAlturaPainelSecundario(view, params)
     }
 
     private fun garantirConfig(snapshot: OverlaySnapshot) {
@@ -292,13 +359,14 @@ class OverlayService : Service() {
                 return
             }
             configView = nova
+            escutarBarraInferior(nova)
         }
         OverlayPaineis.atualizarConfig(view, snapshot)
         params.softInputMode = WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_HIDDEN or
             WindowManager.LayoutParams.SOFT_INPUT_ADJUST_PAN
-        aplicarAlturaPainelSecundario(view, params, extraMm = 12)
+        aplicarAlturaPainelSecundario(view, params)
         view.post {
-            aplicarAlturaPainelSecundario(view, params, extraMm = 12)
+            aplicarAlturaPainelSecundario(view, params)
         }
     }
 
@@ -307,6 +375,7 @@ class OverlayService : Service() {
             0,
             yAbaixoExpandida(),
             Gravity.TOP or Gravity.CENTER_HORIZONTAL,
+            focavel = true,
         ).also { confirmacaoParams = it }
         params.width = larguraPaineis()
         params.height = WindowManager.LayoutParams.WRAP_CONTENT
@@ -318,6 +387,7 @@ class OverlayService : Service() {
                 return
             }
             confirmacaoView = nova
+            escutarBarraInferior(nova)
         }
         OverlayPaineis.atualizarConfirmacao(view, snapshot.confirmacaoLimparHistoricoVisivel)
         OverlayPaineis.aplicarBordaNeutra(view)
@@ -708,6 +778,24 @@ class OverlayService : Service() {
         }
     }
 
+    private fun escutarBarraInferior(view: View) {
+        view.isFocusable = true
+        view.isFocusableInTouchMode = true
+        view.setOnKeyListener { _, keyCode, evento ->
+            if (evento.action != KeyEvent.ACTION_UP) {
+                return@setOnKeyListener false
+            }
+            if (keyCode == KeyEvent.KEYCODE_BACK ||
+                keyCode == KeyEvent.KEYCODE_HOME ||
+                keyCode == KeyEvent.KEYCODE_APP_SWITCH
+            ) {
+                OverlayBridge.emitir(OverlayAcao.RecolherParaSelo)
+                return@setOnKeyListener keyCode == KeyEvent.KEYCODE_BACK
+            }
+            false
+        }
+    }
+
     private inner class SeloTouchListener : View.OnTouchListener {
         private var inicialX = 0
         private var inicialY = 0
@@ -782,18 +870,17 @@ class OverlayService : Service() {
         return (bounds.height() - insets.bottom - yAbaixoExpandida() - dp(8)).coerceAtLeast(dp(96))
     }
 
-    private fun alturaPainelSecundario(extraMm: Int): Int =
+    private fun alturaPainelSecundario(): Int =
         alturaMaximaAbaixoExpandida()
-            .coerceAtMost(dp(268) + mm(30) + mm(extraMm))
+            .coerceAtMost(dp(268) + mm(30) + mm(2))
             .coerceAtLeast(dp(220).coerceAtMost(alturaMaximaAbaixoExpandida()))
 
     private fun aplicarAlturaPainelSecundario(
         view: View,
         params: WindowManager.LayoutParams,
-        extraMm: Int = 0,
     ) {
         params.width = larguraPaineis()
-        params.height = alturaPainelSecundario(extraMm)
+        params.height = alturaPainelSecundario()
         params.x = 0
         params.y = yAbaixoExpandida()
         runCatching { windowManager.updateViewLayout(view, params) }
@@ -804,7 +891,7 @@ class OverlayService : Service() {
         val altura = expandidaView?.height?.takeIf { it > 0 }
             ?: expandidaView?.measuredHeight?.takeIf { it > 0 }
             ?: dp(148)
-        return insets.top + dp(6) + altura + dp(4)
+        return insets.top + dp(6) + altura
     }
 
     private fun aplicarTamanhoDoConteudo(
@@ -841,12 +928,12 @@ class OverlayService : Service() {
         }
         if (snapshot.historicoVisivel && !snapshot.configuracoesVisivel && !snapshot.confirmacaoVisivel) {
             historicoParams?.let { params ->
-                historicoView?.let { view -> aplicarAlturaPainelSecundario(view, params, extraMm = 0) }
+                historicoView?.let { view -> aplicarAlturaPainelSecundario(view, params) }
             }
         }
         if (snapshot.configuracoesVisivel && !snapshot.confirmacaoVisivel) {
             configParams?.let { params ->
-                configView?.let { view -> aplicarAlturaPainelSecundario(view, params, extraMm = 12) }
+                configView?.let { view -> aplicarAlturaPainelSecundario(view, params) }
             }
         }
         if (snapshot.confirmacaoVisivel) {

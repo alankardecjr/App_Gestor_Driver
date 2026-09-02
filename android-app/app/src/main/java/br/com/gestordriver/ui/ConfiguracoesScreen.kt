@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
@@ -64,9 +65,8 @@ private val TextoAmareloConfig = Color(0xFFFFD54F)
 private val FundoCaixa = Color(0x33000000)
 private val FormaPainel = RoundedCornerShape(10.dp)
 private val FormaCaixa = RoundedCornerShape(6.dp)
-private val AlturaAba = 268.dp + 188.dp + 76.dp
+private val AlturaAba = 268.dp + 188.dp + 15.dp
 
-private val FonteAba = 13.sp
 private val FonteCampo = 12.sp
 private val FonteValor = 13.sp
 
@@ -97,13 +97,17 @@ fun ConfiguracoesScreen(
     Box(
         modifier = Modifier
             .fillMaxWidth()
+            .height(AlturaAba)
             .deslizeHorizontalAbas(aba, abas.size) { aba = it }
             .border(width = 2.dp, color = BordaPainel, shape = FormaPainel)
             .background(Color(0xF2050809), FormaPainel)
-            .padding(vertical = 8.dp),
+            .padding(vertical = 12.dp),
     ) {
-        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            Box(modifier = Modifier.padding(horizontal = 8.dp)) {
+        Column(
+            modifier = Modifier.fillMaxSize(),
+            verticalArrangement = Arrangement.spacedBy(4.dp),
+        ) {
+            Box(modifier = Modifier.padding(horizontal = 12.dp)) {
                 TituloComSetas(
                     titulo = "CONFIGURAÇÃO",
                     onEsquerda = { aba = (aba - 1).coerceAtLeast(0) },
@@ -115,14 +119,14 @@ fun ConfiguracoesScreen(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 8.dp),
+                    .padding(horizontal = 12.dp),
                 horizontalArrangement = Arrangement.SpaceEvenly,
             ) {
                 abas.forEachIndexed { index, titulo ->
                     Text(
                         text = titulo,
                         color = if (aba == index) DestaqueSelecionado else TextoSecundario,
-                        fontSize = FonteAba,
+                        fontSize = 12.sp,
                         fontWeight = if (aba == index) FontWeight.SemiBold else FontWeight.Normal,
                         modifier = Modifier
                             .clickable { aba = index }
@@ -134,10 +138,10 @@ fun ConfiguracoesScreen(
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .heightIn(min = AlturaAba, max = AlturaAba)
+                    .weight(1f, fill = true)
                     .barraRolagemAoToque(rolagem)
                     .verticalScroll(rolagem)
-                    .padding(start = 8.dp, end = 12.dp),
+                    .padding(start = 12.dp, end = 16.dp),
                 verticalArrangement = Arrangement.spacedBy(6.dp),
             ) {
                 when (aba) {
@@ -156,7 +160,7 @@ fun ConfiguracoesScreen(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 8.dp),
+                    .padding(horizontal = 12.dp),
                 horizontalArrangement = Arrangement.SpaceEvenly,
                 verticalAlignment = Alignment.CenterVertically,
             ) {
@@ -246,23 +250,6 @@ private fun AbaVeiculo(viewModel: ConfiguracoesViewModel) {
         CampoNumericoCaixa("Gasolina", configuracao.consumoGasolina, viewModel::atualizarConsumoGasolina, Modifier.weight(1f))
         CampoNumericoCaixa("Etanol", configuracao.consumoEtanol, viewModel::atualizarConsumoEtanol, Modifier.weight(1f))
     }
-    SubtituloSecao("Combustível atual")
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(16.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        OpcaoMarca(
-            texto = "Gasolina",
-            marcado = configuracao.combustivel == Combustivel.GASOLINA,
-            onMarcar = { viewModel.selecionarCombustivel(Combustivel.GASOLINA) },
-        )
-        OpcaoMarca(
-            texto = "Etanol",
-            marcado = configuracao.combustivel == Combustivel.ETANOL,
-            onMarcar = { viewModel.selecionarCombustivel(Combustivel.ETANOL) },
-        )
-    }
     TituloPro("Calcular abastecimento")
     LinhaCampos {
         CampoCaixa("Valor total", "", {}, Modifier.weight(1f), bloqueado = true)
@@ -281,6 +268,23 @@ private fun AbaCustos(viewModel: ConfiguracoesViewModel) {
     LinhaCampos {
         CampoNumericoCaixa("Litro gasolina", configuracao.precoGasolina, viewModel::atualizarPrecoGasolina, Modifier.weight(1f))
         CampoNumericoCaixa("Litro etanol", configuracao.precoEtanol, viewModel::atualizarPrecoEtanol, Modifier.weight(1f))
+    }
+    SubtituloSecao("Combustível atual")
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(16.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        OpcaoMarca(
+            texto = "Gasolina",
+            marcado = configuracao.combustivel == Combustivel.GASOLINA,
+            onMarcar = { viewModel.selecionarCombustivel(Combustivel.GASOLINA) },
+        )
+        OpcaoMarca(
+            texto = "Etanol",
+            marcado = configuracao.combustivel == Combustivel.ETANOL,
+            onMarcar = { viewModel.selecionarCombustivel(Combustivel.ETANOL) },
+        )
     }
     TituloPro("Troca de óleo (óleo e filtros)")
     LinhaCampos {
@@ -306,6 +310,7 @@ private fun AbaCustos(viewModel: ConfiguracoesViewModel) {
 @Composable
 private fun AbaClassificacao(viewModel: ConfiguracoesViewModel) {
     val configuracao = viewModel.configuracao
+    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
     SubtituloSecao("Calibrar classificações")
     FaixaClassificacao(
         "Ruim",
@@ -347,6 +352,7 @@ private fun AbaClassificacao(viewModel: ConfiguracoesViewModel) {
         viewModel::atualizarLimiteOtimaMin,
         viewModel::atualizarLimiteOtimaMax,
     )
+    }
 }
 
 @Composable
@@ -363,6 +369,7 @@ private fun AbaApp(
     val leituraOk = PermissoesMonitoramento.acessibilidadeAtiva(contexto)
     val bateriaOk = PermissoesMonitoramento.bateriaLiberada(contexto)
     val localizacaoOk = PermissoesMonitoramento.localizacaoConcedida(contexto)
+    SubtituloSecao("Configurar aplicativo")
     SubtituloSecao("Permissões")
     Row(
         modifier = Modifier.fillMaxWidth(),
@@ -741,8 +748,8 @@ private fun FaixaClassificacao(
     onMaxChange: (Double) -> Unit,
 ) {
     Column(
-        modifier = Modifier.padding(top = 4.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp),
+        modifier = Modifier.padding(top = 2.dp),
+        verticalArrangement = Arrangement.spacedBy(4.dp),
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,

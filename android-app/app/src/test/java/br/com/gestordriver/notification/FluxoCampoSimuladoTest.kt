@@ -170,7 +170,7 @@ class FluxoCampoSimuladoTest {
             ),
         )
         assertEquals(
-            TransicaoTelaOferta.AGUARDAR,
+            TransicaoTelaOferta.EXPIRAR,
             OfertaTelaTransicao.decidir(
                 "Política de cancelamento\nContinuar conectado",
                 leiturasSemOferta = 4,

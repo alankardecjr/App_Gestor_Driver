@@ -60,4 +60,41 @@ class RideOfferPipelineTest {
         assertEquals(listOf("OFERTA", "ACEITE_IMEDIATO", "POS_ACEITE"), eventos)
         OfertaSessao.limpar()
     }
+
+    @Test
+    fun depois_do_aceite_ocr_do_historico_nao_abre_oferta_nova() {
+        OfertaSessao.limpar()
+        val eventos = mutableListOf<String>()
+        val calculadora = br.com.gestordriver.core.CalculadoraCorrida(
+            configuracaoUsuario = br.com.gestordriver.core.ConfiguracaoUsuario.padrao(),
+        )
+        val analise = calculadora.calcular(
+            corrida = br.com.gestordriver.core.Corrida(
+                valorTotal = 9.32,
+                kmAtePassageiro = 2.0,
+                kmViagem = 2.1,
+                tempoEstimado = 14,
+            ),
+            plataforma = "99",
+        )
+        val pipeline = RideOfferPipeline(
+            processor = object : RideNotificationProcessor() {
+                override fun processar(notification: NotificationData) =
+                    RideNotificationEvent.CorridaRecebida(analise, aceiteImediato = false)
+            },
+            diagnostico = RegistroDiagnostico { _, evento -> eventos.add(evento) },
+        )
+        val card = NotificationData(
+            "com.app99.driver",
+            "R\$9,32",
+            "R\$2,27/km\n7min (2km)\n7min (2,1km)\nAceitar\nRecusar",
+        )
+        pipeline.processar(card)
+        OfertaSessao.registrarAceite("com.app99.driver")
+        pipeline.processar(
+            NotificationData("com.app99.driver", "01/09 23:20", "R\$1,57 R\$9,1 5,8Km"),
+        )
+        assertEquals(listOf("OFERTA", "POS_ACEITE"), eventos)
+        OfertaSessao.limpar()
+    }
 }

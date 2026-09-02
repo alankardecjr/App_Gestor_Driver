@@ -138,6 +138,7 @@ class AppViewModel(
                     OverlayAcao.Ocultar -> ocultarInterface()
                     OverlayAcao.Retratil -> retrairParaCompactaTemporaria()
                     OverlayAcao.ToqueForaDaCompacta -> recolherCompactaPorToqueFora()
+                    OverlayAcao.RecolherParaSelo -> recolherPorBarraSistema()
                     OverlayAcao.Fechar -> solicitarFecharApp()
                     OverlayAcao.CancelarFechar -> cancelarFecharApp()
                     OverlayAcao.ConfirmarFechar -> confirmarFecharApp()
@@ -621,6 +622,22 @@ class AppViewModel(
         irParaSelo()
     }
 
+    fun recolherPorBarraSistema() {
+        if (!state.monitorando) {
+            return
+        }
+        val jaNoSelo = state.seloFlutuante &&
+            !state.historicoVisivel &&
+            !state.configuracoesVisivel &&
+            !state.confirmacaoFecharVisivel &&
+            !state.confirmacaoLimparHistoricoVisivel &&
+            state.corrida.modo != ModoApresentacao.DETALHES
+        if (jaNoSelo) {
+            return
+        }
+        irParaSelo()
+    }
+
     fun retrairParaCompactaTemporaria() {
         cancelarCompactaTemporaria()
         state = state.copy(
@@ -862,8 +879,16 @@ class AppViewModel(
     }
 
     internal fun expirarOfertaAtual() {
-        if (state.corridaAceita || !state.ofertaAtiva) {
-            return
+        if (!state.ofertaAtiva) {
+            if (state.historicoSelecionado != null) {
+                return
+            }
+            if (state.analiseAtual == null &&
+                state.seloFlutuante &&
+                state.corrida.modo != ModoApresentacao.DETALHES
+            ) {
+                return
+            }
         }
         cancelarCompactaTemporaria()
         val chave = state.analiseAtual?.let { chavePlataforma(it) }.orEmpty()
@@ -978,11 +1003,11 @@ class AppViewModel(
                     chave = item.chaveHistorico(),
                     data = item.dataLista,
                     hora = item.horaLista,
-                    valorPorKm = PresentationBuilder.formatarDinheiroHistorico(item.valorPorKm),
-                    valor = PresentationBuilder.formatarDinheiroHistorico(item.valorTotal),
-                    km = PresentationBuilder.formatarDistanciaHistorico(item.kmTotal),
-                    tempo = PresentationBuilder.formatarTempoHistorico(item.tempoEstimado),
-                    nota = item.notaPassageiro?.let { PresentationBuilder.formatarDecimalPublico(it) } ?: "—",
+                    valorPorKm = PresentationBuilder.formatarCelulaHistoricoValorPorKm(item.valorPorKm),
+                    valor = PresentationBuilder.formatarCelulaHistoricoValor(item.valorTotal),
+                    km = PresentationBuilder.formatarCelulaHistoricoDist(item.kmTotal),
+                    tempo = PresentationBuilder.formatarCelulaHistoricoTempo(item.tempoEstimado),
+                    nota = PresentationBuilder.formatarCelulaHistoricoNota(item.notaPassageiro),
                     marcador = item.classificacao.marcador,
                     corMarcador = item.corClassificacao,
                     plataforma = item.plataforma,
