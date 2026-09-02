@@ -502,7 +502,7 @@ O monitoramento continua ativo.
 A configuração abre como **painel overlay abaixo da expandida** (mesmo recorte e **mesma altura** do histórico: título **⬅️ CONFIGURAÇÃO ➡️**, bordas arredondadas, **borda cinza fina de 2 dp**, fundo semitransparente, mesmo recuo lateral). A janela fica **compacta** de propósito: **Combustível atual** e o restante que não couber usam a **barra de rolagem**. Não ampliar Config/Histórico só para evitar rolar. Troca de aba por **deslize horizontal**, **setas** ou **clique no rótulo** (VEÍCULO / CUSTOS / CALIBRAR / APP). As quatro abas usam a **mesma altura vertical**. A barra aparece no toque e some depois, junto da borda da janela.
 
 - **VEÍCULO** — descrição (marca, modelo, versão, ano, **final da placa**), consumo km/L gasolina e etanol. Pro: vencimento do IPVA e **calcular abastecimento**.
-- **CUSTOS** — preços gasolina/etanol (R$/L), **combustível atual** (marca exclusiva Gasolina/Etanol). Pro (estruturado, bloqueado): troca de óleo (valor, km, data) e pneus dianteiro/traseiro (valor, rodagem, data).
+- **CUSTOS** — preços **R$ / L Gasolina** e **R$ / L Etanol**, **combustível atual** (marca exclusiva Gasolina/Etanol). Pro (estruturado, bloqueado): troca de óleo (Valor R$, km, data) e pneus dianteiro/traseiro (Valor R$, rodagem, data).
 - **CALIBRAR** — título interno **Calibrar classificações**. Faixas R$/km encadeadas. Botões **−** e **+** mudam o valor daquele campo em 0,01. Ruim MIN e Ótima MAX são rótulos fixos. Ao **SALVAR**, se min/max vizinhos se cruzarem, o app **normaliza** a cadeia automaticamente.
 - **APP** — título interno **Configurar aplicativo**, depois permissões (🆗/❎), apps de motorista instalados (🆗/❎), Maps ou Waze, **conectar conta** (Google ou e-mail). Campo de e-mail com título **E-mail**.
 
@@ -512,14 +512,14 @@ Custo da corrida usa **combustível atual + km/L desse combustível + preço do 
 
 **Aba VEÍCULO (layout)**
 
-- **DESCRIÇÃO VEÍCULO:** MARCA | MODELO; VERSÃO | ANO; FINAL DA PLACA | 🔒 IPVA … versão pro (Pro: data de vencimento do documento/IPVA).
-- **CONSUMO KM:** GASOLINA | ETANOL (editável na Beta; o motorista pode digitar).
-- **🔒 CALCULAR ABASTECIMENTO** … versão pro: VALOR TOTAL | LITROS TOTAL; KM INICIAL | KM FINAL. Campos Pro ficam bloqueados; o cadeado vai só no título.
+- **DESCRIÇÃO DO VEÍCULO:** MARCA | MODELO; VERSÃO | ANO; FINAL DA PLACA | 🔒 IPVA … versão pro (Pro: data de vencimento do documento/IPVA).
+- **CONSUMO KM/L:** GASOLINA | ETANOL (editável na Beta; o motorista pode digitar).
+- **🔒 CALCULAR ABASTECIMENTO** … versão pro: VALOR R$ | QUANT. LITROS; KM INICIAL | KM FINAL. Campos Pro ficam bloqueados; o cadeado vai só no título.
   - R$/L = valor pago ÷ litros → grava o **preço do litro do combustível atual** na aba CUSTOS.
   - km/L = (km final − km inicial) ÷ litros → grava o **consumo do combustível atual**.
   - Só calcula com litros > 0 e km final > km inicial. Não altera o outro combustível.
 
-**Aba CUSTOS (layout)** — VALOR DO COMBUSTÍVEL: LITRO GASOLINA | LITRO ETANOL. **COMBUSTÍVEL ATUAL:** marca exclusiva GASOLINA / ETANOL (define qual combustível entra no estimado). Os demais campos Pro da aba não mudam.
+**Aba CUSTOS (layout)** — VALOR DO COMBUSTÍVEL: R$ / L GASOLINA | R$ / L ETANOL. **COMBUSTÍVEL ATUAL:** marca exclusiva GASOLINA / ETANOL (define qual combustível entra no estimado). Troca de óleo e pneus: VALOR R$. Os demais campos Pro da aba não mudam.
 
 Campos Pro: emoji 🔒 no **início do título** e o aviso **versão pro** no final. O valor do campo não leva cadeado.
 

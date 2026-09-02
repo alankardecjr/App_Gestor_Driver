@@ -65,7 +65,7 @@ private val TextoAmareloConfig = Color(0xFFFFD54F)
 private val FundoCaixa = Color(0x33000000)
 private val FormaPainel = RoundedCornerShape(10.dp)
 private val FormaCaixa = RoundedCornerShape(6.dp)
-private val AlturaAba = 268.dp + 188.dp + 15.dp
+private val AlturaAba = 268.dp + 188.dp + 15.dp + 12.6.dp
 
 private val FonteCampo = 12.sp
 private val FonteValor = 13.sp
@@ -225,7 +225,7 @@ fun ConfiguracoesScreen(
 @Composable
 private fun AbaVeiculo(viewModel: ConfiguracoesViewModel) {
     val configuracao = viewModel.configuracao
-    SubtituloSecao("Descrição veículo")
+    SubtituloSecao("Descrição do veículo")
     LinhaCampos {
         CampoCaixa("Marca", configuracao.marcaVeiculo, viewModel::atualizarMarca, Modifier.weight(1f))
         CampoCaixa("Modelo", configuracao.modeloVeiculo, viewModel::atualizarModelo, Modifier.weight(1f))
@@ -245,15 +245,15 @@ private fun AbaVeiculo(viewModel: ConfiguracoesViewModel) {
             pro = true,
         )
     }
-    SubtituloSecao("Consumo km")
+    SubtituloSecao("Consumo km/L")
     LinhaCampos {
         CampoNumericoCaixa("Gasolina", configuracao.consumoGasolina, viewModel::atualizarConsumoGasolina, Modifier.weight(1f))
         CampoNumericoCaixa("Etanol", configuracao.consumoEtanol, viewModel::atualizarConsumoEtanol, Modifier.weight(1f))
     }
     TituloPro("Calcular abastecimento")
     LinhaCampos {
-        CampoCaixa("Valor total", "", {}, Modifier.weight(1f), bloqueado = true)
-        CampoCaixa("Litros total", "", {}, Modifier.weight(1f), bloqueado = true)
+        CampoCaixa("Valor R$", "", {}, Modifier.weight(1f), bloqueado = true)
+        CampoCaixa("Quant. litros", "", {}, Modifier.weight(1f), bloqueado = true)
     }
     LinhaCampos {
         CampoCaixa("Km inicial", "", {}, Modifier.weight(1f), bloqueado = true)
@@ -266,8 +266,8 @@ private fun AbaCustos(viewModel: ConfiguracoesViewModel) {
     val configuracao = viewModel.configuracao
     SubtituloSecao("Valor do combustível")
     LinhaCampos {
-        CampoNumericoCaixa("Litro gasolina", configuracao.precoGasolina, viewModel::atualizarPrecoGasolina, Modifier.weight(1f))
-        CampoNumericoCaixa("Litro etanol", configuracao.precoEtanol, viewModel::atualizarPrecoEtanol, Modifier.weight(1f))
+        CampoNumericoCaixa("R$ / L Gasolina", configuracao.precoGasolina, viewModel::atualizarPrecoGasolina, Modifier.weight(1f))
+        CampoNumericoCaixa("R$ / L Etanol", configuracao.precoEtanol, viewModel::atualizarPrecoEtanol, Modifier.weight(1f))
     }
     SubtituloSecao("Combustível atual")
     Row(
@@ -288,20 +288,20 @@ private fun AbaCustos(viewModel: ConfiguracoesViewModel) {
     }
     TituloPro("Troca de óleo (óleo e filtros)")
     LinhaCampos {
-        CampoCaixa("Valor", "", {}, Modifier.weight(1f), bloqueado = true)
+        CampoCaixa("Valor R$", "", {}, Modifier.weight(1f), bloqueado = true)
         CampoCaixa("Km", "", {}, Modifier.weight(1f), bloqueado = true)
         CampoCaixa("Data", "", {}, Modifier.weight(1f), bloqueado = true)
     }
     TituloPro("Custo estimado dos pneus")
     Text("Dianteiro", color = TextoPrincipal, fontSize = FonteCampo, fontWeight = FontWeight.Medium)
     LinhaCampos {
-        CampoCaixa("Valor", "", {}, Modifier.weight(1f), bloqueado = true)
+        CampoCaixa("Valor R$", "", {}, Modifier.weight(1f), bloqueado = true)
         CampoCaixa("Rodagem", "", {}, Modifier.weight(1f), bloqueado = true)
         CampoCaixa("Data", "", {}, Modifier.weight(1f), bloqueado = true)
     }
     Text("Traseiro", color = TextoPrincipal, fontSize = FonteCampo, fontWeight = FontWeight.Medium)
     LinhaCampos {
-        CampoCaixa("Valor", "", {}, Modifier.weight(1f), bloqueado = true)
+        CampoCaixa("Valor R$", "", {}, Modifier.weight(1f), bloqueado = true)
         CampoCaixa("Rodagem", "", {}, Modifier.weight(1f), bloqueado = true)
         CampoCaixa("Data", "", {}, Modifier.weight(1f), bloqueado = true)
     }
@@ -748,8 +748,7 @@ private fun FaixaClassificacao(
     onMaxChange: (Double) -> Unit,
 ) {
     Column(
-        modifier = Modifier.padding(top = 2.dp),
-        verticalArrangement = Arrangement.spacedBy(4.dp),
+        verticalArrangement = Arrangement.spacedBy(1.dp),
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
@@ -796,7 +795,7 @@ private fun CampoStepper(
     onMais: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(3.dp)) {
+    Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(1.dp)) {
         Text(text = label, color = TextoSecundario, fontSize = FonteCampo)
         Row(
             modifier = Modifier

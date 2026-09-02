@@ -72,7 +72,7 @@ private val TextoAzul = Color(0xFF42A5F5)
 private val TextoVerde = Color(0xFF7CB342)
 private val TextoLaranja = Color(0xFFFF9800)
 private val TextoAmarelo = Color(0xFFFFD54F)
-private val AlturaPainelSecundario = 268.dp + 188.dp + 15.dp
+private val AlturaPainelSecundario = 268.dp + 188.dp + 15.dp + 12.6.dp
 private val titulosColunaHistorico = listOf(
     "Data",
     "Hora",

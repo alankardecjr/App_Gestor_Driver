@@ -872,7 +872,7 @@ class OverlayService : Service() {
 
     private fun alturaPainelSecundario(): Int =
         alturaMaximaAbaixoExpandida()
-            .coerceAtMost(dp(268) + mm(30) + mm(2))
+            .coerceAtMost(dp(268) + mm(30) + mm(4))
             .coerceAtLeast(dp(220).coerceAtMost(alturaMaximaAbaixoExpandida()))
 
     private fun aplicarAlturaPainelSecundario(

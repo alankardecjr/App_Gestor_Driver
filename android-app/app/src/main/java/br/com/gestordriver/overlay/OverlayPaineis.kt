@@ -626,7 +626,7 @@ object OverlayPaineis {
         config: ConfiguracaoUsuario,
     ) {
         val ctx = destino.context
-        destino.addView(rotulo(ctx, "Descrição veículo", secao = true))
+        destino.addView(rotulo(ctx, "Descrição do veículo", secao = true))
         destino.addView(
             linha(
                 ctx,
@@ -648,7 +648,7 @@ object OverlayPaineis {
                 campo(ctx, "Ipva", config.ipvaVencimento, "cfg_ipva", bloqueado = true, compacto = true, pro = true).first,
             ),
         )
-        destino.addView(rotulo(ctx, "Consumo km", secao = true))
+        destino.addView(rotulo(ctx, "Consumo km/L", secao = true))
         destino.addView(
             linha(
                 ctx,
@@ -660,8 +660,8 @@ object OverlayPaineis {
         destino.addView(
             linha(
                 ctx,
-                campo(ctx, "Valor total", "", "cfg_abast_valor", bloqueado = true, compacto = true).first,
-                campo(ctx, "Litros total", "", "cfg_abast_litros", bloqueado = true, compacto = true).first,
+                campo(ctx, "Valor R$", "", "cfg_abast_valor", bloqueado = true, compacto = true).first,
+                campo(ctx, "Quant. litros", "", "cfg_abast_litros", bloqueado = true, compacto = true).first,
             ),
         )
         destino.addView(
@@ -682,8 +682,8 @@ object OverlayPaineis {
         destino.addView(
             linha(
                 ctx,
-                campo(ctx, "Litro gasolina", DecimalInput.formatar(config.precoGasolina), "cfg_preco_g").first,
-                campo(ctx, "Litro etanol", DecimalInput.formatar(config.precoEtanol), "cfg_preco_e").first,
+                campo(ctx, "R$ / L Gasolina", DecimalInput.formatar(config.precoGasolina), "cfg_preco_g").first,
+                campo(ctx, "R$ / L Etanol", DecimalInput.formatar(config.precoEtanol), "cfg_preco_e").first,
             ),
         )
         destino.addView(rotulo(ctx, "Combustível atual", secao = true))
@@ -724,7 +724,7 @@ object OverlayPaineis {
         destino.addView(
             linha(
                 ctx,
-                campo(ctx, "Valor", "", "cfg_oleo_valor", bloqueado = true, compacto = true).first,
+                campo(ctx, "Valor R$", "", "cfg_oleo_valor", bloqueado = true, compacto = true).first,
                 campo(ctx, "Km", "", "cfg_oleo_km", bloqueado = true, compacto = true).first,
                 campo(ctx, "Data", "", "cfg_oleo_data", bloqueado = true, compacto = true).first,
             ),
@@ -734,7 +734,7 @@ object OverlayPaineis {
         destino.addView(
             linha(
                 ctx,
-                campo(ctx, "Valor", "", "cfg_pneu_d_valor", bloqueado = true, compacto = true).first,
+                campo(ctx, "Valor R$", "", "cfg_pneu_d_valor", bloqueado = true, compacto = true).first,
                 campo(ctx, "Rodagem", "", "cfg_pneu_d_km", bloqueado = true, compacto = true).first,
                 campo(ctx, "Data", "", "cfg_pneu_d_data", bloqueado = true, compacto = true).first,
             ),
@@ -743,7 +743,7 @@ object OverlayPaineis {
         destino.addView(
             linha(
                 ctx,
-                campo(ctx, "Valor", "", "cfg_pneu_t_valor", bloqueado = true, compacto = true).first,
+                campo(ctx, "Valor R$", "", "cfg_pneu_t_valor", bloqueado = true, compacto = true).first,
                 campo(ctx, "Rodagem", "", "cfg_pneu_t_km", bloqueado = true, compacto = true).first,
                 campo(ctx, "Data", "", "cfg_pneu_t_data", bloqueado = true, compacto = true).first,
             ),
@@ -1150,6 +1150,7 @@ object OverlayPaineis {
                         faixa.tagMax != null,
                         onPasso = { tag, delta -> aplicarPassoFaixa(destino, tag, delta) },
                     ),
+                    compacto = true,
                 ),
             )
         }
@@ -1386,7 +1387,7 @@ object OverlayPaineis {
         LinearLayout(context).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
-            setPadding(0, dp(context, 4), 0, dp(context, 2))
+            setPadding(0, dp(context, 2), 0, 0)
             addView(
                 TextView(context).apply {
                     text = texto
@@ -1463,7 +1464,7 @@ object OverlayPaineis {
     ): LinearLayout {
         val bloco = LinearLayout(context).apply {
             orientation = LinearLayout.VERTICAL
-            setPadding(0, dp(context, 4), 0, dp(context, 6))
+            setPadding(0, 0, 0, dp(context, 2))
         }
         bloco.addView(rotulo(context, label, compacto = true))
         val linha = LinearLayout(context).apply {
@@ -1518,11 +1519,12 @@ object OverlayPaineis {
         return bloco
     }
 
-    private fun linha(context: Context, vararg filhos: View): LinearLayout =
+    private fun linha(context: Context, vararg filhos: View, compacto: Boolean = false): LinearLayout =
         LinearLayout(context).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.BOTTOM
-            setPadding(0, dp(context, 2), 0, dp(context, 2))
+            val pad = if (compacto) 0 else 2
+            setPadding(0, dp(context, pad), 0, dp(context, pad))
             filhos.forEach { filho ->
                 filho.layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f).apply {
                     gravity = Gravity.BOTTOM

@@ -28,7 +28,7 @@ class BarraSistemaTest {
     }
 
     @Test
-    fun 99_nao_recolhe() {
+    fun app_99_nao_recolhe() {
         assertFalse(
             BarraSistema.deveRecolherParaSelo(
                 pacote = "com.app99.driver",

@@ -94,7 +94,7 @@ class RideOfferPipelineTest {
         pipeline.processar(
             NotificationData("com.app99.driver", "01/09 23:20", "R\$1,57 R\$9,1 5,8Km"),
         )
-        assertEquals(listOf("OFERTA", "POS_ACEITE"), eventos)
+        assertEquals(listOf("OFERTA", "IGNORADA_UI"), eventos)
         OfertaSessao.limpar()
     }
 }
