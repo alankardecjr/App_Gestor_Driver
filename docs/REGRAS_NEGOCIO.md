@@ -6,9 +6,9 @@ FLUXOGRAMA_REGRAS_NEGOCIO.
 >
 > **Esta especificação deve ser utilizada como regra-base para as próximas etapas de desenvolvimento.**
 >
-> **Versão em foco: Beta.** Pro vem depois. Free (cálculos ocultos) só no lançamento na loja. Ver seção 38.
+> **Versão em foco: Pro (fechamento na branch `vs-2.0`, 2.0.0 / versionCode 13).** Produto: **Free** (demo, calculadora oculta) e **Pro** (paga, tudo liberado). Não misturar com o Beta congelado em `main` (1.1.10). Ver seção 38.
 >
-> **Interfaces congeladas até a versão Pro.** Ver seção 43.
+> **Roteiro de fechamento:** `docs/ROTEIRO_PRO.md`. UI Beta congelada em 02/09/2026 (seção 43) permanece como referência histórica; a linha ativa de desenvolvimento é a Pro.
 
 ---
 
@@ -295,23 +295,11 @@ O histórico contém exclusivamente:
 
 CORRIDAS ACEITAS
 
-Abre como **painel overlay abaixo da expandida** (não tela cheia). Título **⬅️ HISTÓRICO ➡️**. Troca de aba por **deslize horizontal**, **setas** ou **clique no rótulo** (Uber | 99 | inDrive). Mais recente primeiro. Toque no item preenche a expandida (sem data/hora no painel da corrida). A janela usa a **mesma altura** da Configuração. A janela **não** cresce para mostrar todos os campos: o que não couber rola na barra.
+Abre como **painel overlay abaixo da expandida** (não tela cheia). Título **⬅️ HISTÓRICO** (seta volta aos atalhos). Abas **Todos | Uber | 99 | inDrive**. Navegação **só por semana** (DOM–SÁB): mês/ano no cabeçalho, setas saltam 7 dias, grade com dias da semana. Ao abrir: **domingo da semana atual** + aba **Todos**. Sem cards de faturamento/distância/gasto/lucro e sem seletor Dia/Semana/Mês (isso fica no Dashboard).
 
-Janela do painel: **borda cinza fina (2 dp)** e fundo semitransparente (o mesmo recorte da Configuração). A borda **grossa colorida** fica só na compacta/expandida da corrida.
+Card da corrida (borda **2 dp** na cor da classificação): selo da plataforma + dia/data/hora; linha Ganhos (negrito) · R$/Km · R$/Lucro · R$/gasto · Nota; linha 🛞 km · 🕐 tempo · ⛽ Consumo L; endereços ●/■ se houver; botões Embarque / Destino. Lucro/gasto incluem todos os custos da corrida.
 
-Rodapé **🗑️ Limpar histórico**: pede confirmação (**Cancelar** / **Limpar**), no mesmo estilo do Fechar. Limpar apaga as corridas aceitas gravadas.
-
-Cabeçalho da lista (sem emoji, fonte 11, borda cinza 2 dp, cantos arredondados):
-
-Data | Hora | R$/Km | Valor | Dist. | Tempo | Nota
-
-Linha da corrida aceita (fonte 9, borda **2 dp na cor da classificação**, alinhada ao cabeçalho):
-
-01/09 | 11:06 | R$1,60 | R$18,10 | 16,0Km | 24,13Min | 4,97
-
-A classificação fica na **borda fina** do item (ótima azul, boa verde, regular laranja, ruim vermelho). Colunas com a mesma largura no cabeçalho e nos dados: Data/Hora/Nota mais estreitas; Valor/Dist./Tempo mais largas; R$/Km no meio. Toque na linha preenche a expandida.
-
-Não adicionar outros campos ao cabeçalho sem alteração formal desta especificação.
+Rodapé / lixeira: sem seleção → **"Selecionar a(s) corrida(s)"**; com seleção → confirma apagar.
 
 13. Histórico e corrida atual são conceitos diferentes
 
@@ -527,7 +515,7 @@ Campos Pro: emoji 🔒 no **início do título** e o aviso **versão pro** no fi
 
 Botão na expandida: **⚙️ Config** abre o painel; com o painel aberto vira **⤴️ Config** e fecha.
 
-**Conta (Free/Beta):** a vinculação guarda só a identidade do motorista (e-mail Google escolhido no seletor do aparelho, ou e-mail digitado). Persiste na hora, independente de SALVAR/CANCELAR do restante da config. Não há sync de nuvem nesta etapa — o vínculo deixa o app pronto para limitar/identificar Free e Beta depois.
+**Conta (Free/Pro):** a vinculação guarda só a identidade do motorista (e-mail Google escolhido no seletor do aparelho, ou e-mail digitado). Persiste na hora, independente de SALVAR/CANCELAR do restante da config. Não há sync de nuvem nesta etapa — o vínculo deixa o app pronto para limitar/identificar Free e Pro.
 
 Fluxo:
 
@@ -862,12 +850,16 @@ MONITORAMENTO
 
 Classificação por cor da borda
 
+**Pro 2.0 (ativo):** três faixas — 🔴 Ruim · 🟡 Boa · 🟢 Ótima. Padrões e limites em §40.
+
+**Beta 1.1.10 (histórico):** quatro faixas abaixo (UI congelada em `main`).
+
 Cor da borda		Significado
 
 🔴 Ruim	Vermelha	Corrida pouco vantajosa
-🟠 Regular		Laranja	Corrida aceitável, mas abaixo do ideal
+🟠 Regular		Laranja	Corrida aceitável, mas abaixo do ideal (só Beta)
 🟢 Boa	Verde		Corrida vantajosa
-🔵 Ótima		Azul	Corrida muito vantajosa
+🔵 Ótima		Azul	Só na Beta. No Pro a ótima é verde.
 
 Regra visual
 
@@ -913,18 +905,19 @@ Isso mantém uma linguagem visual consistente entre corrida atual, tela expandid
 
 Regra para nossa documentação:
 
-🔴 Ruim = vermelho | 🟠 Regular = laranja | 🟢 Boa = verde | 🔵 Ótima = azul.
+**Pro:** 🔴 Ruim | 🟡 Boa | 🟢 Ótima (§40).  
+**Beta (histórico):** 🔴 Ruim | 🟠 Regular | 🟢 Boa | 🔵 Ótima.
 
 37.A diferença entre a cor da borda da corrida atual e historico, é porque a corrida atual é uma oferta em análise, enquanto o histórico representa uma corrida já aceita.
 
 Corrida atual
 
-A borda é dinâmica e colorida conforme a classificação:
+A borda é dinâmica e colorida conforme a classificação (Pro: 3 faixas §40; Beta: 4 faixas abaixo):
 
 🔴 Ruim → borda vermelha
-🟠 Regular → borda laranja
-🟢 Boa → borda verde
-🔵 Ótima → borda azul
+🟠 Regular → borda laranja (Beta)
+🟢 Boa → borda amarela
+🟢 Ótima → borda verde (Pro); azul na Beta
 
 A borda funciona como alerta visual imediato para ajudar o motorista a decidir sobre a oferta.
 
@@ -961,42 +954,58 @@ Painel compacta/expandida (oferta atual ou corrida do histórico selecionada) = 
 Janelas Histórico e Configuração = borda cinza fina (2 dp), fundo semitransparente.
 Itens das listas do Histórico = borda fina na cor da classificação.
 
-38. Versões do produto (Beta, Pro, Free)
+38. Versões do produto (Free e Pro)
 
-Ordem: **Beta agora → Pro depois → Free no lançamento**.
+A **Beta** passou a ser a linha **Pro**. Não há três produtos em loja nesta fase.
 
-| Recurso | Free (loja) | Beta | Pro |
-| --- | --- | --- | --- |
-| Overlay, selo, histórico de aceites | sim | sim | sim |
-| Valor, DIST., tempo, nota, cor da borda | sim | sim | sim |
-| R$/KM, litros, gasto, lucro (combustível) | **não mostra** | mostra | mostra |
-| Custo operacional, R$/km líquido, relatórios | não | não | sim |
-| IPVA (vencimento) e calcular combustível (R$/L e km/L automáticos) | 🔒 | 🔒 (campos visíveis) | sim |
+| Recurso | Free (demo grátis) | Pro (paga, quando estiver ok) |
+| --- | --- | --- |
+| Overlay, selo, histórico de aceites | sim | sim |
+| Valor, DIST., tempo, nota, cor da borda | sim | sim |
+| R$/KM, litros, gasto, lucro | 🔒 oculto | mostra |
+| IPVA, seguro, óleo, pneu, abastecimento, km/ano | 🔒 | editável |
+| Dashboard (faturamento, gastos, lucro, médias, rateios) | 🔒 | mostra |
+| Tema Escuro / Claro / Celular | sim | sim |
+| Navegação Maps / Waze (histórico) | sim | sim |
 
-O motor calcula sempre; no Free a UI oculta os números financeiros.
+O motor calcula sempre. No Free a UI esconde os números da calculadora e do dashboard.
 
-39. Custo estimado (combustível)
+**Lucro da oferta** = valor − (combustível do combustível marcado + óleo + pneus + IPVA + seguro). Cada parcela só entra se tiver valor e base de km. Óleo/pneu: `(valor ÷ km) × km corrida`. IPVA/seguro: `(valor ÷ km/ano) × km corrida`. Consumo ou preço 0 → litros/gasto/lucro = —. Semáforo: **3** faixas (Ruim / Boa / Ótima); padrão Ruim até 1,59 · Boa 1,60–1,99 · Ótima a partir de 2,00.
+
+**Abastecimento:** ao Salvar, se valor+litros (+km) permitem cálculo, o app **pergunta** se deve preencher R$/L e km/L do combustível atual.
+
+**Óleo:** aviso em vermelho a partir de **500 km** antes do vencimento da troca (intervalo informado); após o vencimento o aviso fica de “vencida”.
+
+**Dashboard (Pro):** abas Diário / Semanal / Mensal; setas de período; cards Faturamento / Gastos / Lucro líquido; ganho e custo por km e por hora; custo e lucro médio por corrida; estimativas rateadas (combustível, óleo, pneus, seguro, IPVA). Só corridas **aceitas**. Sem gráficos nesta entrega.
+
+**Histórico:** abas Todos/Uber/99/inDrive; semana DOM–SÁB com setas; sem resumo faturamento/dia-mês. Card: Ganhos · R$/Km · R$/Lucro · R$/gasto · Nota; Consumo (L); Embarque/Destino. Lixeira só selecionadas.
+
+**Menu overlay:** Histórico · Semáforo · Custos · Veículo · Dashboard · Configurações · Fechar.
+
+**Notificação:** sem oferta = “Monitorando ofertas”; com oferta = resumo; expirou/recusou = limpa e volta a monitorar; aceite = mantém resumo até a próxima oferta.
+
+39. Custo estimado (combustível + operacionais)
 
 Litros = km total ÷ km/L do **combustível atual**.  
-Gasto = litros × **preço do litro** desse combustível.  
-Lucro estimado (Beta) = valor da corrida − gasto.
+Gasto de combustível = litros × **preço do litro** desse combustível.  
+Gasto total da oferta = combustível + óleo + pneus + IPVA + seguro (ver §38).  
+Lucro estimado = valor da corrida − gasto total.
 
 Gasolina: litro mais caro, mais km/L. Etanol: litro mais barato, menos km/L. Os dois entram na conta via combustível marcado + preços da aba **CUSTOS**. Snapshot no momento da oferta; mudar preço depois não recalcula histórico.
 
-40. Faixas padrão de classificação (R$/km)
+40. Faixas padrão de classificação (R$/km) — Pro 2.0
 
-Sem sobreposição, passo 0,01. Ruim MIN e Ótima MAX são rótulos fixos. Na aba **CALIBRAR**, **−** diminui e **+** aumenta só o campo tocado; no mesmo passo o app amarra o min/max vizinho (MAX seguinte = MIN atual + 0,01, e o inverso).
+Três faixas visíveis (Ruim / Boa / Ótima). Sem sobreposição, passo 0,01. Na aba **CALIBRAR** (Semáforo), deslizantes “Ruim até” e “Boa até”.
 
 | Faixa | MIN | MAX | Borda |
 | --- | --- | --- | --- |
-| Ruim | MIN | 1,19 | vermelha |
-| Regular | 1,20 | 1,59 | laranja |
-| Boa | 1,60 | 1,99 | verde |
-| Ótima | 2,00 | MAX | azul |
+| Ruim | MIN | 1,59 | vermelha |
+| Boa | 1,60 | 1,99 | amarela |
+| Ótima | 2,00 | MAX | verde |
 
-O motorista altera as faixas na aba **CALIBRAR** (não na aba APP). CANCELAR descarta o rascunho; SALVAR persiste as faixas já encadeadas.
+O motorista altera as faixas na aba **Semáforo**. CANCELAR descarta o rascunho; SALVAR persiste.
 
-41. Pacotes monitorados (Beta)
+41. Pacotes monitorados
 
 O listener só processa notificações destes apps de **motorista** (não o app de passageiro):
 
@@ -1008,7 +1017,7 @@ O listener só processa notificações destes apps de **motorista** (não o app 
 
 Eles estão declarados em `<queries>` no manifesto (Android 11+) para o Gestor poder **ver se estão instalados**. A aba APP mostra UBER / 99 / INDRIVE com 🆗 (instalado) ou ❎ (não encontrado). Sem o app de motorista instalado, não haverá ofertas.
 
-42. Tratamento de exceções (Beta)
+42. Tratamento de exceções
 
 - Parser de notificação: falha vira “não reconhecida”, sem crash.
 - Mapper de extras da notificação: extras inválidos são ignorados.
@@ -1018,22 +1027,22 @@ Eles estão declarados em `<queries>` no manifesto (Android 11+) para o Gestor p
 
 O aceite **não** é feito pelo Gestor. Duplicidade de histórico é bloqueada pela chave da corrida.
 
-43. Congelamento das interfaces (até a versão Pro)
+43. Congelamento das interfaces (UI oficial da Beta — histórico)
 
-As telas da Beta estão **congeladas**. Não alterar layout, tamanhos, espaçamentos, cores, textos visíveis, abas ou gestos da interface até o início da versão Pro.
+A partir de **02/09/2026** a **UI oficial da Beta** (`1.1.10` em `main`) ficou **congelada**. Mantida aqui como referência.
 
-Telas congeladas:
+**Linha ativa:** Pro 2.0 em `vs-2.0` — telas e regras em [`ROTEIRO_PRO.md`](ROTEIRO_PRO.md) e seções 38–40. Não misturar Pro em `main` até pedido explícito.
+
+Telas oficiais congeladas na Beta:
 
 - selo flutuante
-- compacta
-- expandida (cabeçalho, DISTÂNCIAS, CUSTOS (ESTIMADO), botões)
-- histórico (⬅️ HISTÓRICO ➡️, abas Uber / 99 / inDrive, deslize / setas / clique no rótulo, cabeçalho Data…Nota sem emoji, linhas com borda fina da classificação, 🗑️ Limpar histórico; mesma altura compacta da Configuração)
-- configuração (⬅️ CONFIGURAÇÃO ➡️, abas VEÍCULO / CUSTOS / CALIBRAR / APP, deslize / setas / clique no rótulo, CANCELAR / SALVAR; mesma altura compacta do Histórico; conteúdo extra rola)
+- compacta (💵 R$/KM, 💰 VALOR, 🛞 DIST., 🕐 TEMPO, ⭐ NOTA)
+- expandida (cabeçalho, DISTÂNCIAS, CUSTOS (ESTIMADO), 📴 Fechar · ⚙️ Config · ❎ Ocultar · 📜 Histórico)
+- histórico (⬅️ HISTÓRICO ➡️, abas Uber / 99 / inDrive, deslize / setas / clique no rótulo, cabeçalho Data | Hora | R$/Km | Valor | Dist. | Tempo | Nota, linhas com borda fina da classificação, 🗑️ Limpar histórico; mesma altura da Configuração)
+- configuração (⬅️ CONFIGURAÇÃO ➡️, abas VEÍCULO / CUSTOS / CALIBRAR / APP; rótulos oficiais da seção 23; CANCELAR / SALVAR; mesma altura do Histórico; conteúdo extra rola)
 - confirmação de fechar e de limpar histórico
 
-Exceção autorizada na Beta: layout da configuração (abas VEÍCULO / CUSTOS / CALIBRAR / APP), campos Pro com 🔒 no título + **versão pro**, e vínculo de conta Google/e-mail sem habilitar edição dos campos Pro.
+Na Beta, campos Pro ficavam visíveis e bloqueados (🔒). No Pro 2.0 esses campos e o dashboard estão liberados (Free continua com 🔒).
 
-Permitido na Beta, sem mudar a UI: calibrar parser e aceite, correção de crash/bug de funcionamento, persistência e monitoramento.
-
-Mudança visual só volta no **Pro** (óleo, pneus, IPVA e calcular combustível editáveis, trajeto no histórico, R$ líquido, relatórios).
+Permitido na Beta em `main` **sem mudar a UI:** calibrar parser e aceite, correção de crash/bug, persistência e monitoramento.
 

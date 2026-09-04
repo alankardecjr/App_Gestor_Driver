@@ -5,13 +5,16 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import br.com.gestordriver.core.FaixasClassificacao
+import br.com.gestordriver.core.TabelaIpvaPlaca
 import br.com.gestordriver.data.ConfiguracaoStore
 import br.com.gestordriver.data.ContaVinculo
 import br.com.gestordriver.data.MemoriaConfiguracaoStore
 import br.com.gestordriver.model.AppNavegacao
 import br.com.gestordriver.model.Combustivel
 import br.com.gestordriver.model.ConfiguracaoUsuario
+import br.com.gestordriver.model.SeguroRecorrencia
 import br.com.gestordriver.model.TipoContaVinculada
+import br.com.gestordriver.model.TipoVeiculo
 
 class ConfiguracoesViewModel(
     private val store: ConfiguracaoStore = MemoriaConfiguracaoStore(),
@@ -19,6 +22,14 @@ class ConfiguracoesViewModel(
 
     var configuracao by mutableStateOf(store.carregar())
         private set
+
+    fun atualizarTipoVeiculo(tipo: TipoVeiculo) {
+        aplicar(configuracao.copy(tipoVeiculo = tipo))
+    }
+
+    fun atualizarMarcasDeslizantes(ruimMax: Double, boaMax: Double) {
+        aplicar(FaixasClassificacao.aplicarMarcas(configuracao, ruimMax, boaMax))
+    }
 
     fun atualizarMarca(valor: String) {
         aplicar(configuracao.copy(marcaVeiculo = valor))
@@ -37,7 +48,85 @@ class ConfiguracoesViewModel(
     }
 
     fun atualizarFinalPlaca(valor: String) {
-        aplicar(configuracao.copy(finalPlaca = valor))
+        val limpo = valor.filter { it.isDigit() }.takeLast(1)
+        aplicar(
+            configuracao.copy(
+                finalPlaca = limpo,
+                ipvaVencimento = TabelaIpvaPlaca.rotuloMesVencimento(limpo).takeIf { it != "—" }.orEmpty(),
+            ),
+        )
+    }
+
+    fun atualizarIpva(valor: String) {
+        aplicar(configuracao.copy(ipvaVencimento = valor))
+    }
+
+    fun atualizarAbastecimentoValor(valor: Double) {
+        aplicar(configuracao.copy(abastecimentoValor = valor))
+    }
+
+    fun atualizarAbastecimentoLitros(valor: Double) {
+        aplicar(configuracao.copy(abastecimentoLitros = valor))
+    }
+
+    fun atualizarAbastecimentoKmInicial(valor: Double) {
+        aplicar(configuracao.copy(abastecimentoKmInicial = valor))
+    }
+
+    fun atualizarAbastecimentoKmFinal(valor: Double) {
+        aplicar(configuracao.copy(abastecimentoKmFinal = valor))
+    }
+
+    fun atualizarOleoValor(valor: Double) {
+        aplicar(configuracao.copy(oleoValor = valor))
+    }
+
+    fun atualizarOleoKm(valor: Double) {
+        aplicar(configuracao.copy(oleoKilometragem = valor))
+    }
+
+    fun atualizarOleoData(valor: String) {
+        aplicar(configuracao.copy(oleoData = valor))
+    }
+
+    fun atualizarPneuDianteiroValor(valor: Double) {
+        aplicar(configuracao.copy(pneuDianteiroValor = valor))
+    }
+
+    fun atualizarPneuDianteiroRodagem(valor: Double) {
+        aplicar(configuracao.copy(pneuDianteiroRodagem = valor))
+    }
+
+    fun atualizarPneuDianteiroData(valor: String) {
+        aplicar(configuracao.copy(pneuDianteiroData = valor))
+    }
+
+    fun atualizarPneuTraseiroValor(valor: Double) {
+        aplicar(configuracao.copy(pneuTraseiroValor = valor))
+    }
+
+    fun atualizarPneuTraseiroRodagem(valor: Double) {
+        aplicar(configuracao.copy(pneuTraseiroRodagem = valor))
+    }
+
+    fun atualizarPneuTraseiroData(valor: String) {
+        aplicar(configuracao.copy(pneuTraseiroData = valor))
+    }
+
+    fun atualizarIpvaValor(valor: Double) {
+        aplicar(configuracao.copy(ipvaValor = valor))
+    }
+
+    fun atualizarSeguroValor(valor: Double) {
+        aplicar(configuracao.copy(seguroValor = valor))
+    }
+
+    fun atualizarSeguroData(valor: String) {
+        aplicar(configuracao.copy(seguroData = valor))
+    }
+
+    fun atualizarSeguroRecorrencia(valor: SeguroRecorrencia) {
+        aplicar(configuracao.copy(seguroRecorrencia = valor))
     }
 
     fun atualizarConsumoGasolina(valor: Double) {
@@ -46,6 +135,10 @@ class ConfiguracoesViewModel(
 
     fun atualizarConsumoEtanol(valor: Double) {
         aplicar(configuracao.copy(consumoEtanol = valor))
+    }
+
+    fun atualizarConsumoEnergia(valor: Double) {
+        aplicar(configuracao.copy(consumoEnergia = valor))
     }
 
     fun selecionarCombustivel(
@@ -60,6 +153,14 @@ class ConfiguracoesViewModel(
 
     fun atualizarPrecoEtanol(valor: Double) {
         aplicar(configuracao.copy(precoEtanol = valor))
+    }
+
+    fun atualizarPrecoEnergia(valor: Double) {
+        aplicar(configuracao.copy(precoEnergia = valor))
+    }
+
+    fun selecionarTema(tema: br.com.gestordriver.model.TemaApp) {
+        aplicar(configuracao.copy(tema = tema))
     }
 
     fun selecionarNavegacao(
@@ -118,10 +219,27 @@ class ConfiguracoesViewModel(
         aplicar(FaixasClassificacao.aplicar(configuracao, FaixasClassificacao.Campo.OTIMA_MAX, valor))
     }
 
-    fun salvar() {
-        val normalizada = FaixasClassificacao.normalizar(configuracao)
+    fun salvar(aplicarAbastecimento: Boolean = true) {
+        val comAbastecimento = if (aplicarAbastecimento) {
+            configuracao.aplicarCalculoAbastecimento()
+        } else {
+            configuracao
+        }
+        val normalizada = FaixasClassificacao.normalizar(comAbastecimento)
         store.salvar(normalizada)
         configuracao = normalizada
+    }
+
+    fun temCalculoAbastecimento(): Boolean {
+        val cfg = configuracao
+        return br.com.gestordriver.core.CalcularCombustivel.precoPorLitro(
+            cfg.abastecimentoValor,
+            cfg.abastecimentoLitros,
+        ) != null || br.com.gestordriver.core.CalcularCombustivel.consumoKmPorLitro(
+            cfg.abastecimentoKmInicial,
+            cfg.abastecimentoKmFinal,
+            cfg.abastecimentoLitros,
+        ) != null
     }
 
     private fun aplicar(nova: ConfiguracaoUsuario) {

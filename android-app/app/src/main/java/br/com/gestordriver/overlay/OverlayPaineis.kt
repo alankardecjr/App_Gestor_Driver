@@ -19,8 +19,12 @@ import android.widget.EditText
 import android.widget.FrameLayout
 import android.widget.LinearLayout
 import android.widget.ScrollView
+import android.widget.SeekBar
 import android.widget.TextView
+import android.widget.Toast
 import br.com.gestordriver.GestorDriverApp
+import br.com.gestordriver.core.CalendarioApp
+import br.com.gestordriver.core.CalendarioPeriodo
 import br.com.gestordriver.core.FaixasClassificacao
 import br.com.gestordriver.MainActivity
 import br.com.gestordriver.core.Classificacao
@@ -29,11 +33,14 @@ import br.com.gestordriver.data.ContaVinculo
 import br.com.gestordriver.model.AppNavegacao
 import br.com.gestordriver.model.Combustivel
 import br.com.gestordriver.model.ConfiguracaoUsuario
+import br.com.gestordriver.model.SeguroRecorrencia
 import br.com.gestordriver.model.TipoContaVinculada
+import br.com.gestordriver.model.TipoVeiculo
 import br.com.gestordriver.navigation.NavegacaoLauncher
 import br.com.gestordriver.notification.Plataforma
 import br.com.gestordriver.notification.PlataformasMotorista
 import br.com.gestordriver.permission.PermissoesMonitoramento
+import br.com.gestordriver.presentation.PresentationBuilder
 import br.com.gestordriver.ui.DecimalInput
 import kotlin.math.abs
 
@@ -41,10 +48,122 @@ object OverlayPaineis {
     private var rascunho: ConfiguracaoUsuario? = null
     private var abaMontada: Int = -1
     private var alturaMinimaConteudo: Int = 0
-    private const val FUNDO = "#F2050809"
-    private const val TEXTO = "#FFFFFF"
-    private const val SECUNDARIO = "#B8C5D1"
     private const val AMARELO = "#FFD54F"
+
+    private enum class AbaMenuFicheiro(val titulo: String) {
+        HISTORICO("Histórico"),
+        DASHBOARD("Dashboard"),
+        DESPESAS("Despesas"),
+        SEMAFORO("Semáforo"),
+        VEICULO("Veiculo"),
+        CONFIGURAR("Configurar"),
+    }
+
+    private fun abaMenuAtiva(snapshot: OverlaySnapshot): AbaMenuFicheiro = when {
+        snapshot.historicoVisivel -> AbaMenuFicheiro.HISTORICO
+        snapshot.dashboardVisivel -> AbaMenuFicheiro.DASHBOARD
+        snapshot.configuracoesVisivel -> when (snapshot.abaConfiguracao) {
+            1 -> AbaMenuFicheiro.DESPESAS
+            0 -> AbaMenuFicheiro.SEMAFORO
+            2 -> AbaMenuFicheiro.VEICULO
+            else -> AbaMenuFicheiro.CONFIGURAR
+        }
+        else -> AbaMenuFicheiro.HISTORICO
+    }
+
+    private fun emitirAbaMenu(aba: AbaMenuFicheiro) {
+        when (aba) {
+            AbaMenuFicheiro.HISTORICO -> OverlayBridge.emitir(OverlayAcao.AbrirHistorico)
+            AbaMenuFicheiro.DASHBOARD -> OverlayBridge.emitir(OverlayAcao.DashboardPro)
+            AbaMenuFicheiro.DESPESAS -> OverlayBridge.emitir(OverlayAcao.AbrirAtalhoConfig(1))
+            AbaMenuFicheiro.SEMAFORO -> OverlayBridge.emitir(OverlayAcao.AbrirAtalhoConfig(0))
+            AbaMenuFicheiro.VEICULO -> OverlayBridge.emitir(OverlayAcao.AbrirAtalhoConfig(2))
+            AbaMenuFicheiro.CONFIGURAR -> OverlayBridge.emitir(OverlayAcao.AbrirAtalhoConfig(3))
+        }
+    }
+
+    private fun criarFaixaAbasFicheiro(context: Context): LinearLayout {
+        val coluna = LinearLayout(context).apply {
+            orientation = LinearLayout.VERTICAL
+            tag = "menu_abas_ficheiro"
+            setPadding(dp(context, 4), 0, dp(context, 4), dp(context, 6))
+        }
+        fun linha(vararg abas: AbaMenuFicheiro): LinearLayout =
+            LinearLayout(context).apply {
+                orientation = LinearLayout.HORIZONTAL
+                gravity = Gravity.BOTTOM
+                layoutParams = LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT,
+                    LinearLayout.LayoutParams.WRAP_CONTENT,
+                )
+                abas.forEach { aba ->
+                    addView(criarAbaFicheiro(context, aba))
+                }
+            }
+        coluna.addView(linha(AbaMenuFicheiro.HISTORICO, AbaMenuFicheiro.DASHBOARD))
+        coluna.addView(linha(
+            AbaMenuFicheiro.DESPESAS,
+            AbaMenuFicheiro.SEMAFORO,
+            AbaMenuFicheiro.VEICULO,
+            AbaMenuFicheiro.CONFIGURAR,
+        ))
+        return coluna
+    }
+
+    private fun criarAbaFicheiro(context: Context, aba: AbaMenuFicheiro): LinearLayout {
+        return LinearLayout(context).apply {
+            orientation = LinearLayout.VERTICAL
+            gravity = Gravity.CENTER_HORIZONTAL
+            tag = "menu_aba_${aba.name}"
+            layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+            isClickable = true
+            isFocusable = true
+            setOnClickListener { emitirAbaMenu(aba) }
+            addView(
+                TextView(context).apply {
+                    tag = "menu_aba_titulo_${aba.name}"
+                    text = aba.titulo
+                    setTextColor(OverlayTema.de(context).secundario)
+                    textSize = 12f
+                    gravity = Gravity.CENTER
+                    maxLines = 1
+                    ellipsize = TextUtils.TruncateAt.END
+                    setPadding(dp(context, 2), dp(context, 8), dp(context, 2), dp(context, 6))
+                },
+            )
+            addView(
+                View(context).apply {
+                    tag = "menu_aba_ind_${aba.name}"
+                    layoutParams = LinearLayout.LayoutParams(
+                        LinearLayout.LayoutParams.MATCH_PARENT,
+                        dp(context, 3),
+                    )
+                    setBackgroundColor(Color.TRANSPARENT)
+                },
+            )
+        }
+    }
+
+    private fun atualizarFaixaAbasFicheiro(raiz: View, snapshot: OverlaySnapshot) {
+        val ativa = abaMenuAtiva(snapshot)
+        AbaMenuFicheiro.entries.forEach { aba ->
+            val selecionada = aba == ativa
+            raiz.findViewWithTag<TextView>("menu_aba_titulo_${aba.name}")?.let { titulo ->
+                titulo.setTextColor(
+                    if (selecionada) Color.parseColor(VERDE) else OverlayTema.de(raiz.context).secundario,
+                )
+                titulo.typeface = if (selecionada) Typeface.DEFAULT_BOLD else Typeface.DEFAULT
+                titulo.elevation = if (selecionada) dp(raiz.context, 2).toFloat() else 0f
+            }
+            raiz.findViewWithTag<View>("menu_aba_ind_${aba.name}")?.setBackgroundColor(
+                Color.parseColor(if (selecionada) VERDE else "#00000000"),
+            )
+            raiz.findViewWithTag<View>("menu_aba_${aba.name}")?.let { chip ->
+                chip.elevation = if (selecionada) dp(raiz.context, 3).toFloat() else 0f
+                chip.alpha = if (selecionada) 1f else 0.92f
+            }
+        }
+    }
     private const val VERDE = "#7CB342"
 
     fun criarHistorico(context: Context): LinearLayout {
@@ -56,37 +175,70 @@ object OverlayPaineis {
             tag = "historico_coluna"
         }
         coluna.addView(
-            tituloComSetas(
-                context,
-                "HISTÓRICO",
-                onEsquerda = { avancarAbaHistorico(-1) },
-                onDireita = { avancarAbaHistorico(1) },
-            ).apply {
-                setPadding(dp(context, 8), 0, dp(context, 8), dp(context, 6))
+            cabecalhoConfiguracoes(context) {
+                OverlayBridge.emitir(OverlayAcao.VoltarAtalho)
+            }.also { cabeca ->
+                cabeca.findViewWithTag<TextView>("config_titulo")?.text = "Histórico"
             },
         )
-        val abas = LinearLayout(context).apply {
+        coluna.addView(criarFaixaAbasFicheiro(context))
+        val plataformas = LinearLayout(context).apply {
             orientation = LinearLayout.HORIZONTAL
-            tag = "historico_abas"
-            gravity = Gravity.CENTER
-            setPadding(dp(context, 8), 0, dp(context, 8), 0)
+            tag = "historico_plataformas"
+            gravity = Gravity.CENTER_VERTICAL
+            setPadding(dp(context, 4), 0, dp(context, 4), dp(context, 4))
         }
-        listOf("Uber", "99", "inDrive").forEach { aba ->
-            abas.addView(
+        listOf("Todos", "Uber", "99", "inDrive").forEach { nome ->
+            plataformas.addView(
                 TextView(context).apply {
-                    text = aba.uppercase()
-                    tag = "aba_$aba"
-                    setTextColor(Color.parseColor(SECUNDARIO))
-                    textSize = 12f
+                    tag = "historico_aba_$nome"
+                    text = nome
+                    textSize = 13f
                     gravity = Gravity.CENTER
-                    maxLines = 1
-                    setPadding(dp(context, 2), dp(context, 5), dp(context, 2), dp(context, 5))
+                    minHeight = dp(context, 40)
+                    setPadding(dp(context, 6), dp(context, 6), dp(context, 6), dp(context, 6))
                     layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
-                    setOnClickListener { OverlayBridge.emitir(OverlayAcao.AbaHistorico(aba)) }
+                    setOnClickListener { OverlayBridge.emitir(OverlayAcao.AbaHistorico(nome)) }
                 },
             )
         }
-        coluna.addView(abas)
+        coluna.addView(plataformas)
+        coluna.addView(
+            tituloComSetas(
+                context,
+                CalendarioApp.rotuloMesAno(CalendarioApp.hoje()),
+                onEsquerda = { OverlayBridge.emitir(OverlayAcao.HistoricoSemana(-1)) },
+                onDireita = { OverlayBridge.emitir(OverlayAcao.HistoricoSemana(1)) },
+                tituloTag = "historico_mes_titulo",
+            ).apply {
+                tag = "historico_mes"
+                setPadding(dp(context, 8), 0, dp(context, 8), dp(context, 4))
+            },
+        )
+        val cabecalhoSemana = LinearLayout(context).apply {
+            orientation = LinearLayout.HORIZONTAL
+            tag = "historico_cabecalho_semana"
+            gravity = Gravity.CENTER
+            setPadding(dp(context, 4), 0, dp(context, 4), 0)
+        }
+        CalendarioApp.rotulosCabecalhoSemana().forEach { rotulo ->
+            cabecalhoSemana.addView(
+                TextView(context).apply {
+                    text = rotulo
+                    setTextColor(OverlayTema.de(context).secundario)
+                    textSize = 11f
+                    gravity = Gravity.CENTER
+                    layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+                },
+            )
+        }
+        coluna.addView(cabecalhoSemana)
+        val grade = LinearLayout(context).apply {
+            orientation = LinearLayout.VERTICAL
+            tag = "historico_grade"
+            setPadding(dp(context, 4), 0, dp(context, 4), dp(context, 4))
+        }
+        coluna.addView(grade)
         val lista = LinearLayout(context).apply {
             orientation = LinearLayout.VERTICAL
             tag = "historico_lista"
@@ -105,30 +257,508 @@ object OverlayPaineis {
         coluna.addView(scroll)
         coluna.addView(
             TextView(context).apply {
-                text = "🗑️ Limpar histórico"
+                text = "🗑️"
                 setTextColor(Color.parseColor(AMARELO))
-                textSize = 13f
+                textSize = 16f
                 gravity = Gravity.CENTER
-                setPadding(dp(context, 8), dp(context, 10), dp(context, 8), dp(context, 4))
+                setPadding(dp(context, 8), dp(context, 8), dp(context, 8), dp(context, 4))
                 layoutParams = LinearLayout.LayoutParams(
                     LinearLayout.LayoutParams.MATCH_PARENT,
                     LinearLayout.LayoutParams.WRAP_CONTENT,
                 )
-                setOnClickListener { OverlayBridge.emitir(OverlayAcao.SolicitarLimparHistorico) }
+                setOnClickListener {
+                    if (OverlayBridge.snapshot.value.historicoChavesSelecionadas.isEmpty()) {
+                        Toast.makeText(context, "Selecionar a(s) corrida(s)", Toast.LENGTH_SHORT).show()
+                    } else {
+                        OverlayBridge.emitir(OverlayAcao.SolicitarLimparHistorico)
+                    }
+                }
             },
         )
+        // Removido rodapé Cancelar/Salvar — histórico só tem lixeira.
         escutarFlingAbas(
             coluna,
-            onProxima = { avancarAbaHistorico(1) },
-            onAnterior = { avancarAbaHistorico(-1) },
+            onProxima = { OverlayBridge.emitir(OverlayAcao.HistoricoSemana(1)) },
+            onAnterior = { OverlayBridge.emitir(OverlayAcao.HistoricoSemana(-1)) },
         )
         escutarFlingAbas(
             scroll,
-            onProxima = { avancarAbaHistorico(1) },
-            onAnterior = { avancarAbaHistorico(-1) },
+            onProxima = { OverlayBridge.emitir(OverlayAcao.HistoricoSemana(1)) },
+            onAnterior = { OverlayBridge.emitir(OverlayAcao.HistoricoSemana(-1)) },
         )
         return coluna
     }
+
+    fun criarDashboard(context: Context): LinearLayout {
+        val coluna = LinearLayout(context).apply {
+            orientation = LinearLayout.VERTICAL
+            background = fundoNeutro(context)
+            clipToOutline = true
+            setPadding(0, dp(context, 8), 0, dp(context, 8))
+            tag = "dashboard_coluna"
+        }
+        coluna.addView(
+            cabecalhoConfiguracoes(context) {
+                OverlayBridge.emitir(OverlayAcao.VoltarAtalho)
+            }.also { cabeca ->
+                cabeca.findViewWithTag<TextView>("config_titulo")?.text = "Dashboard"
+            },
+        )
+        coluna.addView(criarFaixaAbasFicheiro(context))
+        val modos = LinearLayout(context).apply {
+            orientation = LinearLayout.HORIZONTAL
+            tag = "dashboard_modos"
+            gravity = Gravity.CENTER
+            setPadding(dp(context, 4), 0, dp(context, 4), dp(context, 4))
+        }
+        listOf(
+            CalendarioPeriodo.DIA to "Dia",
+            CalendarioPeriodo.SEMANA to "Semana",
+            CalendarioPeriodo.MES to "Mês",
+            CalendarioPeriodo.ANO to "Ano",
+        ).forEach { (periodo, rotulo) ->
+            modos.addView(
+                TextView(context).apply {
+                    tag = "dashboard_modo_${periodo.name}"
+                    text = rotulo
+                    textSize = 13f
+                    gravity = Gravity.CENTER
+                    minHeight = dp(context, 40)
+                    layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+                    setOnClickListener {
+                        OverlayBridge.emitir(OverlayAcao.HistoricoModo(periodo.name))
+                    }
+                },
+            )
+        }
+        coluna.addView(modos)
+        coluna.addView(
+            tituloComSetas(
+                context,
+                "—",
+                onEsquerda = { OverlayBridge.emitir(OverlayAcao.HistoricoAvancar(-1)) },
+                onDireita = { OverlayBridge.emitir(OverlayAcao.HistoricoAvancar(1)) },
+                tituloTag = "dashboard_periodo_titulo",
+            ).apply {
+                tag = "dashboard_periodo"
+                setPadding(dp(context, 8), 0, dp(context, 8), dp(context, 4))
+            },
+        )
+        coluna.addView(
+            TextView(context).apply {
+                tag = "dashboard_periodo_sub"
+                setTextColor(OverlayTema.de(context).secundario)
+                textSize = 11f
+                gravity = Gravity.CENTER
+                setPadding(0, 0, 0, dp(context, 4))
+            },
+        )
+        val cabecalhoSemana = LinearLayout(context).apply {
+            orientation = LinearLayout.HORIZONTAL
+            tag = "dashboard_cabecalho_semana"
+            gravity = Gravity.CENTER
+            setPadding(dp(context, 4), 0, dp(context, 4), 0)
+        }
+        CalendarioApp.rotulosCabecalhoSemana().forEach { rotulo ->
+            cabecalhoSemana.addView(
+                TextView(context).apply {
+                    text = rotulo
+                    setTextColor(OverlayTema.de(context).secundario)
+                    textSize = 11f
+                    gravity = Gravity.CENTER
+                    layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+                },
+            )
+        }
+        coluna.addView(cabecalhoSemana)
+        coluna.addView(
+            LinearLayout(context).apply {
+                orientation = LinearLayout.VERTICAL
+                tag = "dashboard_grade"
+                setPadding(dp(context, 4), 0, dp(context, 4), dp(context, 4))
+            },
+        )
+        val scroll = ScrollView(context).apply {
+            tag = "dashboard_scroll"
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                0,
+                1f,
+            )
+            barraJuntoDaBorda(paddingInicioDp = 8)
+        }
+        val corpo = LinearLayout(context).apply {
+            orientation = LinearLayout.VERTICAL
+            tag = "dashboard_corpo"
+            setPadding(dp(context, 8), 0, dp(context, 8), dp(context, 12))
+        }
+        scroll.addView(corpo)
+        coluna.addView(scroll)
+        return coluna
+    }
+
+    fun atualizarDashboard(view: View, snapshot: OverlaySnapshot) {
+        view.alpha = if (snapshot.monitorando) 1f else 0.9f
+        val coluna = if (view.tag == "dashboard_coluna") {
+            view as LinearLayout
+        } else {
+            view.findViewWithTag("dashboard_coluna") ?: return
+        }
+        coluna.background = fundoNeutro(coluna.context)
+        val contexto = coluna.context
+        atualizarFaixaAbasFicheiro(coluna, snapshot)
+        val dia = CalendarioApp.diaDe(snapshot.historicoEpochDay)
+        val periodo = CalendarioPeriodo.de(snapshot.historicoPeriodo)
+        CalendarioPeriodo.entries.forEach { modo ->
+            coluna.findViewWithTag<TextView>("dashboard_modo_${modo.name}")?.let { chip ->
+                val ativo = modo == periodo
+                chip.setTextColor(
+                    if (ativo) Color.parseColor(VERDE) else OverlayTema.de(contexto).secundario,
+                )
+                chip.typeface = if (ativo) Typeface.DEFAULT_BOLD else Typeface.DEFAULT
+                chip.background = GradientDrawable().apply {
+                    cornerRadius = dp(contexto, 8).toFloat()
+                    setColor(
+                        if (ativo) Color.parseColor("#1A7CB342") else Color.TRANSPARENT,
+                    )
+                    if (ativo) {
+                        setStroke(dp(contexto, 1), Color.parseColor(VERDE))
+                    }
+                }
+            }
+        }
+        coluna.findViewWithTag<TextView>("dashboard_periodo_titulo")?.text =
+            CalendarioApp.rotuloPeriodoCabecalho(dia, periodo)
+        coluna.findViewWithTag<TextView>("dashboard_periodo_sub")?.let { sub ->
+            val texto = CalendarioApp.subtituloPeriodo(dia, periodo)
+            sub.text = texto
+            sub.visibility = if (texto.isBlank()) View.GONE else View.VISIBLE
+        }
+        atualizarCalendarioDashboard(coluna, snapshot)
+        val corpo = coluna.findViewWithTag<LinearLayout>("dashboard_corpo") ?: return
+        corpo.removeAllViews()
+        if (!snapshot.planoPro) {
+            corpo.addView(
+                TextView(contexto).apply {
+                    text = "🔒 Faturamento, gastos e rateios ficam na versão Pro."
+                    setTextColor(OverlayTema.de(contexto).secundario)
+                    textSize = 13f
+                    gravity = Gravity.CENTER
+                    setPadding(dp(contexto, 8), dp(contexto, 16), dp(contexto, 8), dp(contexto, 8))
+                },
+            )
+            return
+        }
+        val app = contexto.applicationContext as? GestorDriverApp
+        val config = app?.configuracaoStore?.carregar()
+            ?: br.com.gestordriver.model.ConfiguracaoUsuario.padrao()
+        val itensPeriodo = (app?.historicoRepository?.listar().orEmpty()).filter { item ->
+            val data = item.dataHoraRegistro?.toLocalDate() ?: return@filter false
+            CalendarioApp.noPeriodo(data, dia, periodo)
+        }
+        val numeros = br.com.gestordriver.core.DashboardNumeros.de(
+            itensPeriodo.map {
+                br.com.gestordriver.core.CorridaParaResumo(
+                    valorTotal = it.valorTotal,
+                    kmTotal = it.kmTotal,
+                    minutos = it.tempoEstimado ?: 0,
+                    gastoCorrida = it.custoCombustivel,
+                )
+            },
+            config,
+            diasPeriodo = CalendarioApp.diasDoPeriodo(dia, periodo),
+        )
+        fun dinheiro(v: Double) = "R$ ${"%.2f".format(v).replace(".", ",")}"
+        fun decimal(v: Double) = "%.2f".format(v).replace(".", ",")
+        corpo.addView(linhaTresMetricasDash(contexto, listOf(
+            Triple("Receitas", "", dinheiro(numeros.receitas) to Color.parseColor(VERDE)),
+            Triple("Despesas", "", dinheiro(numeros.despesas) to Color.parseColor("#E53935")),
+            Triple(
+                "Saldo",
+                "",
+                dinheiro(numeros.saldo) to Color.parseColor(
+                    if (numeros.saldo >= 0) VERDE else "#E53935",
+                ),
+            ),
+        )))
+        corpo.addView(rotulo(contexto, "Ganhos/Custos líquido", secao = true))
+        corpo.addView(linhaDuasMetricasDash(contexto,
+            "Ganhos Km" to ("R$ ${decimal(numeros.ganhoPorKm)}" to Color.parseColor(VERDE)),
+            "Custo Km" to ("R$ ${decimal(numeros.custoPorKm)}" to Color.parseColor("#E53935")),
+        ))
+        corpo.addView(linhaDuasMetricasDash(contexto,
+            "Ganhos hora" to ("R$ ${decimal(numeros.ganhoPorHora)}" to Color.parseColor(VERDE)),
+            "Custo hora" to ("R$ ${decimal(numeros.custoPorHora)}" to Color.parseColor("#E53935")),
+        ))
+        corpo.addView(rotulo(contexto, "Estimativa de custos", secao = true))
+        listOf(
+            "Combustível" to numeros.combustivel,
+            "óleo" to numeros.oleo,
+            "Pneu dianteiros" to numeros.pneuDianteiro,
+            "Pneu traseiros" to numeros.pneuTraseiro,
+            "Seguro" to numeros.seguro,
+            "IPVA" to numeros.ipva,
+        ).forEach { (rotuloItem, valor) ->
+            corpo.addView(
+                linhaEstimativaDash(
+                    contexto,
+                    rotuloItem,
+                    valor?.let { dinheiro(it) } ?: "—",
+                    aviso = valor == null,
+                ),
+            )
+        }
+        if (numeros.corridas == 0) {
+            corpo.addView(
+                TextView(contexto).apply {
+                    text = CalendarioApp.textoVazio(periodo)
+                    setTextColor(OverlayTema.de(contexto).secundario)
+                    textSize = 12f
+                    gravity = Gravity.CENTER
+                    setPadding(0, dp(contexto, 8), 0, 0)
+                },
+            )
+        }
+    }
+
+    private fun atualizarCalendarioDashboard(coluna: LinearLayout, snapshot: OverlaySnapshot) {
+        val selecionado = CalendarioApp.diaDe(snapshot.historicoEpochDay)
+        val periodo = CalendarioPeriodo.de(snapshot.historicoPeriodo)
+        val hoje = CalendarioApp.hoje()
+        val marcados = snapshot.historicoDiasComCorrida.toSet()
+        val cabecalho = coluna.findViewWithTag<LinearLayout>("dashboard_cabecalho_semana")
+        val grade = coluna.findViewWithTag<LinearLayout>("dashboard_grade") ?: return
+        grade.removeAllViews()
+        when (periodo) {
+            CalendarioPeriodo.ANO, CalendarioPeriodo.SEMANA -> {
+                // Semana: só setas (faturamento da semana inteira). Ano: sem calendário.
+                cabecalho?.visibility = View.GONE
+                grade.visibility = View.GONE
+            }
+            CalendarioPeriodo.MES -> {
+                cabecalho?.visibility = View.GONE
+                grade.visibility = View.VISIBLE
+                CalendarioApp.mesesDoAno(selecionado).chunked(6).forEach { linha ->
+                    grade.addView(linhaMesesDashboard(coluna.context, linha, selecionado))
+                }
+            }
+            CalendarioPeriodo.DIA -> {
+                cabecalho?.visibility = View.VISIBLE
+                grade.visibility = View.VISIBLE
+                val dias = CalendarioApp.diasDaSemana(selecionado)
+                grade.addView(linhaDiasDashboard(coluna.context, dias, selecionado, hoje, marcados, periodo))
+            }
+        }
+    }
+
+    private fun linhaMesesDashboard(
+        context: Context,
+        meses: List<java.time.LocalDate>,
+        selecionado: java.time.LocalDate,
+    ): LinearLayout =
+        LinearLayout(context).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER
+            setPadding(0, dp(context, 2), 0, dp(context, 2))
+            meses.forEach { mes ->
+                val ativo = CalendarioApp.noMes(mes, selecionado)
+                addView(
+                    TextView(context).apply {
+                        text = CalendarioApp.rotuloMesChip(mes)
+                        val tema = OverlayTema.de(context)
+                        setTextColor(if (ativo) Color.parseColor(VERDE) else tema.texto)
+                        typeface = if (ativo) Typeface.DEFAULT_BOLD else Typeface.DEFAULT
+                        textSize = 12f
+                        gravity = Gravity.CENTER
+                        minHeight = dp(context, 36)
+                        layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+                        background = if (ativo) {
+                            GradientDrawable().apply {
+                                cornerRadius = dp(context, 8).toFloat()
+                                setColor(Color.parseColor("#1A7CB342"))
+                                setStroke(dp(context, 1), Color.parseColor(VERDE))
+                            }
+                        } else {
+                            null
+                        }
+                        setOnClickListener {
+                            OverlayBridge.emitir(OverlayAcao.HistoricoDia(mes.toEpochDay()))
+                        }
+                    },
+                )
+            }
+        }
+
+    private fun linhaDiasDashboard(
+        context: Context,
+        dias: List<java.time.LocalDate>,
+        selecionado: java.time.LocalDate,
+        hoje: java.time.LocalDate,
+        marcados: Set<Long>,
+        periodo: CalendarioPeriodo,
+    ): LinearLayout =
+        LinearLayout(context).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER
+            dias.forEach { dia ->
+                val ativo = when (periodo) {
+                    CalendarioPeriodo.DIA -> dia == selecionado
+                    CalendarioPeriodo.SEMANA -> CalendarioApp.noPeriodo(dia, selecionado, CalendarioPeriodo.SEMANA) &&
+                        dia == selecionado
+                    CalendarioPeriodo.MES -> dia == selecionado
+                    CalendarioPeriodo.ANO -> false
+                }
+                val noMes = CalendarioApp.noMes(dia, selecionado)
+                val temCorrida = marcados.contains(dia.toEpochDay())
+                addView(
+                    TextView(context).apply {
+                        text = buildString {
+                            append(dia.dayOfMonth)
+                            if (temCorrida) append(" ·")
+                        }
+                        val tema = OverlayTema.de(context)
+                        setTextColor(
+                            when {
+                                ativo -> Color.parseColor(VERDE)
+                                dia == hoje -> Color.parseColor(AMARELO)
+                                periodo == CalendarioPeriodo.MES && !noMes -> tema.secundario
+                                else -> tema.texto
+                            },
+                        )
+                        typeface = if (ativo) Typeface.DEFAULT_BOLD else Typeface.DEFAULT
+                        textSize = 13f
+                        gravity = Gravity.CENTER
+                        minHeight = dp(context, 36)
+                        alpha = if (periodo == CalendarioPeriodo.MES && !noMes) 0.45f else 1f
+                        layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+                        setOnClickListener {
+                            OverlayBridge.emitir(OverlayAcao.HistoricoDia(dia.toEpochDay()))
+                        }
+                    },
+                )
+            }
+        }
+
+    private fun linhaTresMetricasDash(
+        context: Context,
+        itens: List<Triple<String, String, Pair<String, Int>>>,
+    ): LinearLayout =
+        LinearLayout(context).apply {
+            orientation = LinearLayout.HORIZONTAL
+            setPadding(0, dp(context, 4), 0, dp(context, 8))
+            itens.forEach { (titulo, hint, valorCor) ->
+                addView(
+                    LinearLayout(context).apply {
+                        orientation = LinearLayout.VERTICAL
+                        gravity = Gravity.CENTER
+                        layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f).apply {
+                            marginEnd = dp(context, 4)
+                        }
+                        background = GradientDrawable().apply {
+                            setColor(OverlayTema.de(context).metrica)
+                            setStroke(dp(context, 1), OverlayTema.de(context).borda)
+                            cornerRadius = dp(context, 8).toFloat()
+                        }
+                        setPadding(dp(context, 4), dp(context, 8), dp(context, 4), dp(context, 8))
+                        addView(TextView(context).apply {
+                            text = titulo
+                            setTextColor(OverlayTema.de(context).texto)
+                            textSize = 11f
+                            gravity = Gravity.CENTER
+                            typeface = Typeface.DEFAULT_BOLD
+                        })
+                        addView(TextView(context).apply {
+                            text = hint
+                            setTextColor(OverlayTema.de(context).secundario)
+                            textSize = 9f
+                            gravity = Gravity.CENTER
+                        })
+                        addView(TextView(context).apply {
+                            text = valorCor.first
+                            setTextColor(valorCor.second)
+                            textSize = 13f
+                            gravity = Gravity.CENTER
+                            typeface = Typeface.DEFAULT_BOLD
+                        })
+                    },
+                )
+            }
+        }
+
+    private fun linhaDuasMetricasDash(
+        context: Context,
+        esquerda: Pair<String, Pair<String, Int>>,
+        direita: Pair<String, Pair<String, Int>>,
+    ): LinearLayout =
+        LinearLayout(context).apply {
+            orientation = LinearLayout.HORIZONTAL
+            setPadding(0, 0, 0, dp(context, 6))
+            listOf(esquerda, direita).forEach { (titulo, valorCor) ->
+                addView(
+                    LinearLayout(context).apply {
+                        orientation = LinearLayout.VERTICAL
+                        layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f).apply {
+                            marginEnd = dp(context, 4)
+                        }
+                        background = GradientDrawable().apply {
+                            setColor(OverlayTema.de(context).fundoPainel)
+                            setStroke(dp(context, 1), OverlayTema.de(context).borda)
+                            cornerRadius = dp(context, 8).toFloat()
+                        }
+                        setPadding(dp(context, 8), dp(context, 8), dp(context, 8), dp(context, 8))
+                        addView(TextView(context).apply {
+                            text = titulo
+                            setTextColor(OverlayTema.de(context).texto)
+                            textSize = 11f
+                            typeface = Typeface.DEFAULT_BOLD
+                        })
+                        addView(TextView(context).apply {
+                            text = valorCor.first
+                            setTextColor(valorCor.second)
+                            textSize = 13f
+                            typeface = Typeface.DEFAULT_BOLD
+                        })
+                    },
+                )
+            }
+        }
+
+    private fun linhaEstimativaDash(
+        context: Context,
+        rotulo: String,
+        valor: String,
+        aviso: Boolean,
+    ): LinearLayout =
+        LinearLayout(context).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            setPadding(dp(context, 10), dp(context, 8), dp(context, 10), dp(context, 8))
+            background = GradientDrawable().apply {
+                setColor(OverlayTema.de(context).fundoPainel)
+                setStroke(dp(context, 1), OverlayTema.de(context).borda)
+                cornerRadius = dp(context, 8).toFloat()
+            }
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+            ).apply { bottomMargin = dp(context, 6) }
+            addView(TextView(context).apply {
+                text = rotulo
+                setTextColor(
+                    if (aviso) OverlayTema.de(context).secundario else OverlayTema.de(context).texto,
+                )
+                textSize = 12f
+                layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+            })
+            addView(TextView(context).apply {
+                text = valor
+                setTextColor(
+                    if (aviso) OverlayTema.de(context).secundario else Color.parseColor(VERDE),
+                )
+                textSize = 12f
+                typeface = Typeface.DEFAULT_BOLD
+            })
+        }
 
     fun criarConfirmacaoFechar(context: Context): LinearLayout {
         val coluna = LinearLayout(context).apply {
@@ -139,9 +769,10 @@ object OverlayPaineis {
         coluna.addView(
             TextView(context).apply {
                 tag = "confirmacao_titulo"
-                text = "Fechar gestor driver"
-                setTextColor(Color.WHITE)
-                textSize = 13f
+                text = "gestor driver"
+                setTextColor(OverlayTema.de(context).texto)
+                textSize = 15f
+                typeface = Typeface.DEFAULT_BOLD
                 gravity = Gravity.CENTER
                 setPadding(0, 0, 0, dp(context, 8))
             },
@@ -150,8 +781,8 @@ object OverlayPaineis {
             TextView(context).apply {
                 tag = "confirmacao_mensagem"
                 text = "Deseja encerrar o aplicativo e parar o monitoramento de corridas?"
-                setTextColor(Color.parseColor(SECUNDARIO))
-                textSize = 12f
+                setTextColor(OverlayTema.de(context).secundario)
+                textSize = 13f
                 gravity = Gravity.CENTER
                 setPadding(0, 0, 0, dp(context, 10))
             },
@@ -164,7 +795,7 @@ object OverlayPaineis {
             TextView(context).apply {
                 tag = "confirmacao_cancelar"
                 text = "Cancelar"
-                setTextColor(Color.parseColor(SECUNDARIO))
+                setTextColor(OverlayTema.de(context).secundario)
                 textSize = 13f
                 gravity = Gravity.CENTER
                 setPadding(dp(context, 16), dp(context, 8), dp(context, 16), dp(context, 8))
@@ -187,12 +818,11 @@ object OverlayPaineis {
         return coluna
     }
 
-    fun atualizarConfirmacao(view: View, limparHistorico: Boolean) {
-        view.findViewWithTag<TextView>("confirmacao_titulo")?.text =
-            if (limparHistorico) "Limpar histórico" else "Fechar gestor driver"
+    fun atualizarConfirmacao(view: View, limparHistorico: Boolean, quantidade: Int = 0) {
+        view.findViewWithTag<TextView>("confirmacao_titulo")?.text = "gestor driver"
         view.findViewWithTag<TextView>("confirmacao_mensagem")?.text =
             if (limparHistorico) {
-                "Deseja apagar todas as corridas aceitas do histórico?"
+                "Limpar histórico"
             } else {
                 "Deseja encerrar o aplicativo e parar o monitoramento de corridas?"
             }
@@ -218,36 +848,82 @@ object OverlayPaineis {
             view.findViewWithTag("historico_coluna") ?: return
         }
         coluna.background = fundoNeutro(coluna.context)
-        val abas = coluna.findViewWithTag<LinearLayout>("historico_abas")
-        listOf("Uber", "99", "inDrive").forEach { aba ->
-            val rotulo = abas.findViewWithTag<TextView>("aba_$aba")
-            val selecionada = snapshot.historicoAba.equals(aba, ignoreCase = true)
-            rotulo.setTextColor(Color.parseColor(if (selecionada) VERDE else SECUNDARIO))
-            rotulo.typeface = if (selecionada) Typeface.DEFAULT_BOLD else Typeface.DEFAULT
+        atualizarFaixaAbasFicheiro(coluna, snapshot)
+        atualizarCalendarioHistorico(coluna, snapshot)
+        listOf("Todos", "Uber", "99", "inDrive").forEach { nome ->
+            coluna.findViewWithTag<TextView>("historico_aba_$nome")?.let { chip ->
+                val ativa = snapshot.historicoAba.equals(nome, ignoreCase = true)
+                val tema = OverlayTema.de(chip.context)
+                chip.setTextColor(if (ativa) tema.texto else tema.secundario)
+                chip.typeface = if (ativa) Typeface.DEFAULT_BOLD else Typeface.DEFAULT
+            }
         }
         val lista = coluna.findViewWithTag<LinearLayout>("historico_lista") ?: return
         lista.removeAllViews()
-        lista.addView(
-            encapsularLinhaHistorico(
-                view.context,
-                cabecalho = true,
-                linhaHistorico(view.context, titulosHistorico, cabecalho = true),
-            ),
-        )
+        lista.setPadding(dp(view.context, 8), 0, dp(view.context, 8), 0)
         if (snapshot.historicoItens.isEmpty()) {
             lista.addView(
                 TextView(view.context).apply {
-                    text = "Nenhuma corrida aceita."
-                    setTextColor(Color.parseColor(SECUNDARIO))
-                    textSize = 12f
-                    setPadding(0, dp(view.context, 8), 0, 0)
+                    text = CalendarioApp.textoVazio(CalendarioPeriodo.SEMANA)
+                    setTextColor(OverlayTema.de(view.context).secundario)
                 },
             )
             return
         }
         snapshot.historicoItens.forEach { item ->
-            lista.addView(criarItemHistorico(view.context, item))
+            lista.addView(
+                criarItemHistorico(
+                    view.context,
+                    item,
+                    selecionado = item.chave in snapshot.historicoChavesSelecionadas,
+                ),
+            )
         }
+    }
+
+    private fun atualizarCalendarioHistorico(coluna: LinearLayout, snapshot: OverlaySnapshot) {
+        val selecionado = CalendarioApp.diaDe(snapshot.historicoEpochDay)
+        val hoje = CalendarioApp.hoje()
+        val marcados = snapshot.historicoDiasComCorrida.toSet()
+        coluna.findViewWithTag<TextView>("historico_mes_titulo")?.text =
+            CalendarioApp.rotuloPeriodoCabecalho(selecionado, CalendarioPeriodo.SEMANA)
+        val grade = coluna.findViewWithTag<LinearLayout>("historico_grade") ?: return
+        grade.removeAllViews()
+        val dias = CalendarioApp.diasDaSemana(selecionado)
+        grade.addView(
+            LinearLayout(coluna.context).apply {
+                orientation = LinearLayout.HORIZONTAL
+                gravity = Gravity.CENTER
+                dias.forEach { dia ->
+                    val ativo = dia == selecionado
+                    val temCorrida = marcados.contains(dia.toEpochDay())
+                    addView(
+                        TextView(coluna.context).apply {
+                            text = buildString {
+                                append(dia.dayOfMonth)
+                                if (temCorrida) append(" ·")
+                            }
+                            val temaDia = OverlayTema.de(coluna.context)
+                            setTextColor(
+                                when {
+                                    ativo -> Color.parseColor(VERDE)
+                                    dia == hoje -> Color.parseColor(AMARELO)
+                                    else -> temaDia.texto
+                                },
+                            )
+                            typeface = if (ativo) Typeface.DEFAULT_BOLD else Typeface.DEFAULT
+                            textSize = 13f
+                            gravity = Gravity.CENTER
+                            minHeight = dp(coluna.context, 36)
+                            layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+                            setOnClickListener {
+                                OverlayBridge.emitir(OverlayAcao.HistoricoDia(dia.toEpochDay()))
+                            }
+                        },
+                    )
+                }
+            },
+        )
     }
 
     fun criarConfig(context: Context): View {
@@ -265,42 +941,17 @@ object OverlayPaineis {
             setPadding(0, dp(ctx, 12), 0, dp(ctx, 12))
             tag = "config_coluna"
         }
+        raiz.addView(cabecalhoConfiguracoes(ctx) { cancelarConfig(raiz) })
+        raiz.addView(criarFaixaAbasFicheiro(ctx))
         raiz.addView(
-            tituloComSetas(
-                ctx,
-                "CONFIGURAÇÃO",
-                onEsquerda = { avancarAbaConfig(-1) },
-                onDireita = { avancarAbaConfig(1) },
-            ).apply {
-                setPadding(dp(ctx, 12), 0, dp(ctx, 12), dp(ctx, 6))
+            View(ctx).apply {
+                layoutParams = LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT,
+                    dp(ctx, 1),
+                )
+                setBackgroundColor(OverlayTema.de(ctx).borda)
             },
         )
-        val abas = LinearLayout(ctx).apply {
-            orientation = LinearLayout.HORIZONTAL
-            tag = "config_abas"
-            gravity = Gravity.CENTER
-            setPadding(dp(ctx, 12), 0, dp(ctx, 12), 0)
-        }
-        listOf("VEÍCULO", "CUSTOS", "CALIBRAR", "APP").forEachIndexed { indice, titulo ->
-            abas.addView(
-                TextView(ctx).apply {
-                    text = titulo
-                    tag = "cfg_aba_$indice"
-                    isClickable = true
-                    isFocusable = true
-                    isFocusableInTouchMode = false
-                    setTextColor(Color.parseColor(SECUNDARIO))
-                    textSize = 12f
-                    gravity = Gravity.CENTER
-                    maxLines = 1
-                    ellipsize = TextUtils.TruncateAt.END
-                    setPadding(dp(ctx, 2), dp(ctx, 5), dp(ctx, 2), dp(ctx, 5))
-                    layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
-                    setOnClickListener { selecionarAbaConfig(indice) }
-                },
-            )
-        }
-        raiz.addView(abas)
         val scroll = ScrollView(ctx).apply {
             tag = "config_scroll"
             descendantFocusability = ViewGroup.FOCUS_BEFORE_DESCENDANTS
@@ -321,32 +972,53 @@ object OverlayPaineis {
             },
         )
         raiz.addView(scroll)
+        raiz.addView(
+            View(ctx).apply {
+                layoutParams = LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT,
+                    dp(ctx, 1),
+                )
+                setBackgroundColor(OverlayTema.de(ctx).borda)
+            },
+        )
         val rodape = LinearLayout(ctx).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER
-            setPadding(dp(ctx, 12), dp(ctx, 6), dp(ctx, 12), 0)
+            setPadding(dp(ctx, 12), dp(ctx, 10), dp(ctx, 12), dp(ctx, 4))
         }
         rodape.addView(
             TextView(ctx).apply {
                 text = "Cancelar"
-                setTextColor(Color.parseColor(SECUNDARIO))
-                textSize = 12f
+                setTextColor(OverlayTema.de(ctx).secundario)
+                textSize = 14f
+                typeface = Typeface.DEFAULT_BOLD
                 gravity = Gravity.CENTER
                 isClickable = true
-                setPadding(dp(ctx, 8), dp(ctx, 8), dp(ctx, 8), dp(ctx, 8))
+                setPadding(dp(ctx, 8), dp(ctx, 10), dp(ctx, 8), dp(ctx, 10))
+                background = GradientDrawable().apply {
+                    setColor(Color.parseColor("#334CAF50"))
+                    cornerRadius = dp(ctx, 8).toFloat()
+                }
                 layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
                 setOnClickListener { cancelarConfig(raiz) }
             },
         )
         rodape.addView(
             TextView(ctx).apply {
-                text = "Salvar"
+                text = "SALVAR"
                 setTextColor(Color.parseColor(VERDE))
-                textSize = 12f
+                textSize = 14f
+                typeface = Typeface.DEFAULT_BOLD
                 gravity = Gravity.CENTER
                 isClickable = true
-                setPadding(dp(ctx, 8), dp(ctx, 8), dp(ctx, 8), dp(ctx, 8))
-                layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+                setPadding(dp(ctx, 8), dp(ctx, 10), dp(ctx, 8), dp(ctx, 10))
+                background = GradientDrawable().apply {
+                    setColor(Color.parseColor("#334CAF50"))
+                    cornerRadius = dp(ctx, 8).toFloat()
+                }
+                layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f).apply {
+                    marginStart = dp(ctx, 8)
+                }
                 setOnClickListener { salvarConfig(raiz, ctx) }
             },
         )
@@ -411,13 +1083,11 @@ object OverlayPaineis {
         }
     }
 
-    private fun avancarAbaHistorico(direcao: Int) {
-        val abas = listOf("Uber", "99", "inDrive")
-        val atualNome = OverlayBridge.snapshot.value.historicoAba
-        val atual = abas.indexOfFirst { it.equals(atualNome, ignoreCase = true) }.coerceAtLeast(0)
-        val novo = (atual + direcao).coerceIn(0, abas.lastIndex)
+    private fun avancarAbaPeriodoHistorico(direcao: Int) {
+        val atual = CalendarioPeriodo.de(OverlayBridge.snapshot.value.historicoPeriodo)
+        val novo = atual.vizinho(direcao)
         if (novo != atual) {
-            OverlayBridge.emitir(OverlayAcao.AbaHistorico(abas[novo]))
+            OverlayBridge.emitir(OverlayAcao.HistoricoModo(novo.name))
         }
     }
 
@@ -440,19 +1110,78 @@ object OverlayPaineis {
         val app = context.applicationContext as? GestorDriverApp ?: return
         val aba = OverlayBridge.snapshot.value.abaConfiguracao
         val base = rascunho ?: app.configuracaoStore.carregar()
-        val final = FaixasClassificacao.normalizar(colherAba(raiz, aba, base))
-        runCatching { app.configuracaoStore.salvar(final) }
-        rascunho = null
-        OverlayBridge.emitir(OverlayAcao.SalvarConfig)
+        val colhida = colherAba(raiz, aba, base)
+        val temAbastecimento =
+            br.com.gestordriver.core.CalcularCombustivel.precoPorLitro(
+                colhida.abastecimentoValor,
+                colhida.abastecimentoLitros,
+            ) != null ||
+                br.com.gestordriver.core.CalcularCombustivel.consumoKmPorLitro(
+                    colhida.abastecimentoKmInicial,
+                    colhida.abastecimentoKmFinal,
+                    colhida.abastecimentoLitros,
+                ) != null
+        fun persistir(aplicarAbastecimento: Boolean) {
+            val final = FaixasClassificacao.normalizar(
+                if (aplicarAbastecimento) colhida.aplicarCalculoAbastecimento() else colhida,
+            )
+            runCatching { app.configuracaoStore.salvar(final) }
+            rascunho = null
+            OverlayBridge.emitir(OverlayAcao.SalvarConfig)
+        }
+        if (!temAbastecimento) {
+            persistir(false)
+            return
+        }
+        android.app.AlertDialog.Builder(ContextThemeWrapper(context, android.R.style.Theme_DeviceDefault_Dialog))
+            .setTitle("Usar abastecimento?")
+            .setMessage("Preencher R$/L e km/L do combustível atual com o cálculo do abastecimento?")
+            .setPositiveButton("Sim") { _, _ -> persistir(true) }
+            .setNegativeButton("Não") { _, _ -> persistir(false) }
+            .setNeutralButton("Cancelar", null)
+            .show()
+    }
+
+    private fun adicionarAlertaOleo(
+        destino: LinearLayout,
+        context: Context,
+        config: ConfiguracaoUsuario,
+    ) {
+        val app = context.applicationContext as? GestorDriverApp
+        val pontos = app?.historicoRepository?.listar().orEmpty().map {
+            it.dataHoraRegistro?.toLocalDate() to it.kmTotal
+        }
+        val kmDesde = br.com.gestordriver.core.AlertaOleo.kmDesdeTroca(config.oleoData, pontos)
+        val nivel = br.com.gestordriver.core.AlertaOleo.nivel(config.oleoKilometragem, kmDesde)
+        if (nivel == br.com.gestordriver.core.AlertaOleo.Nivel.OK || config.oleoKilometragem <= 0.0) {
+            return
+        }
+        val restante = config.oleoKilometragem - kmDesde
+        val texto = when (nivel) {
+            br.com.gestordriver.core.AlertaOleo.Nivel.VENCIDO ->
+                "Troca de óleo vencida. Já rodou ${"%.0f".format(kmDesde)} km desde a data informada."
+            br.com.gestordriver.core.AlertaOleo.Nivel.AVISO ->
+                "Troca de óleo perto do vencimento. Faltam cerca de ${"%.0f".format(restante.coerceAtLeast(0.0))} km."
+            else -> return
+        }
+        destino.addView(
+            TextView(context).apply {
+                this.text = texto
+                setTextColor(Color.parseColor("#E53935"))
+                textSize = 11f
+                typeface = Typeface.DEFAULT_BOLD
+                setPadding(0, dp(context, 2), 0, dp(context, 4))
+            },
+        )
     }
 
     private fun atualizarConfigInterno(view: View, snapshot: OverlaySnapshot) {
-        val abas = view.findViewWithTag<LinearLayout>("config_abas") ?: return
-        repeat(4) { indice ->
-            val rotulo = abas.findViewWithTag<TextView>("cfg_aba_$indice") ?: return@repeat
-            val selecionada = snapshot.abaConfiguracao == indice
-            rotulo.setTextColor(Color.parseColor(if (selecionada) VERDE else SECUNDARIO))
-            rotulo.typeface = if (selecionada) Typeface.DEFAULT_BOLD else Typeface.DEFAULT
+        atualizarFaixaAbasFicheiro(view, snapshot)
+        view.findViewWithTag<TextView>("config_titulo")?.text = when (snapshot.abaConfiguracao) {
+            1 -> "Despesas"
+            0 -> "Calibrar a classificação"
+            2 -> "Veiculo"
+            else -> "Configurar"
         }
         val scroll = view.findViewWithTag<ScrollView>("config_scroll") ?: return
         val conteudo = scroll.getChildAt(0) as? LinearLayout ?: return
@@ -478,9 +1207,9 @@ object OverlayPaineis {
         val config = rascunho ?: store.carregar()
         val montou = runCatching {
             when (snapshot.abaConfiguracao) {
-                0 -> montarVeiculo(conteudo, config)
-                1 -> montarCustos(conteudo, config)
-                2 -> montarClassificacao(conteudo, config)
+                0 -> montarClassificacao(conteudo, config)
+                1 -> montarCustos(conteudo, config, snapshot.planoPro)
+                2 -> montarVeiculo(conteudo, config, snapshot.planoPro)
                 else -> montarApp(conteudo, config, snapshot, view.context)
             }
         }
@@ -522,111 +1251,292 @@ object OverlayPaineis {
         imm?.hideSoftInputFromWindow(view.windowToken, 0)
     }
 
-    private val titulosHistorico = listOf(
-        "Data",
-        "Hora",
-        "R$/Km",
-        "Valor",
-        "Dist.",
-        "Tempo",
-        "Nota",
-    )
-    private val pesosColunaHistorico = floatArrayOf(0.85f, 0.75f, 1f, 1.2f, 1.15f, 1.2f, 0.85f)
-
-    private fun linhaHistorico(
+    private fun criarItemHistorico(
         context: Context,
-        valores: List<String>,
-        cabecalho: Boolean,
-    ): LinearLayout {
+        item: OverlayHistoricoItem,
+        selecionado: Boolean,
+    ): View {
+        val card = LinearLayout(context).apply {
+            orientation = LinearLayout.VERTICAL
+            isClickable = true
+            setOnClickListener {
+                OverlayBridge.emitir(OverlayAcao.SelecionarHistorico(item.chave))
+            }
+            background = GradientDrawable().apply {
+                setColor(
+                    if (selecionado) {
+                        Color.parseColor("#CFD8DC")
+                    } else {
+                        OverlayTema.de(context).card
+                    },
+                )
+                setStroke(dp(context, 2), Color.parseColor(item.corMarcador))
+                cornerRadius = dp(context, 10).toFloat()
+            }
+            setPadding(dp(context, 10), dp(context, 10), dp(context, 10), dp(context, 10))
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+            ).apply {
+                topMargin = dp(context, 8)
+            }
+        }
+        val cabecalho = LinearLayout(context).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+        }
+        cabecalho.addView(
+            TextView(context).apply {
+                text = item.plataforma.ifBlank { "Uber" }
+                setTextColor(OverlayTema.de(context).texto)
+                textSize = 13f
+                typeface = Typeface.DEFAULT_BOLD
+                maxLines = 1
+                layoutParams = LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.WRAP_CONTENT,
+                    LinearLayout.LayoutParams.WRAP_CONTENT,
+                )
+            },
+        )
+        cabecalho.addView(
+            TextView(context).apply {
+                text = item.cabecalhoData.ifBlank { "${item.data}  ${item.hora}" }
+                setTextColor(OverlayTema.de(context).secundario)
+                textSize = 12f
+                gravity = Gravity.END
+                maxLines = 1
+                ellipsize = TextUtils.TruncateAt.END
+                layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f).apply {
+                    marginStart = dp(context, 12)
+                }
+            },
+        )
+        card.addView(cabecalho)
+        val rotulos = LinearLayout(context).apply {
+            orientation = LinearLayout.HORIZONTAL
+            setPadding(0, dp(context, 6), 0, 0)
+        }
+        listOf("Ganhos", "$/Km", "$/Lucro", "$/Gasto", "Nota").forEach { titulo ->
+            rotulos.addView(
+                TextView(context).apply {
+                    text = titulo
+                    setTextColor(OverlayTema.de(context).secundario)
+                    textSize = 9f
+                    gravity = Gravity.CENTER
+                    maxLines = 1
+                    layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+                },
+            )
+        }
+        card.addView(rotulos)
+        val metricas = LinearLayout(context).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            setPadding(0, dp(context, 2), 0, 0)
+        }
+        metricas.addView(
+            TextView(context).apply {
+                text = item.valor
+                setTextColor(OverlayTema.de(context).texto)
+                textSize = 12.5f
+                typeface = Typeface.DEFAULT_BOLD
+                gravity = Gravity.CENTER
+                maxLines = 1
+                ellipsize = TextUtils.TruncateAt.END
+                layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1.15f)
+            },
+        )
+        listOf(item.valorPorKm, item.lucro, item.gasto, item.nota).forEach { valor ->
+            metricas.addView(caixaMetricaHistorico(context, valor))
+        }
+        card.addView(metricas)
+        card.addView(
+            TextView(context).apply {
+                text = "🛞 ${item.km}  ·  🕐 ${item.tempoHm}  ·  ⛽ Consumo ${item.consumo}"
+                setTextColor(Color.parseColor("#90A4AE"))
+                textSize = 11f
+                setPadding(0, dp(context, 6), 0, dp(context, 4))
+                maxLines = 1
+                ellipsize = TextUtils.TruncateAt.END
+            },
+        )
+        if (!item.embarque.isNullOrBlank()) {
+            card.addView(linhaRotaHistorico(context, "●", item.embarque))
+        }
+        if (!item.destino.isNullOrBlank()) {
+            card.addView(linhaRotaHistorico(context, "■", item.destino))
+        }
+        val mapas = LinearLayout(context).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER
+            setPadding(0, dp(context, 4), 0, 0)
+        }
+        if (!item.embarque.isNullOrBlank()) {
+            mapas.addView(
+                botaoMapaHistorico(context, "Embarque") {
+                    abrirMapaHistorico(context, item.embarque, null)
+                },
+            )
+        }
+        if (!item.destino.isNullOrBlank()) {
+            mapas.addView(
+                botaoMapaHistorico(context, "Destino") {
+                    abrirMapaHistorico(context, null, item.destino)
+                },
+            )
+        }
+        if (mapas.childCount > 0) {
+            card.addView(mapas)
+        }
+        return card
+    }
+
+    private fun caixaMetricaHistorico(context: Context, valor: String): LinearLayout {
+        return LinearLayout(context).apply {
+            orientation = LinearLayout.VERTICAL
+            gravity = Gravity.CENTER
+            layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f).apply {
+                marginStart = dp(context, 2)
+                marginEnd = dp(context, 2)
+            }
+            background = GradientDrawable().apply {
+                setColor(OverlayTema.de(context).metrica)
+                cornerRadius = dp(context, 6).toFloat()
+            }
+            setPadding(dp(context, 4), dp(context, 4), dp(context, 4), dp(context, 4))
+            addView(
+                TextView(context).apply {
+                    text = valor
+                    setTextColor(Color.parseColor(VERDE))
+                    textSize = 11f
+                    gravity = Gravity.CENTER
+                    maxLines = 1
+                    ellipsize = TextUtils.TruncateAt.END
+                    typeface = Typeface.DEFAULT_BOLD
+                },
+            )
+        }
+    }
+
+    private fun linhaRotaHistorico(context: Context, marca: String, texto: String): LinearLayout {
         return LinearLayout(context).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
-            valores.forEachIndexed { indice, valor ->
-                addView(
-                    TextView(context).apply {
-                        text = valor
-                        setTextColor(Color.parseColor(if (cabecalho) SECUNDARIO else TEXTO))
-                        textSize = if (cabecalho) 11f else 9f
-                        maxLines = 1
-                        ellipsize = TextUtils.TruncateAt.END
-                        gravity = Gravity.CENTER
-                        includeFontPadding = false
-                        setPadding(0, 0, 0, 0)
-                        typeface = if (cabecalho) Typeface.DEFAULT_BOLD else Typeface.DEFAULT
-                        layoutParams = LinearLayout.LayoutParams(
-                            0,
-                            LinearLayout.LayoutParams.WRAP_CONTENT,
-                            pesosColunaHistorico.getOrElse(indice) { 1f },
-                        )
-                    },
-                )
+            setPadding(0, dp(context, 2), 0, 0)
+            addView(
+                TextView(context).apply {
+                    text = marca
+                    setTextColor(Color.parseColor(VERDE))
+                    textSize = 10f
+                    setPadding(0, 0, dp(context, 6), 0)
+                },
+            )
+            addView(
+                TextView(context).apply {
+                    this.text = texto
+                    setTextColor(OverlayTema.de(context).texto)
+                    textSize = 11f
+                    maxLines = 1
+                    ellipsize = TextUtils.TruncateAt.END
+                },
+            )
+        }
+    }
+
+    private fun botaoMapaHistorico(context: Context, rotulo: String, acao: () -> Unit): TextView {
+        return TextView(context).apply {
+            text = rotulo
+            setTextColor(Color.parseColor(AMARELO))
+            textSize = 12f
+            gravity = Gravity.CENTER
+            layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+            setPadding(dp(context, 4), dp(context, 6), dp(context, 4), dp(context, 4))
+            setOnClickListener {
+                acao()
             }
         }
     }
 
-    private fun encapsularLinhaHistorico(
-        context: Context,
-        cabecalho: Boolean,
-        linha: View,
-        corBorda: String = ClassificacaoConstantes.COR_BORDA_NEUTRA,
-    ): LinearLayout {
-        return LinearLayout(context).apply {
-            orientation = LinearLayout.VERTICAL
-            background = GradientDrawable().apply {
-                setColor(Color.TRANSPARENT)
-                setStroke(
-                    dp(context, 2),
-                    Color.parseColor(corBorda),
-                )
-                cornerRadius = dp(context, 8).toFloat()
-            }
-            setPadding(
-                dp(context, if (cabecalho) 3 else 4),
-                dp(context, 3),
-                dp(context, if (cabecalho) 3 else 4),
-                dp(context, 3),
-            )
-            val params = LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT,
-                LinearLayout.LayoutParams.WRAP_CONTENT,
-            )
-            if (!cabecalho) {
-                params.topMargin = dp(context, 5)
-            }
-            layoutParams = params
-            addView(linha)
+    private fun abrirMapaPercursoSelecionado(context: Context) {
+        val snapshot = OverlayBridge.snapshot.value
+        val item = snapshot.historicoItens.firstOrNull { it.chave == snapshot.historicoChaveSelecionada }
+            ?: return
+        if (item.embarque.isNullOrBlank() && item.destino.isNullOrBlank()) {
+            return
         }
+        abrirMapaHistorico(context, item.embarque, item.destino)
     }
 
-    private fun criarItemHistorico(context: Context, item: OverlayHistoricoItem): View {
-        return encapsularLinhaHistorico(
-            context,
-            cabecalho = false,
-            linhaHistorico(
-                context,
-                listOf(
-                    item.data,
-                    item.hora,
-                    item.valorPorKm,
-                    item.valor,
-                    item.km,
-                    item.tempo,
-                    item.nota,
-                ),
-                cabecalho = false,
-            ),
-            corBorda = item.corMarcador,
-        ).apply {
-            setOnClickListener { OverlayBridge.emitir(OverlayAcao.SelecionarHistorico(item.chave)) }
+    private fun abrirMapaHistorico(context: Context, embarque: String?, destino: String?) {
+        OverlayBridge.emitir(OverlayAcao.SairParaMapaHistorico)
+        val app = context.applicationContext as? GestorDriverApp ?: return
+        val nav = app.configuracaoStore.carregar().navegacao
+        android.os.Handler(android.os.Looper.getMainLooper()).post {
+            NavegacaoLauncher.abrir(
+                context = context.applicationContext,
+                navegacao = nav,
+                embarque = embarque,
+                destino = destino,
+                corridaAceita = !destino.isNullOrBlank(),
+            )
         }
     }
 
     private fun montarVeiculo(
         destino: LinearLayout,
         config: ConfiguracaoUsuario,
+        planoPro: Boolean,
     ) {
         val ctx = destino.context
-        destino.addView(rotulo(ctx, "Descrição do veículo", secao = true))
+        destino.addView(
+            secaoComAjuda(
+                ctx,
+                "🚗",
+                "#E3F2FD",
+                "Descrição do veículo",
+                "Carro ou moto",
+                "Final da placa (0–9) define o mês do IPVA. O valor R$ entra no custo do Dashboard.",
+            ),
+        )
+        val tipos = LinearLayout(ctx).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+        }
+        tipos.addView(
+            CheckBox(ctx).apply {
+                text = "Carro"
+                tag = "cfg_ck_carro"
+                isChecked = config.tipoVeiculo == TipoVeiculo.CARRO
+                setTextColor(OverlayTema.de(context).texto)
+                textSize = 14f
+                minHeight = dp(ctx, 48)
+                isFocusableInTouchMode = false
+                setOnCheckedChangeListener { _, marcado ->
+                    if (marcado) {
+                        rascunho = (rascunho ?: config).copy(tipoVeiculo = TipoVeiculo.CARRO)
+                        destino.findViewWithTag<CheckBox>("cfg_ck_moto")?.isChecked = false
+                    }
+                }
+            },
+        )
+        tipos.addView(
+            CheckBox(ctx).apply {
+                text = "Moto"
+                tag = "cfg_ck_moto"
+                isChecked = config.tipoVeiculo == TipoVeiculo.MOTO
+                setTextColor(OverlayTema.de(context).texto)
+                textSize = 14f
+                minHeight = dp(ctx, 48)
+                isFocusableInTouchMode = false
+                setOnCheckedChangeListener { _, marcado ->
+                    if (marcado) {
+                        rascunho = (rascunho ?: config).copy(tipoVeiculo = TipoVeiculo.MOTO)
+                        destino.findViewWithTag<CheckBox>("cfg_ck_carro")?.isChecked = false
+                    }
+                }
+            },
+        )
+        destino.addView(tipos)
         destino.addView(
             linha(
                 ctx,
@@ -645,30 +1555,61 @@ object OverlayPaineis {
             linha(
                 ctx,
                 campo(ctx, "Final da placa", config.finalPlaca, "cfg_placa", compacto = true).first,
-                campo(ctx, "Ipva", config.ipvaVencimento, "cfg_ipva", bloqueado = true, compacto = true, pro = true).first,
+                campo(
+                    ctx,
+                    "IPVA R$",
+                    DecimalInput.formatar(config.ipvaValor),
+                    "cfg_ipva_valor",
+                    bloqueado = !planoPro,
+                    compacto = true,
+                    pro = !planoPro,
+                ).first,
             ),
         )
-        destino.addView(rotulo(ctx, "Consumo km/L", secao = true))
+        destino.addView(
+            TextView(ctx).apply {
+                tag = "cfg_ipva_vencimento_rotulo"
+                text = br.com.gestordriver.core.TabelaIpvaPlaca.textoVencimento(config.finalPlaca)
+                setTextColor(OverlayTema.de(ctx).secundario)
+                textSize = 11f
+                setPadding(0, 0, 0, dp(ctx, 4))
+            },
+        )
+        destino.addView(
+            secaoComAjuda(
+                ctx,
+                "⛽",
+                "#EDE7F6",
+                "Consumo km/L",
+                "Do combustível marcado",
+                "Quilômetros por litro do combustível atual. Entra no consumo e no gasto estimados da oferta.",
+            ),
+        )
         destino.addView(
             linha(
                 ctx,
                 campo(ctx, "Gasolina", DecimalInput.formatar(config.consumoGasolina), "cfg_consumo_g", compacto = true).first,
                 campo(ctx, "Etanol", DecimalInput.formatar(config.consumoEtanol), "cfg_consumo_e", compacto = true).first,
+                campo(ctx, "Energia", DecimalInput.formatar(config.consumoEnergia), "cfg_consumo_energia", compacto = true).first,
             ),
         )
-        destino.addView(rotuloPro(ctx, "Calcular abastecimento", compacto = true))
+        if (planoPro) {
+            destino.addView(rotulo(ctx, "Calcular abastecimento", compacto = true))
+        } else {
+            destino.addView(rotuloPro(ctx, "Calcular abastecimento", compacto = true))
+        }
         destino.addView(
             linha(
                 ctx,
-                campo(ctx, "Valor R$", "", "cfg_abast_valor", bloqueado = true, compacto = true).first,
-                campo(ctx, "Quant. litros", "", "cfg_abast_litros", bloqueado = true, compacto = true).first,
+                campo(ctx, "Valor R$", DecimalInput.formatar(config.abastecimentoValor), "cfg_abast_valor", bloqueado = !planoPro, compacto = true).first,
+                campo(ctx, "Quant. litros", DecimalInput.formatar(config.abastecimentoLitros), "cfg_abast_litros", bloqueado = !planoPro, compacto = true).first,
             ),
         )
         destino.addView(
             linha(
                 ctx,
-                campo(ctx, "Km inicial", "", "cfg_abast_km_ini", bloqueado = true, compacto = true).first,
-                campo(ctx, "Km final", "", "cfg_abast_km_fim", bloqueado = true, compacto = true).first,
+                campo(ctx, "Km inicial", DecimalInput.formatar(config.abastecimentoKmInicial), "cfg_abast_km_ini", bloqueado = !planoPro, compacto = true).first,
+                campo(ctx, "Km final", DecimalInput.formatar(config.abastecimentoKmFinal), "cfg_abast_km_fim", bloqueado = !planoPro, compacto = true).first,
             ),
         )
     }
@@ -676,21 +1617,37 @@ object OverlayPaineis {
     private fun montarCustos(
         destino: LinearLayout,
         config: ConfiguracaoUsuario,
+        planoPro: Boolean,
     ) {
         val ctx = destino.context
-        destino.addView(rotulo(ctx, "Valor do combustível", secao = true))
+        destino.addView(
+            secaoComAjuda(
+                ctx,
+                "⛽",
+                "#EDE7F6",
+                "Despesas do veiculo",
+                "Preço e tipo de energia",
+                "Preço do litro ou do kWh. Com o consumo, o app calcula gasto e lucro da oferta.",
+            ),
+        )
         destino.addView(
             linha(
                 ctx,
                 campo(ctx, "R$ / L Gasolina", DecimalInput.formatar(config.precoGasolina), "cfg_preco_g").first,
                 campo(ctx, "R$ / L Etanol", DecimalInput.formatar(config.precoEtanol), "cfg_preco_e").first,
+                campo(ctx, "R$ / kWh", DecimalInput.formatar(config.precoEnergia), "cfg_preco_energia").first,
             ),
         )
-        destino.addView(rotulo(ctx, "Combustível atual", secao = true))
+        destino.addView(
+            rotulo(ctx, "Combustível atual", secao = true),
+        )
+        destino.addView(
+            rotulo(ctx, "Gasolina, etanol ou energia", compacto = true),
+        )
         val ckG = CheckBox(ctx).apply {
             text = "Gasolina"
             tag = "cfg_ck_gasolina"
-            setTextColor(Color.WHITE)
+            setTextColor(OverlayTema.de(context).texto)
             textSize = 12f
             scaleX = 0.82f
             scaleY = 0.82f
@@ -700,54 +1657,118 @@ object OverlayPaineis {
         val ckE = CheckBox(ctx).apply {
             text = "Etanol"
             tag = "cfg_ck_etanol"
-            setTextColor(Color.WHITE)
+            setTextColor(OverlayTema.de(context).texto)
             textSize = 12f
             scaleX = 0.82f
             scaleY = 0.82f
             isFocusableInTouchMode = false
             isChecked = config.combustivel == Combustivel.ETANOL
         }
-        ckG.setOnCheckedChangeListener { _, marcado ->
-            if (marcado) {
-                ckE.isChecked = false
-                rascunho = (rascunho ?: config).copy(combustivel = Combustivel.GASOLINA)
-            }
+        val ckN = CheckBox(ctx).apply {
+            text = "Energia"
+            tag = "cfg_ck_energia"
+            setTextColor(OverlayTema.de(context).texto)
+            textSize = 12f
+            scaleX = 0.82f
+            scaleY = 0.82f
+            isFocusableInTouchMode = false
+            isChecked = config.combustivel == Combustivel.ENERGIA
         }
-        ckE.setOnCheckedChangeListener { _, marcado ->
-            if (marcado) {
-                ckG.isChecked = false
-                rascunho = (rascunho ?: config).copy(combustivel = Combustivel.ETANOL)
-            }
+        fun marcarCombustivel(alvo: Combustivel) {
+            ckG.isChecked = alvo == Combustivel.GASOLINA
+            ckE.isChecked = alvo == Combustivel.ETANOL
+            ckN.isChecked = alvo == Combustivel.ENERGIA
+            rascunho = (rascunho ?: config).copy(combustivel = alvo)
         }
-        destino.addView(linha(ctx, ckG, ckE))
-        destino.addView(rotuloPro(ctx, "Troca de óleo (óleo e filtros)", compacto = true))
+        ckG.setOnCheckedChangeListener { _, marcado -> if (marcado) marcarCombustivel(Combustivel.GASOLINA) }
+        ckE.setOnCheckedChangeListener { _, marcado -> if (marcado) marcarCombustivel(Combustivel.ETANOL) }
+        ckN.setOnCheckedChangeListener { _, marcado -> if (marcado) marcarCombustivel(Combustivel.ENERGIA) }
+        destino.addView(linha(ctx, ckG, ckE, ckN))
+        if (planoPro) {
+            destino.addView(rotulo(ctx, "Troca de óleo (óleo e filtros)", compacto = true))
+        } else {
+            destino.addView(rotuloPro(ctx, "Troca de óleo (óleo e filtros)", compacto = true))
+        }
         destino.addView(
             linha(
                 ctx,
-                campo(ctx, "Valor R$", "", "cfg_oleo_valor", bloqueado = true, compacto = true).first,
-                campo(ctx, "Km", "", "cfg_oleo_km", bloqueado = true, compacto = true).first,
-                campo(ctx, "Data", "", "cfg_oleo_data", bloqueado = true, compacto = true).first,
+                campo(ctx, "Valor R$", DecimalInput.formatar(config.oleoValor), "cfg_oleo_valor", bloqueado = !planoPro, compacto = true).first,
+                campo(ctx, "Km", DecimalInput.formatar(config.oleoKilometragem), "cfg_oleo_km", bloqueado = !planoPro, compacto = true).first,
+                campo(ctx, "Data", config.oleoData, "cfg_oleo_data", bloqueado = !planoPro, compacto = true).first,
             ),
         )
-        destino.addView(rotuloPro(ctx, "Custo estimado dos pneus", compacto = true))
+        adicionarAlertaOleo(destino, ctx, config)
+        if (planoPro) {
+            destino.addView(rotulo(ctx, "Custo estimado dos pneus", compacto = true))
+        } else {
+            destino.addView(rotuloPro(ctx, "Custo estimado dos pneus", compacto = true))
+        }
         destino.addView(rotulo(ctx, "Dianteiro", compacto = true))
         destino.addView(
             linha(
                 ctx,
-                campo(ctx, "Valor R$", "", "cfg_pneu_d_valor", bloqueado = true, compacto = true).first,
-                campo(ctx, "Rodagem", "", "cfg_pneu_d_km", bloqueado = true, compacto = true).first,
-                campo(ctx, "Data", "", "cfg_pneu_d_data", bloqueado = true, compacto = true).first,
+                campo(ctx, "Valor R$", DecimalInput.formatar(config.pneuDianteiroValor), "cfg_pneu_d_valor", bloqueado = !planoPro, compacto = true).first,
+                campo(ctx, "Rodagem", DecimalInput.formatar(config.pneuDianteiroRodagem), "cfg_pneu_d_km", bloqueado = !planoPro, compacto = true).first,
+                campo(ctx, "Data", config.pneuDianteiroData, "cfg_pneu_d_data", bloqueado = !planoPro, compacto = true).first,
             ),
         )
         destino.addView(rotulo(ctx, "Traseiro", compacto = true))
         destino.addView(
             linha(
                 ctx,
-                campo(ctx, "Valor R$", "", "cfg_pneu_t_valor", bloqueado = true, compacto = true).first,
-                campo(ctx, "Rodagem", "", "cfg_pneu_t_km", bloqueado = true, compacto = true).first,
-                campo(ctx, "Data", "", "cfg_pneu_t_data", bloqueado = true, compacto = true).first,
+                campo(ctx, "Valor R$", DecimalInput.formatar(config.pneuTraseiroValor), "cfg_pneu_t_valor", bloqueado = !planoPro, compacto = true).first,
+                campo(ctx, "Rodagem", DecimalInput.formatar(config.pneuTraseiroRodagem), "cfg_pneu_t_km", bloqueado = !planoPro, compacto = true).first,
+                campo(ctx, "Data", config.pneuTraseiroData, "cfg_pneu_t_data", bloqueado = !planoPro, compacto = true).first,
             ),
         )
+        if (planoPro) {
+            destino.addView(rotulo(ctx, "Seguro", compacto = true))
+        } else {
+            destino.addView(rotuloPro(ctx, "Seguro", compacto = true))
+        }
+        destino.addView(
+            linha(
+                ctx,
+                campo(ctx, "Valor do seguro", DecimalInput.formatar(config.seguroValor), "cfg_seguro_valor", bloqueado = !planoPro, compacto = true).first,
+                campo(ctx, "Data de vencimento", config.seguroData, "cfg_seguro_data", bloqueado = !planoPro, compacto = true).first,
+            ),
+        )
+        val ckMensal = CheckBox(ctx).apply {
+            text = "Mensal"
+            tag = "cfg_ck_seguro_mensal"
+            setTextColor(OverlayTema.de(context).texto)
+            textSize = 12f
+            scaleX = 0.82f
+            scaleY = 0.82f
+            isFocusableInTouchMode = false
+            isEnabled = planoPro
+            isChecked = config.seguroRecorrencia == SeguroRecorrencia.MENSAL
+        }
+        val ckAnual = CheckBox(ctx).apply {
+            text = "Anual"
+            tag = "cfg_ck_seguro_anual"
+            setTextColor(OverlayTema.de(context).texto)
+            textSize = 12f
+            scaleX = 0.82f
+            scaleY = 0.82f
+            isFocusableInTouchMode = false
+            isEnabled = planoPro
+            isChecked = config.seguroRecorrencia == SeguroRecorrencia.ANUAL
+        }
+        ckMensal.setOnCheckedChangeListener { _, marcado ->
+            if (marcado) {
+                ckAnual.isChecked = false
+                rascunho = (rascunho ?: config).copy(seguroRecorrencia = SeguroRecorrencia.MENSAL)
+            }
+        }
+        ckAnual.setOnCheckedChangeListener { _, marcado ->
+            if (marcado) {
+                ckMensal.isChecked = false
+                rascunho = (rascunho ?: config).copy(seguroRecorrencia = SeguroRecorrencia.ANUAL)
+            }
+        }
+        destino.addView(rotulo(ctx, "Recorrência", compacto = true))
+        destino.addView(linha(ctx, ckMensal, ckAnual))
     }
 
     private fun montarApp(
@@ -756,32 +1777,60 @@ object OverlayPaineis {
         snapshot: OverlaySnapshot,
         context: Context,
     ) {
-        destino.addView(rotulo(context, "Configurar aplicativo", secao = true))
-        destino.addView(rotulo(context, "Permissões", secao = true))
         destino.addView(
-            linhaPermissoes(
+            secaoComAjuda(
+                context,
+                "⚙",
+                "#E0F2F1",
+                "Configurações do aplicativo",
+                "Configurar app",
+                "",
+            ),
+        )
+        destino.addView(
+            secaoComAjuda(
+                context,
+                "",
+                "#E0F2F1",
+                "Permissões",
+                "Para monitorar ofertas",
+                "Notificação, sobrepor, acessibilidade e bateria são obrigatórias. Localização ajuda o mapa. Acessibilidade: Configurações restritas → Serviços instalados.",
+            ),
+        )
+        destino.addView(
+            listaPermissoes(
                 context,
                 snapshot.destacarPermissoes,
-                ItemPermissao("Notificações", PermissoesMonitoramento.listenerNotificacoesAtivo(context)) {
+                ItemPermissao(
+                    "1  Notificações",
+                    PermissoesMonitoramento.listenerNotificacoesAtivo(context),
+                    dica = "Lê as ofertas da Uber e da 99",
+                ) {
                     context.startActivity(PermissoesMonitoramento.intentNotificacoes().addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
                 },
-                ItemPermissao("Sobrepor", PermissoesMonitoramento.overlayConcedida(context)) {
+                ItemPermissao(
+                    "2  Sobrepor",
+                    PermissoesMonitoramento.overlayConcedida(context),
+                    dica = "Mostra o card sobre o mapa",
+                ) {
                     context.startActivity(PermissoesMonitoramento.intentSobrepor(context).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
                 },
-                ItemPermissao("Acessib.", PermissoesMonitoramento.acessibilidadeAtiva(context)) {
+                ItemPermissao(
+                    "3  Acessibilidade",
+                    PermissoesMonitoramento.acessibilidadeAtiva(context),
+                    dica = "Configurações restritas → Serviços instalados",
+                ) {
                     context.startActivity(
                         Intent(context, MainActivity::class.java)
                             .putExtra(MainActivity.EXTRA_PEDIR_ACESSIBILIDADE, true)
                             .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP),
                     )
                 },
-            ),
-        )
-        destino.addView(
-            linhaPermissoes(
-                context,
-                snapshot.destacarPermissoes,
-                ItemPermissao("Bateria", PermissoesMonitoramento.bateriaLiberada(context)) {
+                ItemPermissao(
+                    "4  Bateria",
+                    PermissoesMonitoramento.bateriaLiberada(context),
+                    dica = "Evita o overlay sumir no segundo plano",
+                ) {
                     context.startActivity(
                         Intent(context, MainActivity::class.java)
                             .putExtra(MainActivity.EXTRA_PEDIR_BATERIA, true)
@@ -789,9 +1838,10 @@ object OverlayPaineis {
                     )
                 },
                 ItemPermissao(
-                    "Localização",
+                    "5  Localização",
                     PermissoesMonitoramento.localizacaoConcedida(context),
                     obrigatoria = false,
+                    dica = "Opcional. Ajuda o mapa",
                 ) {
                     context.startActivity(
                         Intent(context, MainActivity::class.java)
@@ -801,46 +1851,6 @@ object OverlayPaineis {
                 },
             ),
         )
-        destino.addView(
-            TextView(context).apply {
-                text = "Acessib. lê o card. Bateria evita o overlay sumir. Localização opcional."
-                setTextColor(Color.parseColor(SECUNDARIO))
-                textSize = 10f
-                setPadding(0, dp(context, 2), 0, dp(context, 4))
-            },
-        )
-        val logVersao = LinearLayout(context).apply {
-            orientation = LinearLayout.HORIZONTAL
-            gravity = Gravity.CENTER
-        }
-        logVersao.addView(
-            TextView(context).apply {
-                text = "Enviar log"
-                setTextColor(Color.parseColor(AMARELO))
-                textSize = 12f
-                gravity = Gravity.CENTER
-                setPadding(0, dp(context, 6), 0, dp(context, 6))
-                layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
-                setOnClickListener {
-                    context.startActivity(
-                        Intent(context, MainActivity::class.java)
-                            .putExtra(MainActivity.EXTRA_COMPARTILHAR_LOG, true)
-                            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP),
-                    )
-                }
-            },
-        )
-        logVersao.addView(
-            TextView(context).apply {
-                text = "v${PermissoesMonitoramento.versaoApp(context)}"
-                setTextColor(Color.parseColor(SECUNDARIO))
-                textSize = 12f
-                gravity = Gravity.CENTER
-                setPadding(0, dp(context, 6), 0, dp(context, 6))
-                layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
-            },
-        )
-        destino.addView(logVersao)
         destino.addView(rotulo(context, "App de corrida", secao = true))
         val apps = LinearLayout(context).apply {
             orientation = LinearLayout.HORIZONTAL
@@ -849,7 +1859,7 @@ object OverlayPaineis {
         listOf(
             Plataforma.UBER to "Uber",
             Plataforma.NOVE_NOVE to "99",
-            Plataforma.INDRIVE to "Indrive",
+            Plataforma.INDRIVE to "InDrive",
         ).forEach { (plataforma, titulo) ->
             val ok = PlataformasMotorista.instalada(context, plataforma)
             apps.addView(
@@ -864,18 +1874,68 @@ object OverlayPaineis {
             )
         }
         destino.addView(apps)
-        destino.addView(rotulo(context, "Navegação", secao = true))
+        destino.addView(
+            secaoComAjuda(
+                context,
+                "",
+                "#F3E5F5",
+                "Tema",
+                "Escuro, claro ou do celular",
+                "Define as cores do overlay e das telas. Celular segue o modo do aparelho.",
+            ),
+        )
+        val temaEscuro = CheckBox(context).apply {
+            text = "Escuro"
+            tag = "cfg_tema_escuro"
+            setTextColor(OverlayTema.de(context).texto)
+            isFocusableInTouchMode = false
+            isChecked = config.tema == br.com.gestordriver.model.TemaApp.ESCURO
+        }
+        val temaClaro = CheckBox(context).apply {
+            text = "Claro"
+            tag = "cfg_tema_claro"
+            setTextColor(OverlayTema.de(context).texto)
+            isFocusableInTouchMode = false
+            isChecked = config.tema == br.com.gestordriver.model.TemaApp.CLARO
+        }
+        val temaCelular = CheckBox(context).apply {
+            text = "Celular"
+            tag = "cfg_tema_celular"
+            setTextColor(OverlayTema.de(context).texto)
+            isFocusableInTouchMode = false
+            isChecked = config.tema == br.com.gestordriver.model.TemaApp.CELULAR
+        }
+        fun marcarTema(escolhido: br.com.gestordriver.model.TemaApp) {
+            temaEscuro.isChecked = escolhido == br.com.gestordriver.model.TemaApp.ESCURO
+            temaClaro.isChecked = escolhido == br.com.gestordriver.model.TemaApp.CLARO
+            temaCelular.isChecked = escolhido == br.com.gestordriver.model.TemaApp.CELULAR
+            rascunho = (rascunho ?: config).copy(tema = escolhido)
+        }
+        temaEscuro.setOnClickListener { marcarTema(br.com.gestordriver.model.TemaApp.ESCURO) }
+        temaClaro.setOnClickListener { marcarTema(br.com.gestordriver.model.TemaApp.CLARO) }
+        temaCelular.setOnClickListener { marcarTema(br.com.gestordriver.model.TemaApp.CELULAR) }
+        destino.addView(linha(context, temaEscuro, temaClaro, temaCelular))
+        destino.addView(
+            secaoComAjuda(
+                context,
+                "",
+                "#E3F2FD",
+                "Navegação",
+                "Maps ou Waze",
+                "App de mapa para abrir embarque e destino quando o endereço for lido.",
+            ),
+        )
         val maps = CheckBox(context).apply {
-            text = "Google maps"
+            text = "Google Maps"
             tag = "cfg_ck_maps"
-            setTextColor(Color.WHITE)
+            setTextColor(OverlayTema.de(context).texto)
             isFocusableInTouchMode = false
             isChecked = config.navegacao == AppNavegacao.GOOGLE_MAPS
         }
         val waze = CheckBox(context).apply {
             text = "Waze"
             tag = "cfg_ck_waze"
-            setTextColor(Color.WHITE)
+            setTextColor(OverlayTema.de(context).texto)
             isFocusableInTouchMode = false
             isChecked = config.navegacao == AppNavegacao.WAZE
         }
@@ -914,6 +1974,38 @@ object OverlayPaineis {
             ),
         )
         destino.addView(contas)
+        val logVersao = LinearLayout(context).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER
+        }
+        logVersao.addView(
+            TextView(context).apply {
+                text = "Enviar log"
+                setTextColor(Color.parseColor(AMARELO))
+                textSize = 12f
+                gravity = Gravity.CENTER
+                setPadding(0, dp(context, 6), 0, dp(context, 6))
+                layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+                setOnClickListener {
+                    context.startActivity(
+                        Intent(context, MainActivity::class.java)
+                            .putExtra(MainActivity.EXTRA_COMPARTILHAR_LOG, true)
+                            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP),
+                    )
+                }
+            },
+        )
+        logVersao.addView(
+            TextView(context).apply {
+                text = "v${PermissoesMonitoramento.versaoApp(context)}"
+                setTextColor(OverlayTema.de(context).secundario)
+                textSize = 12f
+                gravity = Gravity.CENTER
+                setPadding(0, dp(context, 6), 0, dp(context, 6))
+                layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+            },
+        )
+        destino.addView(logVersao)
     }
 
     private fun botaoConta(context: Context, titulo: String, dialogo: String): TextView =
@@ -968,7 +2060,7 @@ object OverlayPaineis {
         coluna.addView(
             TextView(context).apply {
                 text = "Conta google"
-                setTextColor(Color.WHITE)
+                setTextColor(OverlayTema.de(context).texto)
                 textSize = 13f
                 gravity = Gravity.CENTER
                 setPadding(0, 0, 0, dp(context, 8))
@@ -976,8 +2068,8 @@ object OverlayPaineis {
         )
         coluna.addView(
             TextView(context).apply {
-                text = "Conecte a conta Google do motorista para identificar o usuário nas versões Free e Beta."
-                setTextColor(Color.parseColor(SECUNDARIO))
+                text = "Conecte a conta Google do motorista para identificar o usuário nas versões Free e Pro."
+                setTextColor(OverlayTema.de(context).secundario)
                 textSize = 12f
                 gravity = Gravity.CENTER
                 setPadding(0, 0, 0, dp(context, 10))
@@ -990,7 +2082,7 @@ object OverlayPaineis {
         acoes.addView(
             TextView(context).apply {
                 text = "Cancelar"
-                setTextColor(Color.parseColor(SECUNDARIO))
+                setTextColor(OverlayTema.de(context).secundario)
                 textSize = 13f
                 gravity = Gravity.CENTER
                 setPadding(dp(context, 12), dp(context, 8), dp(context, 12), dp(context, 8))
@@ -1025,7 +2117,7 @@ object OverlayPaineis {
         coluna.addView(
             TextView(context).apply {
                 text = "Conta email"
-                setTextColor(Color.WHITE)
+                setTextColor(OverlayTema.de(context).texto)
                 textSize = 13f
                 gravity = Gravity.CENTER
                 setPadding(0, 0, 0, dp(context, 8))
@@ -1050,7 +2142,7 @@ object OverlayPaineis {
         acoes.addView(
             TextView(context).apply {
                 text = "Cancelar"
-                setTextColor(Color.parseColor(SECUNDARIO))
+                setTextColor(OverlayTema.de(context).secundario)
                 textSize = 13f
                 gravity = Gravity.CENTER
                 setPadding(dp(context, 12), dp(context, 8), dp(context, 12), dp(context, 8))
@@ -1093,7 +2185,17 @@ object OverlayPaineis {
 
     private fun montarClassificacao(destino: LinearLayout, config: ConfiguracaoUsuario) {
         val ctx = destino.context
-        destino.addView(rotulo(ctx, "Calibrar classificações", secao = true))
+        destino.addView(
+            secaoComAjuda(
+                ctx,
+                "🚦",
+                "#FFF8E1",
+                "Calibrar a classificação",
+                "Cor da borda da compacta",
+                "Faixas de R$/km. A cor da borda da compacta segue esta escala. Arraste a barra ou use − e + de 0,01.",
+            ),
+        )
+        destino.addView(barrasSemaforo(ctx, config, destino))
         data class Faixa(
             val titulo: String,
             val cor: String,
@@ -1104,14 +2206,6 @@ object OverlayPaineis {
         )
         val faixas = listOf(
             Faixa("Ruim", ClassificacaoConstantes.CORES.getValue(Classificacao.RUIM), "Min", FaixasClassificacao.formatar(config.limiteRuimMax), null, "cfg_ruim_max"),
-            Faixa(
-                "Regular",
-                ClassificacaoConstantes.CORES.getValue(Classificacao.REGULAR),
-                FaixasClassificacao.formatar(config.limiteRegularMin),
-                FaixasClassificacao.formatar(config.limiteRegularMax),
-                "cfg_reg_min",
-                "cfg_reg_max",
-            ),
             Faixa(
                 "Boa",
                 ClassificacaoConstantes.CORES.getValue(Classificacao.BOA),
@@ -1156,6 +2250,75 @@ object OverlayPaineis {
         }
     }
 
+    private fun barrasSemaforo(
+        context: Context,
+        config: ConfiguracaoUsuario,
+        raiz: LinearLayout,
+    ): LinearLayout =
+        LinearLayout(context).apply {
+            orientation = LinearLayout.VERTICAL
+            addView(barraMarca(context, "Ruim até", "cfg_slide_ruim", config.limiteRuimMax, ClassificacaoConstantes.CORES.getValue(Classificacao.RUIM), raiz))
+            addView(barraMarca(context, "Boa até", "cfg_slide_boa", config.limiteBoaMax, ClassificacaoConstantes.CORES.getValue(Classificacao.BOA), raiz))
+        }
+
+    private fun barraMarca(
+        context: Context,
+        titulo: String,
+        tag: String,
+        valor: Double,
+        cor: String,
+        raiz: LinearLayout,
+    ): LinearLayout =
+        LinearLayout(context).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(0, dp(context, 4), 0, dp(context, 4))
+            addView(
+                TextView(context).apply {
+                    text = "$titulo  ${FaixasClassificacao.formatar(valor)}"
+                    this.tag = "${tag}_rotulo"
+                    setTextColor(Color.parseColor(cor))
+                    textSize = 14f
+                },
+            )
+            addView(
+                SeekBar(context).apply {
+                    this.tag = tag
+                    max = 500
+                    progress = (valor * 100).toInt().coerceIn(0, 500)
+                    minHeight = dp(context, 48)
+                    setOnSeekBarChangeListener(
+                        object : SeekBar.OnSeekBarChangeListener {
+                            override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
+                                if (!fromUser) {
+                                    return
+                                }
+                                aplicarMarcasDeslizantes(raiz)
+                            }
+
+                            override fun onStartTrackingTouch(seekBar: SeekBar?) = Unit
+
+                            override fun onStopTrackingTouch(seekBar: SeekBar?) = Unit
+                        },
+                    )
+                },
+            )
+        }
+
+    private fun aplicarMarcasDeslizantes(raiz: View) {
+        val atual = rascunho ?: return
+        fun marca(tag: String, fallback: Double): Double {
+            val progresso = raiz.findViewWithTag<SeekBar>(tag)?.progress ?: return fallback
+            return progresso / 100.0
+        }
+        val encadeada = FaixasClassificacao.aplicarMarcas(
+            atual,
+            marca("cfg_slide_ruim", atual.limiteRuimMax),
+            marca("cfg_slide_boa", atual.limiteBoaMax),
+        )
+        rascunho = encadeada
+        pintarFaixas(raiz, encadeada)
+    }
+
     private fun aplicarPassoFaixa(raiz: View, tag: String, delta: Double) {
         val campo = campoFaixa(tag) ?: return
         val atual = rascunho ?: return
@@ -1186,34 +2349,20 @@ object OverlayPaineis {
         texto("cfg_boa_min", config.limiteBoaMin)
         texto("cfg_boa_max", config.limiteBoaMax)
         texto("cfg_otima_min", config.limiteOtimaMin)
+        fun barra(tag: String, valor: Double, titulo: String) {
+            raiz.findViewWithTag<SeekBar>(tag)?.progress = (valor * 100).toInt().coerceIn(0, 500)
+            raiz.findViewWithTag<TextView>("${tag}_rotulo")?.text =
+                "$titulo  ${FaixasClassificacao.formatar(valor)}"
+        }
+        barra("cfg_slide_ruim", config.limiteRuimMax, "Ruim até")
+        barra("cfg_slide_boa", config.limiteBoaMax, "Boa até")
     }
 
     private fun colherAba(raiz: View, aba: Int, base: ConfiguracaoUsuario): ConfiguracaoUsuario {
         fun txt(tag: String): String? = raiz.findViewWithTag<EditText>(tag)?.text?.toString()
         fun num(tag: String, atual: Double): Double = DecimalInput.parse(txt(tag) ?: "") ?: atual
         return when (aba) {
-            0 -> base.copy(
-                    marcaVeiculo = txt("cfg_marca") ?: base.marcaVeiculo,
-                    modeloVeiculo = txt("cfg_modelo") ?: base.modeloVeiculo,
-                    versaoVeiculo = txt("cfg_versao") ?: base.versaoVeiculo,
-                    anoVeiculo = txt("cfg_ano") ?: base.anoVeiculo,
-                    finalPlaca = txt("cfg_placa") ?: base.finalPlaca,
-                    consumoGasolina = num("cfg_consumo_g", base.consumoGasolina),
-                    consumoEtanol = num("cfg_consumo_e", base.consumoEtanol),
-                )
-            1 -> {
-                val gasolinaMarcada = raiz.findViewWithTag<CheckBox>("cfg_ck_gasolina")?.isChecked
-                base.copy(
-                    precoGasolina = num("cfg_preco_g", base.precoGasolina),
-                    precoEtanol = num("cfg_preco_e", base.precoEtanol),
-                    combustivel = when (gasolinaMarcada) {
-                        true -> Combustivel.GASOLINA
-                        false -> Combustivel.ETANOL
-                        null -> base.combustivel
-                    },
-                )
-            }
-            2 -> {
+            0 -> {
                 fun faixa(tag: String, atual: Double): Double {
                     val texto = raiz.findViewWithTag<TextView>(tag)?.text?.toString()
                     return DecimalInput.parse(texto ?: "") ?: atual
@@ -1227,14 +2376,81 @@ object OverlayPaineis {
                     limiteOtimaMin = faixa("cfg_otima_min", base.limiteOtimaMin),
                 )
             }
+            1 -> {
+                val combustivelMarcado = when {
+                    raiz.findViewWithTag<CheckBox>("cfg_ck_energia")?.isChecked == true -> Combustivel.ENERGIA
+                    raiz.findViewWithTag<CheckBox>("cfg_ck_etanol")?.isChecked == true -> Combustivel.ETANOL
+                    raiz.findViewWithTag<CheckBox>("cfg_ck_gasolina")?.isChecked == true -> Combustivel.GASOLINA
+                    else -> base.combustivel
+                }
+                val seguroRecorrencia = when {
+                    raiz.findViewWithTag<CheckBox>("cfg_ck_seguro_mensal")?.isChecked == true -> SeguroRecorrencia.MENSAL
+                    raiz.findViewWithTag<CheckBox>("cfg_ck_seguro_anual")?.isChecked == true -> SeguroRecorrencia.ANUAL
+                    else -> base.seguroRecorrencia
+                }
+                base.copy(
+                    precoGasolina = num("cfg_preco_g", base.precoGasolina),
+                    precoEtanol = num("cfg_preco_e", base.precoEtanol),
+                    precoEnergia = num("cfg_preco_energia", base.precoEnergia),
+                    combustivel = combustivelMarcado,
+                    oleoValor = num("cfg_oleo_valor", base.oleoValor),
+                    oleoKilometragem = num("cfg_oleo_km", base.oleoKilometragem),
+                    oleoData = txt("cfg_oleo_data") ?: base.oleoData,
+                    pneuDianteiroValor = num("cfg_pneu_d_valor", base.pneuDianteiroValor),
+                    pneuDianteiroRodagem = num("cfg_pneu_d_km", base.pneuDianteiroRodagem),
+                    pneuDianteiroData = txt("cfg_pneu_d_data") ?: base.pneuDianteiroData,
+                    pneuTraseiroValor = num("cfg_pneu_t_valor", base.pneuTraseiroValor),
+                    pneuTraseiroRodagem = num("cfg_pneu_t_km", base.pneuTraseiroRodagem),
+                    pneuTraseiroData = txt("cfg_pneu_t_data") ?: base.pneuTraseiroData,
+                    seguroValor = num("cfg_seguro_valor", base.seguroValor),
+                    seguroData = txt("cfg_seguro_data") ?: base.seguroData,
+                    seguroRecorrencia = seguroRecorrencia,
+                )
+            }
+            2 -> {
+                val carro = raiz.findViewWithTag<CheckBox>("cfg_ck_carro")?.isChecked
+                base.copy(
+                    tipoVeiculo = when (carro) {
+                        true -> TipoVeiculo.CARRO
+                        false -> TipoVeiculo.MOTO
+                        null -> base.tipoVeiculo
+                    },
+                    marcaVeiculo = txt("cfg_marca") ?: base.marcaVeiculo,
+                    modeloVeiculo = txt("cfg_modelo") ?: base.modeloVeiculo,
+                    versaoVeiculo = txt("cfg_versao") ?: base.versaoVeiculo,
+                    anoVeiculo = txt("cfg_ano") ?: base.anoVeiculo,
+                    finalPlaca = txt("cfg_placa")?.filter { it.isDigit() }?.takeLast(1) ?: base.finalPlaca,
+                    ipvaValor = num("cfg_ipva_valor", base.ipvaValor),
+                    ipvaVencimento = br.com.gestordriver.core.TabelaIpvaPlaca.rotuloMesVencimento(
+                        txt("cfg_placa") ?: base.finalPlaca,
+                    ).takeIf { it != "—" }.orEmpty(),
+                    consumoGasolina = num("cfg_consumo_g", base.consumoGasolina),
+                    consumoEtanol = num("cfg_consumo_e", base.consumoEtanol),
+                    consumoEnergia = num("cfg_consumo_energia", base.consumoEnergia),
+                    abastecimentoValor = num("cfg_abast_valor", base.abastecimentoValor),
+                    abastecimentoLitros = num("cfg_abast_litros", base.abastecimentoLitros),
+                    abastecimentoKmInicial = num("cfg_abast_km_ini", base.abastecimentoKmInicial),
+                    abastecimentoKmFinal = num("cfg_abast_km_fim", base.abastecimentoKmFinal),
+                )
+            }
             else -> {
                 val maps = raiz.findViewWithTag<CheckBox>("cfg_ck_maps")?.isChecked
+                val tema = when {
+                    raiz.findViewWithTag<CheckBox>("cfg_tema_escuro")?.isChecked == true ->
+                        br.com.gestordriver.model.TemaApp.ESCURO
+                    raiz.findViewWithTag<CheckBox>("cfg_tema_claro")?.isChecked == true ->
+                        br.com.gestordriver.model.TemaApp.CLARO
+                    raiz.findViewWithTag<CheckBox>("cfg_tema_celular")?.isChecked == true ->
+                        br.com.gestordriver.model.TemaApp.CELULAR
+                    else -> base.tema
+                }
                 base.copy(
                     navegacao = when (maps) {
                         true -> AppNavegacao.GOOGLE_MAPS
                         false -> AppNavegacao.WAZE
                         null -> base.navegacao
                     },
+                    tema = tema,
                 )
             }
         }
@@ -1244,8 +2460,65 @@ object OverlayPaineis {
         val titulo: String,
         val ok: Boolean,
         val obrigatoria: Boolean = true,
+        val dica: String = "",
         val onClick: () -> Unit,
     )
+
+    private fun listaPermissoes(
+        context: Context,
+        destacar: Boolean,
+        vararg itens: ItemPermissao,
+    ): LinearLayout =
+        LinearLayout(context).apply {
+            orientation = LinearLayout.VERTICAL
+            itens.toList().chunked(2).forEach { linhaItens ->
+                addView(
+                    LinearLayout(context).apply {
+                        orientation = LinearLayout.HORIZONTAL
+                        gravity = Gravity.TOP
+                        linhaItens.forEach { item ->
+                            addView(
+                                LinearLayout(context).apply {
+                                    orientation = LinearLayout.VERTICAL
+                                    gravity = Gravity.START
+                                    isClickable = true
+                                    minimumHeight = dp(context, 48)
+                                    setPadding(0, dp(context, 8), dp(context, 4), dp(context, 8))
+                                    layoutParams = LinearLayout.LayoutParams(
+                                        0,
+                                        LinearLayout.LayoutParams.WRAP_CONTENT,
+                                        1f,
+                                    )
+                                    setOnClickListener { item.onClick() }
+                                    addView(
+                                        linhaPermissao(
+                                            context,
+                                            item.titulo,
+                                            item.ok,
+                                            destacar && item.obrigatoria && !item.ok,
+                                            item.onClick,
+                                        ),
+                                    )
+                                    if (item.dica.isNotBlank()) {
+                                        addView(
+                                            TextView(context).apply {
+                                                text = item.dica
+                                                setTextColor(OverlayTema.de(context).secundario)
+                                                textSize = 11f
+                                                setPadding(dp(context, 2), dp(context, 2), 0, 0)
+                                            },
+                                        )
+                                    }
+                                },
+                            )
+                        }
+                        if (linhaItens.size == 1) {
+                            addView(View(context), LinearLayout.LayoutParams(0, 1, 1f))
+                        }
+                    },
+                )
+            }
+        }
 
     private fun linhaPermissoes(
         context: Context,
@@ -1284,11 +2557,11 @@ object OverlayPaineis {
                 colorirPermissao(it, titulo, ok, snapshot.destacarPermissoes && obrigatoria && !ok)
             }
         }
-        pintar("Notificações", PermissoesMonitoramento.listenerNotificacoesAtivo(context), true)
-        pintar("Sobrepor", PermissoesMonitoramento.overlayConcedida(context), true)
-        pintar("Acessib.", PermissoesMonitoramento.acessibilidadeAtiva(context), true)
-        pintar("Bateria", PermissoesMonitoramento.bateriaLiberada(context), true)
-        pintar("Localização", PermissoesMonitoramento.localizacaoConcedida(context), false)
+        pintar("1  Notificações", PermissoesMonitoramento.listenerNotificacoesAtivo(context), true)
+        pintar("2  Sobrepor", PermissoesMonitoramento.overlayConcedida(context), true)
+        pintar("3  Acessibilidade", PermissoesMonitoramento.acessibilidadeAtiva(context), true)
+        pintar("4  Bateria", PermissoesMonitoramento.bateriaLiberada(context), true)
+        pintar("5  Localização", PermissoesMonitoramento.localizacaoConcedida(context), false)
     }
 
     private fun linhaPermissao(
@@ -1300,8 +2573,9 @@ object OverlayPaineis {
     ): TextView {
         return TextView(context).apply {
             tag = "perm_$titulo"
-            textSize = 12f
-            setPadding(0, dp(context, 6), 0, dp(context, 6))
+            textSize = 14f
+            setPadding(0, dp(context, 10), 0, dp(context, 10))
+            minHeight = dp(context, 48)
             colorirPermissao(this, titulo, ok, destacar)
             setOnClickListener { onClick() }
         }
@@ -1332,12 +2606,14 @@ object OverlayPaineis {
         }
     }
 
-    private fun caixaCampo(context: Context): GradientDrawable =
-        GradientDrawable().apply {
-            setColor(Color.parseColor("#33000000"))
-            setStroke(dp(context, 1), Color.parseColor("#3D4A57"))
+    private fun caixaCampo(context: Context): GradientDrawable {
+        val tema = OverlayTema.de(context)
+        return GradientDrawable().apply {
+            setColor(tema.caixa)
+            setStroke(dp(context, 1), tema.borda)
             cornerRadius = dp(context, 6).toFloat()
         }
+    }
 
     private fun campo(
         context: Context,
@@ -1366,7 +2642,7 @@ object OverlayPaineis {
         val campo = EditText(context).apply {
             this.tag = tag
             setText(valor)
-            setTextColor(Color.WHITE)
+            setTextColor(OverlayTema.de(context).texto)
             textSize = 13f
             isEnabled = !bloqueado
             isCursorVisible = false
@@ -1375,7 +2651,7 @@ object OverlayPaineis {
             setOnFocusChangeListener { v, temFoco ->
                 (v as EditText).isCursorVisible = temFoco
             }
-            setHintTextColor(Color.parseColor(SECUNDARIO))
+            setHintTextColor(OverlayTema.de(context).secundario)
             background = caixaCampo(context)
             setPadding(dp(context, 8), dp(context, 5), dp(context, 8), dp(context, 5))
         }
@@ -1391,7 +2667,7 @@ object OverlayPaineis {
             addView(
                 TextView(context).apply {
                     text = texto
-                    setTextColor(Color.WHITE)
+                    setTextColor(OverlayTema.de(context).texto)
                     textSize = 12f
                     typeface = Typeface.DEFAULT_BOLD
                 },
@@ -1410,6 +2686,74 @@ object OverlayPaineis {
             )
         }
 
+    private fun secaoComAjuda(
+        context: Context,
+        icone: String,
+        fundoIcone: String,
+        titulo: String,
+        subtitulo: String,
+        ajuda: String,
+    ): LinearLayout {
+        return LinearLayout(context).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            setPadding(0, dp(context, 8), 0, dp(context, 6))
+            if (icone.isNotBlank()) {
+                addView(
+                    TextView(context).apply {
+                        text = icone
+                        gravity = Gravity.CENTER
+                        textSize = 13f
+                        background = GradientDrawable().apply {
+                            setColor(Color.parseColor(fundoIcone))
+                            cornerRadius = dp(context, 7).toFloat()
+                        }
+                        layoutParams = LinearLayout.LayoutParams(dp(context, 28), dp(context, 28)).apply {
+                            marginEnd = dp(context, 8)
+                        }
+                    },
+                )
+            }
+            addView(
+                LinearLayout(context).apply {
+                    orientation = LinearLayout.VERTICAL
+                    layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+                    addView(
+                        TextView(context).apply {
+                            text = titulo
+                            setTextColor(OverlayTema.de(context).texto)
+                            textSize = 13f
+                            typeface = Typeface.DEFAULT_BOLD
+                        },
+                    )
+                    addView(
+                        TextView(context).apply {
+                            text = subtitulo
+                            setTextColor(OverlayTema.de(context).secundario)
+                            textSize = 10f
+                            maxLines = 1
+                            ellipsize = TextUtils.TruncateAt.END
+                        },
+                    )
+                },
+            )
+            if (ajuda.isNotBlank()) {
+                addView(
+                    TextView(context).apply {
+                        text = "AJUDA"
+                        setTextColor(Color.parseColor(AMARELO))
+                        textSize = 11f
+                        typeface = Typeface.DEFAULT_BOLD
+                        setPadding(dp(context, 8), dp(context, 4), 0, dp(context, 4))
+                        setOnClickListener {
+                            Toast.makeText(context, ajuda, Toast.LENGTH_LONG).show()
+                        }
+                    },
+                )
+            }
+        }
+    }
+
     private fun rotulo(
         context: Context,
         texto: String,
@@ -1418,7 +2762,7 @@ object OverlayPaineis {
     ): TextView =
         TextView(context).apply {
             text = texto
-            setTextColor(Color.parseColor(if (secao) SECUNDARIO else SECUNDARIO))
+            setTextColor(OverlayTema.de(context).secundario)
             textSize = 12f
             typeface = if (secao) Typeface.DEFAULT_BOLD else Typeface.DEFAULT
             val padTopo = if (secao) 4 else if (compacto) 2 else 4
@@ -1437,7 +2781,7 @@ object OverlayPaineis {
             addView(
                 TextView(context).apply {
                     text = "🔒 $texto"
-                    setTextColor(Color.parseColor(SECUNDARIO))
+                    setTextColor(OverlayTema.de(context).secundario)
                     textSize = 11.5f
                     maxLines = 1
                     ellipsize = TextUtils.TruncateAt.END
@@ -1476,14 +2820,14 @@ object OverlayPaineis {
         val valorView = TextView(context).apply {
             this.tag = tag
             text = valor
-            setTextColor(Color.WHITE)
+            setTextColor(OverlayTema.de(context).texto)
             textSize = 13f
             gravity = Gravity.CENTER
             layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
         }
         fun botao(texto: String): TextView = TextView(context).apply {
             this.text = texto
-            setTextColor(Color.parseColor(if (editavel) AMARELO else SECUNDARIO))
+            setTextColor(if (editavel) Color.parseColor(AMARELO) else OverlayTema.de(context).secundario)
             textSize = 16f
             gravity = Gravity.CENTER
             typeface = Typeface.DEFAULT_BOLD
@@ -1491,7 +2835,7 @@ object OverlayPaineis {
             minHeight = dp(context, 32)
             background = GradientDrawable().apply {
                 setColor(Color.parseColor("#22000000"))
-                setStroke(dp(context, 1), Color.parseColor(if (editavel) AMARELO else "#3D4A57"))
+                setStroke(dp(context, 1), if (editavel) Color.parseColor(AMARELO) else OverlayTema.de(context).borda)
                 cornerRadius = dp(context, 6).toFloat()
             }
             setPadding(dp(context, 8), dp(context, 4), dp(context, 8), dp(context, 4))
@@ -1534,11 +2878,85 @@ object OverlayPaineis {
             }
         }
 
+    private fun cabecalhoConfiguracoes(context: Context, onVoltar: () -> Unit): LinearLayout {
+        return LinearLayout(context).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            tag = "config_cabecalho"
+            setPadding(dp(context, 8), 0, dp(context, 12), dp(context, 8))
+            addView(
+                TextView(context).apply {
+                    text = "←"
+                    setTextColor(OverlayTema.de(context).texto)
+                    textSize = 22f
+                    gravity = Gravity.CENTER
+                    setPadding(dp(context, 8), dp(context, 4), dp(context, 12), dp(context, 4))
+                    setOnClickListener { onVoltar() }
+                },
+            )
+            addView(
+                TextView(context).apply {
+                    tag = "config_titulo"
+                    text = "Configurações"
+                    setTextColor(OverlayTema.de(context).texto)
+                    textSize = 16f
+                    typeface = Typeface.DEFAULT_BOLD
+                    gravity = Gravity.CENTER_VERTICAL
+                    layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+                },
+            )
+        }
+    }
+
+    private fun abaConfiguracao(context: Context, indice: Int, titulo: String): LinearLayout {
+        return LinearLayout(context).apply {
+            orientation = LinearLayout.VERTICAL
+            gravity = Gravity.CENTER_HORIZONTAL
+            layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+            isClickable = true
+            isFocusable = true
+            setOnClickListener { selecionarAbaConfig(indice) }
+            addView(
+                TextView(context).apply {
+                    text = titulo
+                    tag = "cfg_aba_$indice"
+                    setTextColor(OverlayTema.de(context).secundario)
+                    textSize = 11f
+                    gravity = Gravity.CENTER
+                    maxLines = 1
+                    ellipsize = TextUtils.TruncateAt.END
+                    setPadding(dp(context, 2), dp(context, 8), dp(context, 2), dp(context, 6))
+                },
+            )
+            addView(
+                View(context).apply {
+                    tag = "cfg_aba_ind_$indice"
+                    layoutParams = LinearLayout.LayoutParams(
+                        LinearLayout.LayoutParams.MATCH_PARENT,
+                        dp(context, 2),
+                    )
+                    setBackgroundColor(Color.TRANSPARENT)
+                },
+            )
+        }
+    }
+
+    private fun setaAba(context: Context, texto: String, onClick: () -> Unit): TextView =
+        TextView(context).apply {
+            text = texto
+            textSize = 14f
+            gravity = Gravity.CENTER
+            minHeight = dp(context, 48)
+            setPadding(dp(context, 4), dp(context, 2), dp(context, 4), dp(context, 2))
+            setOnClickListener { onClick() }
+        }
+
     private fun tituloComSetas(
         context: Context,
         titulo: String,
         onEsquerda: () -> Unit,
         onDireita: () -> Unit,
+        tituloTag: String? = null,
     ): LinearLayout =
         LinearLayout(context).apply {
             orientation = LinearLayout.HORIZONTAL
@@ -1551,13 +2969,15 @@ object OverlayPaineis {
                     gravity = Gravity.CENTER
                     setPadding(dp(context, 4), dp(context, 2), dp(context, 4), dp(context, 2))
                     background = null
+                    minHeight = dp(context, 48)
                     setOnClickListener { onEsquerda() }
                 },
             )
             addView(
                 TextView(context).apply {
                     text = titulo
-                    setTextColor(Color.WHITE)
+                    tag = tituloTag
+                    setTextColor(OverlayTema.de(context).texto)
                     textSize = 14f
                     gravity = Gravity.CENTER
                     typeface = Typeface.DEFAULT_BOLD
@@ -1618,7 +3038,7 @@ object OverlayPaineis {
         clipToPadding = true
         setPadding(dp(context, paddingInicioDp), 0, dp(context, 12), 0)
         val polegar = GradientDrawable().apply {
-            setColor(Color.parseColor("#B8C5D1"))
+            setColor(OverlayTema.de(context).secundario)
             cornerRadius = dp(context, 2).toFloat()
             setSize(dp(context, 4), dp(context, 28))
         }
@@ -1626,12 +3046,14 @@ object OverlayPaineis {
         setVerticalScrollbarTrackDrawable(null)
     }
 
-    private fun fundoNeutro(context: Context): GradientDrawable =
-        GradientDrawable().apply {
-            setColor(Color.parseColor(FUNDO))
-            setStroke(dp(context, 2), Color.parseColor(ClassificacaoConstantes.COR_BORDA_NEUTRA))
+    private fun fundoNeutro(context: Context): GradientDrawable {
+        val tema = OverlayTema.de(context)
+        return GradientDrawable().apply {
+            setColor(tema.fundoPainel)
+            setStroke(dp(context, 2), tema.borda)
             cornerRadius = dp(context, 10).toFloat()
         }
+    }
 
     private fun dp(context: Context, valor: Int): Int =
         TypedValue.applyDimension(

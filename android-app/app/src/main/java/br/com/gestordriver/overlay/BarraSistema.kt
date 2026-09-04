@@ -1,8 +1,8 @@
 package br.com.gestordriver.overlay
 
 /**
- * Home, Recents e launcher — o overlay não recebe esses botões
- * se a janela for FLAG_NOT_FOCUSABLE.
+ * Home, Recentes e launcher — detectados pela acessibilidade.
+ * O overlay não deve consumir esses botões (padrão do celular).
  */
 object BarraSistema {
     private val pacotesHome = listOf(
@@ -14,7 +14,22 @@ object BarraSistema {
         "com.motorola.launcher3",
     )
 
-    fun deveRecolherParaSelo(
+    fun ehHome(
+        pacote: String,
+        classe: String = "",
+        tipoJanelaAlterada: Boolean,
+    ): Boolean {
+        if (!tipoJanelaAlterada || pacote.isBlank() || ehRecentes(pacote, classe, true)) {
+            return false
+        }
+        if (pacotesHome.any { pacote.equals(it, ignoreCase = true) }) {
+            return true
+        }
+        val nome = classe.lowercase()
+        return pacote == "com.android.systemui" && nome.contains("launcher")
+    }
+
+    fun ehRecentes(
         pacote: String,
         classe: String = "",
         tipoJanelaAlterada: Boolean,
@@ -22,15 +37,22 @@ object BarraSistema {
         if (!tipoJanelaAlterada || pacote.isBlank()) {
             return false
         }
-        if (pacotesHome.any { pacote.equals(it, ignoreCase = true) }) {
-            return true
-        }
         val nome = classe.lowercase()
-        if (pacote == "com.android.systemui" &&
-            (nome.contains("recents") || nome.contains("overview") || nome.contains("launcher"))
+        if (
+            nome.contains("recents") ||
+            nome.contains("overview") ||
+            nome.contains("quickstep") ||
+            nome.contains("taskview")
         ) {
             return true
         }
-        return nome.contains("recentsactivity") || nome.contains("overviewactivity")
+        return pacote == "com.android.systemui" &&
+            (nome.contains("recents") || nome.contains("overview") || nome.contains("quickstep"))
     }
+
+    fun deveRecolherParaSelo(
+        pacote: String,
+        classe: String = "",
+        tipoJanelaAlterada: Boolean,
+    ): Boolean = ehHome(pacote, classe, tipoJanelaAlterada)
 }

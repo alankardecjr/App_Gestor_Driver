@@ -11,12 +11,6 @@ class MotorClassificacao(
         if (valorPorKm >= limites.getValue(Classificacao.BOA)) {
             return Classificacao.BOA
         }
-        if (valorPorKm >= limites.getValue(Classificacao.REGULAR)) {
-            return Classificacao.REGULAR
-        }
-        if (valorPorKm >= limites.getValue(Classificacao.BAIXA)) {
-            return Classificacao.BAIXA
-        }
         return Classificacao.RUIM
     }
 
@@ -33,8 +27,8 @@ class MotorClassificacao(
                 limites = mapOf(
                     Classificacao.EXCELENTE to configuracao.limiteOtimaMin,
                     Classificacao.BOA to configuracao.limiteBoaMin,
-                    Classificacao.REGULAR to configuracao.limiteRegularMin,
-                    Classificacao.BAIXA to configuracao.limiteRegularMin,
+                    Classificacao.REGULAR to configuracao.limiteBoaMin,
+                    Classificacao.BAIXA to configuracao.limiteBoaMin,
                 ),
             )
         }

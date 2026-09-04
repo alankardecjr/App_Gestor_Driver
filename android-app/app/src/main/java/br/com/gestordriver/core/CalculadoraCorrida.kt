@@ -1,7 +1,5 @@
 package br.com.gestordriver.core
 
-import java.time.LocalDateTime
-
 class CalculadoraCorrida(
     private val classificador: MotorClassificacao = MotorClassificacao(),
     private val configuracaoUsuario: ConfiguracaoUsuario? = null,
@@ -16,12 +14,14 @@ class CalculadoraCorrida(
         val classificacao = classificador.classificarPorValorKm(valorPorKm)
         val configuracaoAtiva = configuracao ?: configuracaoUsuario
 
-        val resultadoCombustivel = configuracaoAtiva?.let {
-            CalculadoraCombustivel.calcular(
-                kmTotal = corrida.kmTotal,
-                consumoKmL = it.consumoAtivo(),
-                precoLitro = it.precoAtivo(),
-            )
+        val combustivel = configuracaoAtiva?.let {
+            CalculadoraCombustivel.calcularAtivo(corrida.kmTotal, it)
+        }
+        val operacional = configuracaoAtiva?.let {
+            CalculadoraCustos.gastoOperacional(corrida.kmTotal, it)
+        }
+        val gasto = listOfNotNull(combustivel?.custo, operacional).sum().takeIf {
+            combustivel != null || operacional != null
         }
 
         return AnaliseCorrida(
@@ -32,11 +32,11 @@ class CalculadoraCorrida(
             tempoEstimado = corrida.tempoEstimado,
             notaPassageiro = notaPassageiro,
             plataforma = plataforma,
-            dataHora = LocalDateTime.now(),
+            dataHora = CalendarioApp.agora(),
             kmTotal = corrida.kmTotal,
             valorPorKm = valorPorKm,
-            combustivelEstimado = resultadoCombustivel?.litros,
-            custoCombustivel = resultadoCombustivel?.custo,
+            combustivelEstimado = combustivel?.litros,
+            custoCombustivel = gasto,
             classificacao = classificacao,
             corClassificacao = classificador.corDe(classificacao),
         )

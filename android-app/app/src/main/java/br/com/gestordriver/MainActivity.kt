@@ -1,6 +1,7 @@
 package br.com.gestordriver
 
 import android.content.Intent
+import android.content.res.Configuration
 import android.graphics.Color
 import android.net.Uri
 import android.os.Build
@@ -8,6 +9,7 @@ import android.os.Bundle
 import android.provider.Settings
 import android.view.WindowManager
 import androidx.activity.ComponentActivity
+import androidx.activity.addCallback
 import androidx.activity.SystemBarStyle
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -31,6 +33,7 @@ import br.com.gestordriver.ui.theme.GestorDriverTheme
 class MainActivity : ComponentActivity() {
 
     private lateinit var appViewModel: AppViewModel
+    private var retomadaInicial = true
 
     private val seletorGoogle = registerForActivityResult(
         ActivityResultContracts.StartActivityForResult(),
@@ -54,11 +57,21 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        val noite = (resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK) ==
+            Configuration.UI_MODE_NIGHT_YES
         enableEdgeToEdge(
-            statusBarStyle = SystemBarStyle.dark(Color.TRANSPARENT),
-            navigationBarStyle = SystemBarStyle.dark(Color.TRANSPARENT),
+            statusBarStyle = if (noite) {
+                SystemBarStyle.dark(Color.TRANSPARENT)
+            } else {
+                SystemBarStyle.light(Color.TRANSPARENT, Color.TRANSPARENT)
+            },
+            navigationBarStyle = if (noite) {
+                SystemBarStyle.dark(Color.TRANSPARENT)
+            } else {
+                SystemBarStyle.light(Color.TRANSPARENT, Color.TRANSPARENT)
+            },
         )
-        window.setBackgroundDrawableResource(android.R.color.transparent)
+        window.setBackgroundDrawableResource(R.color.fundo_app)
         WindowCompat.setDecorFitsSystemWindows(window, false)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
             window.attributes = window.attributes.apply {
@@ -110,6 +123,20 @@ class MainActivity : ComponentActivity() {
                     }
                 }
 
+                LaunchedEffect(Unit) {
+                    appViewModel.irParaFrente.collect {
+                        startActivity(
+                            Intent(this@MainActivity, MainActivity::class.java)
+                                .addFlags(
+                                    Intent.FLAG_ACTIVITY_REORDER_TO_FRONT or
+                                        Intent.FLAG_ACTIVITY_SINGLE_TOP or
+                                        Intent.FLAG_ACTIVITY_NEW_TASK,
+                                )
+                                .putExtra(EXTRA_RECENTES_CONFIG, true),
+                        )
+                    }
+                }
+
                 LaunchedEffect(appViewModel.state.monitorando) {
                     if (appViewModel.state.monitorando &&
                         PermissoesMonitoramento.overlayConcedida(this@MainActivity)
@@ -125,6 +152,28 @@ class MainActivity : ComponentActivity() {
                     viewModel = appViewModel,
                     configuracoesViewModel = configuracoesViewModel,
                 )
+            }
+        }
+        onBackPressedDispatcher.addCallback(this) {
+            if (!::appViewModel.isInitialized) {
+                finish()
+                return@addCallback
+            }
+            // Sem monitoramento: Voltar = padrão do celular (sair da activity).
+            if (!appViewModel.state.monitorando) {
+                finish()
+                return@addCallback
+            }
+            val jaNoSelo = appViewModel.state.seloFlutuante &&
+                !appViewModel.state.historicoVisivel &&
+                !appViewModel.state.configuracoesVisivel &&
+                !appViewModel.state.dashboardVisivel &&
+                !appViewModel.state.confirmacaoFecharVisivel &&
+                !appViewModel.state.confirmacaoLimparHistoricoVisivel
+            appViewModel.voltarPelaBarra()
+            if (jaNoSelo || appViewModel.state.seloFlutuante || appViewModel.state.interfaceOculta) {
+                OverlayService.iniciar(this@MainActivity)
+                moveTaskToBack(true)
             }
         }
     }
@@ -159,7 +208,17 @@ class MainActivity : ComponentActivity() {
     override fun onResume() {
         super.onResume()
         if (::appViewModel.isInitialized) {
-            tratarIntent(intent, appViewModel)
+            val atalho = tratarIntent(intent, appViewModel)
+            if (retomadaInicial) {
+                retomadaInicial = false
+            } else if (
+                !atalho &&
+                appViewModel.state.monitorando &&
+                appViewModel.state.onboardingEtapa == OnboardingEtapa.NENHUMA &&
+                !isChangingConfigurations
+            ) {
+                appViewModel.restaurarTelaAposRecentes()
+            }
         }
         if (PermissoesMonitoramento.overlayConcedida(this)) {
             OverlayService.iniciar(this)
@@ -169,13 +228,6 @@ class MainActivity : ComponentActivity() {
     @Suppress("UNUSED_PARAMETER")
     fun aplicarJanela(oculta: Boolean, cheia: Boolean) {
         val params = window.attributes
-        if (oculta) {
-            params.width = 1
-            params.height = 1
-            params.gravity = android.view.Gravity.TOP or android.view.Gravity.START
-            window.attributes = params
-            return
-        }
         params.width = WindowManager.LayoutParams.MATCH_PARENT
         params.height = WindowManager.LayoutParams.MATCH_PARENT
         params.gravity = android.view.Gravity.TOP
@@ -185,7 +237,7 @@ class MainActivity : ComponentActivity() {
     private fun dp(valor: Int): Int =
         (valor * resources.displayMetrics.density).toInt()
 
-    private fun tratarIntent(intent: Intent?, viewModel: AppViewModel) {
+    private fun tratarIntent(intent: Intent?, viewModel: AppViewModel): Boolean {
         val abrirExpandida = intent?.getBooleanExtra(EXTRA_ABRIR_EXPANDIDA, false) == true
         if (abrirExpandida) {
             val origemCompacta = intent.getBooleanExtra(EXTRA_ORIGEM_COMPACTA, false)
@@ -194,13 +246,13 @@ class MainActivity : ComponentActivity() {
             viewModel.reabrirInterface(origemCompacta)
             OverlayService.iniciar(this)
             moveTaskToBack(true)
-            return
+            return true
         }
         val conectarGoogle = intent?.getBooleanExtra(EXTRA_CONECTAR_GOOGLE, false) == true
         if (conectarGoogle) {
             intent?.removeExtra(EXTRA_CONECTAR_GOOGLE)
             seletorGoogle.launch(ContaVinculo.intentEscolherContaGoogle())
-            return
+            return true
         }
         val pedirLocalizacao = intent?.getBooleanExtra(EXTRA_PEDIR_LOCALIZACAO, false) == true
         if (pedirLocalizacao) {
@@ -208,28 +260,28 @@ class MainActivity : ComponentActivity() {
             pedirLocalizacao()
             OverlayService.iniciar(this)
             moveTaskToBack(true)
-            return
+            return true
         }
         val pedirAcessibilidade = intent?.getBooleanExtra(EXTRA_PEDIR_ACESSIBILIDADE, false) == true
         if (pedirAcessibilidade) {
             intent?.removeExtra(EXTRA_PEDIR_ACESSIBILIDADE)
             startActivity(PermissoesMonitoramento.intentAcessibilidade())
             OverlayService.iniciar(this)
-            return
+            return true
         }
         val pedirBateria = intent?.getBooleanExtra(EXTRA_PEDIR_BATERIA, false) == true
         if (pedirBateria) {
             intent?.removeExtra(EXTRA_PEDIR_BATERIA)
             startActivity(PermissoesMonitoramento.intentBateria(this))
             OverlayService.iniciar(this)
-            return
+            return true
         }
         val compartilharLog = intent?.getBooleanExtra(EXTRA_COMPARTILHAR_LOG, false) == true
         if (compartilharLog) {
             intent?.removeExtra(EXTRA_COMPARTILHAR_LOG)
             (application as GestorDriverApp).diagnosticLog.compartilhar(this)
             OverlayService.iniciar(this)
-            return
+            return true
         }
         val abrirHistorico = intent?.getBooleanExtra(EXTRA_ABRIR_HISTORICO, false) == true
         if (abrirHistorico) {
@@ -237,7 +289,14 @@ class MainActivity : ComponentActivity() {
             viewModel.abrirHistoricoPeloOverlay()
             OverlayService.iniciar(this)
             moveTaskToBack(true)
-            return
+            return true
+        }
+        val recentesConfig = intent?.getBooleanExtra(EXTRA_RECENTES_CONFIG, false) == true
+        if (recentesConfig) {
+            intent?.removeExtra(EXTRA_RECENTES_CONFIG)
+            viewModel.restaurarTelaAposRecentes()
+            OverlayService.iniciar(this)
+            return true
         }
         val abrirConfig = intent?.getBooleanExtra(EXTRA_ABRIR_CONFIG, false) == true
         if (abrirConfig) {
@@ -245,14 +304,14 @@ class MainActivity : ComponentActivity() {
             viewModel.abrirConfiguracoes()
             OverlayService.iniciar(this)
             moveTaskToBack(true)
-            return
+            return true
         }
         val confirmarFechar = intent?.getBooleanExtra(EXTRA_CONFIRMAR_FECHAR, false) == true
         if (confirmarFechar) {
             intent?.removeExtra(EXTRA_CONFIRMAR_FECHAR)
             viewModel.solicitarFecharApp()
             OverlayService.iniciar(this)
-            return
+            return true
         }
         val app = application as GestorDriverApp
         val temConta = app.configuracaoStore.carregar().contaTipo != TipoContaVinculada.NENHUMA
@@ -261,12 +320,10 @@ class MainActivity : ComponentActivity() {
             temConta = temConta,
         )
         if (viewModel.state.onboardingEtapa != OnboardingEtapa.NENHUMA) {
-            return
+            return true
         }
         OverlayService.iniciar(this)
-        if (viewModel.state.interfaceOculta) {
-            moveTaskToBack(true)
-        }
+        return false
     }
 
     private fun pedirNotificacaoPersistente() {
@@ -311,6 +368,7 @@ class MainActivity : ComponentActivity() {
         const val EXTRA_ORIGEM_COMPACTA = "origem_compacta"
         const val EXTRA_ABRIR_HISTORICO = "abrir_historico"
         const val EXTRA_ABRIR_CONFIG = "abrir_config"
+        const val EXTRA_RECENTES_CONFIG = "recentes_config"
         const val EXTRA_CONFIRMAR_FECHAR = "confirmar_fechar"
         const val EXTRA_PEDIR_LOCALIZACAO = "pedir_localizacao"
         const val EXTRA_PEDIR_ACESSIBILIDADE = "pedir_acessibilidade"

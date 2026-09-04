@@ -39,8 +39,8 @@ class MotorClassificacaoTestCase(unittest.TestCase):
         self.assertEqual(motor.classificar_por_valor_km(2.10), Classificacao.REGULAR)
 
     def test_deve_retornar_cor_por_classificacao(self):
-        self.assertEqual(self.motor.cor_de(Classificacao.EXCELENTE), "#1E88E5")
-        self.assertEqual(self.motor.cor_de(Classificacao.BOA), "#2E7D32")
+        self.assertEqual(self.motor.cor_de(Classificacao.EXCELENTE), "#2E7D32")
+        self.assertEqual(self.motor.cor_de(Classificacao.BOA), "#F9A825")
         self.assertEqual(self.motor.cor_de(Classificacao.REGULAR), "#EF6C00")
         self.assertEqual(self.motor.cor_de(Classificacao.RUIM), "#C62828")
         self.assertEqual(self.motor.cor_de(Classificacao.BAIXA), "#EF6C00")

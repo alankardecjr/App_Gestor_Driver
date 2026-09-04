@@ -5,6 +5,7 @@ data class CamposExtraidos(
     val kmAtePassageiro: Double,
     val kmViagem: Double,
     val tempoEstimado: Int?,
+    val quantidadeParadas: Int = 0,
 )
 
 object NotificationExtractor {
@@ -57,8 +58,24 @@ object NotificationExtractor {
         return match.groupValues[1].toIntOrNull()
     }
 
+    fun extrairQuantidadeParadas(texto: String): Int {
+        val mais = Regex(
+            """\+\s*(\d+)\s*(?:parada|paradas|stop|stops)\b""",
+            RegexOption.IGNORE_CASE,
+        ).find(texto)
+        if (mais != null) {
+            return mais.groupValues[1].toIntOrNull()?.coerceAtLeast(0) ?: 0
+        }
+        val rotulo = Regex(
+            """(\d+)\s*(?:parada|paradas|stop|stops)\b""",
+            RegexOption.IGNORE_CASE,
+        ).find(texto)
+        return rotulo?.groupValues?.get(1)?.toIntOrNull()?.coerceAtLeast(0) ?: 0
+    }
+
     fun extrairCamposPadrao(texto: String): CamposExtraidos {
         val valorTotal = extrairValor(texto)
+        val paradas = extrairQuantidadeParadas(texto)
         val trechos99 = extrairTrechos99(texto)
         if (trechos99 != null) {
             return CamposExtraidos(
@@ -66,6 +83,7 @@ object NotificationExtractor {
                 kmAtePassageiro = trechos99.first,
                 kmViagem = trechos99.second,
                 tempoEstimado = trechos99.third,
+                quantidadeParadas = paradas,
             )
         }
 
@@ -83,6 +101,7 @@ object NotificationExtractor {
                     ?: trechosUber?.second?.takeIf { it > 0.0 }
                     ?: segundaDistancia(texto, kmAteRotulo ?: trechosUber?.first ?: 0.0),
                 tempoEstimado = trechosUber?.third ?: extrairTempo(texto),
+                quantidadeParadas = paradas,
             )
         }
 
@@ -97,6 +116,7 @@ object NotificationExtractor {
                 kmAtePassageiro = trechosUber.first,
                 kmViagem = kmViagem,
                 tempoEstimado = trechosUber.third,
+                quantidadeParadas = paradas,
             )
         }
 
@@ -114,6 +134,7 @@ object NotificationExtractor {
             kmAtePassageiro = kmAtePassageiro,
             kmViagem = kmViagem,
             tempoEstimado = tempoEstimado,
+            quantidadeParadas = paradas,
         )
     }
 

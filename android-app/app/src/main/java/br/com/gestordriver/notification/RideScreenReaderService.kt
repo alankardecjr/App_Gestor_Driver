@@ -88,12 +88,12 @@ class RideScreenReaderService : AccessibilityService() {
     }
 
     override fun onKeyEvent(event: KeyEvent): Boolean {
-        if (event.action == KeyEvent.ACTION_UP &&
-            (event.keyCode == KeyEvent.KEYCODE_BACK ||
-                event.keyCode == KeyEvent.KEYCODE_HOME ||
-                event.keyCode == KeyEvent.KEYCODE_APP_SWITCH)
-        ) {
-            OverlayBridge.emitir(OverlayAcao.RecolherParaSelo)
+        if (event.action == KeyEvent.ACTION_UP) {
+            when (event.keyCode) {
+                KeyEvent.KEYCODE_BACK -> OverlayBridge.emitir(OverlayAcao.VoltarBarra)
+                KeyEvent.KEYCODE_HOME -> OverlayBridge.emitir(OverlayAcao.RecolherParaSelo)
+                KeyEvent.KEYCODE_APP_SWITCH -> OverlayBridge.emitir(OverlayAcao.RecentesBarra)
+            }
         }
         return false
     }
@@ -101,13 +101,18 @@ class RideScreenReaderService : AccessibilityService() {
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {
         val pacote = event?.packageName?.toString().orEmpty()
         val classe = event?.className?.toString().orEmpty()
-        if (BarraSistema.deveRecolherParaSelo(
-                pacote = pacote,
-                classe = classe,
-                tipoJanelaAlterada = event?.eventType == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED,
-            )
-        ) {
+        val janelaMudou = event?.eventType == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED ||
+            event?.eventType == AccessibilityEvent.TYPE_WINDOWS_CHANGED
+        val janelaNova = event?.eventType == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED
+        if (BarraSistema.ehRecentes(pacote, classe, janelaNova)) {
+            OverlayBridge.emitir(OverlayAcao.RecentesBarra)
+        } else if (BarraSistema.ehHome(pacote, classe, janelaNova)) {
             OverlayBridge.emitir(OverlayAcao.RecolherParaSelo)
+        }
+        if (janelaMudou && PlatformDetector.ehSuportada(pacote) &&
+            OverlayBridge.snapshot.value.compactaVisivel
+        ) {
+            OverlayBridge.reafirmarCamada()
         }
         if (!PlatformDetector.ehSuportada(pacote)) {
             return

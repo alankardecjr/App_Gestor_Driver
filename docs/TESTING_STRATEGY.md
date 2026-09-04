@@ -8,7 +8,7 @@ Proteger o cálculo (R$/KM, classificação, combustível) e as regras de produt
 
 ### Python (`tests/`)
 
-25 casos: classificação, contrato `AnaliseCorrida`, pipeline de notificações, histórico, Free/Beta/Pro, apresentação.
+25 casos: classificação, contrato `AnaliseCorrida`, pipeline de notificações, histórico, Free/Pro (enum legado `BETA` = Pro), apresentação.
 
 ```bash
 python -m pytest tests/ -v

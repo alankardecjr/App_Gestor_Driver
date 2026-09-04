@@ -3,14 +3,19 @@ package br.com.gestordriver.ui
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.ScrollState
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -30,6 +35,7 @@ import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.delay
@@ -82,6 +88,72 @@ fun TituloComSetas(
                     indication = null,
                     onClick = onDireita,
                 )
+                .padding(horizontal = 4.dp, vertical = 2.dp),
+        )
+    }
+}
+
+@Composable
+fun FaixaAbasComSetas(
+    titulos: List<String>,
+    selecionada: Int,
+    corAtiva: Color,
+    corInativa: Color,
+    onSelecionar: (Int) -> Unit,
+    mostrarIndicador: Boolean = false,
+    tamanhoFonte: TextUnit = 14.sp,
+) {
+    val ultima = titulos.lastIndex.coerceAtLeast(0)
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            text = "⬅️",
+            fontSize = 14.sp,
+            modifier = Modifier
+                .clickable { onSelecionar((selecionada - 1).coerceAtLeast(0)) }
+                .padding(horizontal = 4.dp, vertical = 2.dp),
+        )
+        Row(
+            modifier = Modifier.weight(1f),
+            horizontalArrangement = Arrangement.SpaceEvenly,
+        ) {
+            titulos.forEachIndexed { index, titulo ->
+                val ativa = selecionada == index
+                Column(
+                    modifier = Modifier
+                        .weight(1f)
+                        .clickable { onSelecionar(index) },
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                ) {
+                    Text(
+                        text = titulo,
+                        color = if (ativa) corAtiva else corInativa,
+                        fontSize = tamanhoFonte,
+                        fontWeight = if (ativa) FontWeight.SemiBold else FontWeight.Normal,
+                        textAlign = TextAlign.Center,
+                        maxLines = 1,
+                        modifier = Modifier
+                            .heightIn(min = 48.dp)
+                            .padding(horizontal = 2.dp, vertical = 8.dp),
+                    )
+                    if (mostrarIndicador) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(2.dp)
+                                .background(if (ativa) corAtiva else Color.Transparent),
+                        )
+                    }
+                }
+            }
+        }
+        Text(
+            text = "➡️",
+            fontSize = 14.sp,
+            modifier = Modifier
+                .clickable { onSelecionar((selecionada + 1).coerceAtMost(ultima)) }
                 .padding(horizontal = 4.dp, vertical = 2.dp),
         )
     }

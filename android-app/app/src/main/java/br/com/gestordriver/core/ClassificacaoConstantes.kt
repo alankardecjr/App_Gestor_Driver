@@ -11,8 +11,8 @@ object ClassificacaoConstantes {
     )
 
     val CORES: Map<Classificacao, String> = mapOf(
-        Classificacao.EXCELENTE to "#1E88E5",
-        Classificacao.BOA to "#2E7D32",
+        Classificacao.EXCELENTE to "#2E7D32",
+        Classificacao.BOA to "#F9A825",
         Classificacao.REGULAR to "#EF6C00",
         Classificacao.BAIXA to "#EF6C00",
         Classificacao.RUIM to "#C62828",

@@ -5,9 +5,9 @@
 **Plataforma:** Android  
 **Documento:** Fluxograma funcional  
 **Documento oficial de regras:** [`docs/REGRAS_NEGOCIO.md`](REGRAS_NEGOCIO.md)  
-**Versão em foco:** Beta (cálculos visíveis). Pro depois. Free (cálculos ocultos) no lançamento.
+**Versão em foco:** Pro 2.0 (`vs-2.0`). Free = mesma UI com calculadora/dashboard ocultos. Beta `1.1.10` congelado em `main`.
 
-**Interfaces congeladas** até a versão Pro (selo, compacta, expandida, histórico, configuração, confirmação de fechar). Sem novos ajustes visuais na Beta.
+**Roteiro ativo:** [`ROTEIRO_PRO.md`](ROTEIRO_PRO.md). UI Beta (02/09/2026) permanece como referência histórica; telas Pro seguem o roteiro oficial 2.0.
 
 ---
 
@@ -152,7 +152,7 @@ Nova oferta substitui a corrida atual. Sem oferta = selo. Histórico só muda no
 
 Fonte da verdade: R$/KM → faixa → classificação → cor. A interface não escolhe a cor.
 
-Corrida atual (borda grossa, 5 dp):
+Corrida atual (borda grossa, 5 dp) — **Pro:** 🔴 Ruim · 🟡 Boa · 🟢 Ótima (§40). **Beta histórica:**
 
 - 🔴 Ruim = vermelho
 - 🟠 Regular = laranja
@@ -163,6 +163,6 @@ Janelas Histórico e Configuração: borda cinza fina (2 dp), fundo semitranspar
 
 Histórico (itens das listas Uber / 99 / inDrive): borda **fina** na cor da classificação. Compacta/expandida com oferta ou item selecionado **mantém a borda colorida grossa**.
 
-Custo (Beta): litros = km total ÷ km/L do combustível atual; gasto = litros × preço desse litro.
+Custo (Pro): litros/gasto de combustível + rateio óleo/pneus/IPVA/seguro; lucro = valor − gasto total. Free oculta esses números (🔒). Detalhe: [`REGRAS_NEGOCIO.md`](REGRAS_NEGOCIO.md) §38–40.
 
 Documento completo: `docs/REGRAS_NEGOCIO.md`.

@@ -3,7 +3,9 @@ package br.com.gestordriver.data
 import br.com.gestordriver.model.AppNavegacao
 import br.com.gestordriver.model.Combustivel
 import br.com.gestordriver.model.ConfiguracaoUsuario
+import br.com.gestordriver.model.SeguroRecorrencia
 import br.com.gestordriver.model.TipoContaVinculada
+import br.com.gestordriver.model.TipoVeiculo
 
 interface ConfiguracaoStore {
     fun carregar(): ConfiguracaoUsuario
@@ -25,6 +27,7 @@ class MemoriaConfiguracaoStore(
 }
 
 fun ConfiguracaoUsuario.paraPreferencias(): Map<String, String> = mapOf(
+    "tipoVeiculo" to tipoVeiculo.name,
     "marcaVeiculo" to marcaVeiculo,
     "modeloVeiculo" to modeloVeiculo,
     "versaoVeiculo" to versaoVeiculo,
@@ -32,9 +35,11 @@ fun ConfiguracaoUsuario.paraPreferencias(): Map<String, String> = mapOf(
     "finalPlaca" to finalPlaca,
     "consumoGasolina" to consumoGasolina.toString(),
     "consumoEtanol" to consumoEtanol.toString(),
+    "consumoEnergia" to consumoEnergia.toString(),
     "combustivel" to combustivel.name,
     "precoGasolina" to precoGasolina.toString(),
     "precoEtanol" to precoEtanol.toString(),
+    "precoEnergia" to precoEnergia.toString(),
     "oleoValor" to oleoValor.toString(),
     "oleoKilometragem" to oleoKilometragem.toString(),
     "oleoData" to oleoData,
@@ -49,7 +54,13 @@ fun ConfiguracaoUsuario.paraPreferencias(): Map<String, String> = mapOf(
     "abastecimentoKmInicial" to abastecimentoKmInicial.toString(),
     "abastecimentoKmFinal" to abastecimentoKmFinal.toString(),
     "ipvaVencimento" to ipvaVencimento,
+    "ipvaValor" to ipvaValor.toString(),
+    "seguroValor" to seguroValor.toString(),
+    "seguroData" to seguroData,
+    "seguroRecorrencia" to seguroRecorrencia.name,
+    "kmAnual" to kmAnual.toString(),
     "navegacao" to navegacao.name,
+    "tema" to tema.name,
     "contaTipo" to contaTipo.name,
     "contaEmail" to contaEmail,
     "limiteRuimMin" to limiteRuimMin.toString(),
@@ -65,6 +76,9 @@ fun ConfiguracaoUsuario.paraPreferencias(): Map<String, String> = mapOf(
 fun Map<String, String>.paraConfiguracaoUsuario(): ConfiguracaoUsuario {
     val padrao = ConfiguracaoUsuario.padrao()
     return ConfiguracaoUsuario(
+        tipoVeiculo = this["tipoVeiculo"]?.let {
+            runCatching { TipoVeiculo.valueOf(it) }.getOrDefault(padrao.tipoVeiculo)
+        } ?: padrao.tipoVeiculo,
         marcaVeiculo = this["marcaVeiculo"] ?: padrao.marcaVeiculo,
         modeloVeiculo = this["modeloVeiculo"] ?: padrao.modeloVeiculo,
         versaoVeiculo = this["versaoVeiculo"] ?: padrao.versaoVeiculo,
@@ -72,11 +86,13 @@ fun Map<String, String>.paraConfiguracaoUsuario(): ConfiguracaoUsuario {
         finalPlaca = this["finalPlaca"] ?: padrao.finalPlaca,
         consumoGasolina = this["consumoGasolina"]?.toDoubleOrNull() ?: padrao.consumoGasolina,
         consumoEtanol = this["consumoEtanol"]?.toDoubleOrNull() ?: padrao.consumoEtanol,
+        consumoEnergia = this["consumoEnergia"]?.toDoubleOrNull() ?: padrao.consumoEnergia,
         combustivel = this["combustivel"]?.let {
             runCatching { Combustivel.valueOf(it) }.getOrDefault(padrao.combustivel)
         } ?: padrao.combustivel,
         precoGasolina = this["precoGasolina"]?.toDoubleOrNull() ?: padrao.precoGasolina,
         precoEtanol = this["precoEtanol"]?.toDoubleOrNull() ?: padrao.precoEtanol,
+        precoEnergia = this["precoEnergia"]?.toDoubleOrNull() ?: padrao.precoEnergia,
         oleoValor = this["oleoValor"]?.toDoubleOrNull() ?: padrao.oleoValor,
         oleoKilometragem = this["oleoKilometragem"]?.toDoubleOrNull() ?: padrao.oleoKilometragem,
         oleoData = this["oleoData"] ?: padrao.oleoData,
@@ -91,9 +107,19 @@ fun Map<String, String>.paraConfiguracaoUsuario(): ConfiguracaoUsuario {
         abastecimentoKmInicial = this["abastecimentoKmInicial"]?.toDoubleOrNull() ?: padrao.abastecimentoKmInicial,
         abastecimentoKmFinal = this["abastecimentoKmFinal"]?.toDoubleOrNull() ?: padrao.abastecimentoKmFinal,
         ipvaVencimento = this["ipvaVencimento"] ?: padrao.ipvaVencimento,
+        ipvaValor = this["ipvaValor"]?.toDoubleOrNull() ?: padrao.ipvaValor,
+        seguroValor = this["seguroValor"]?.toDoubleOrNull() ?: padrao.seguroValor,
+        seguroData = this["seguroData"] ?: padrao.seguroData,
+        seguroRecorrencia = this["seguroRecorrencia"]?.let {
+            runCatching { SeguroRecorrencia.valueOf(it) }.getOrDefault(padrao.seguroRecorrencia)
+        } ?: padrao.seguroRecorrencia,
+        kmAnual = this["kmAnual"]?.toDoubleOrNull() ?: padrao.kmAnual,
         navegacao = this["navegacao"]?.let {
             runCatching { AppNavegacao.valueOf(it) }.getOrDefault(padrao.navegacao)
         } ?: padrao.navegacao,
+        tema = this["tema"]?.let {
+            runCatching { br.com.gestordriver.model.TemaApp.valueOf(it) }.getOrDefault(padrao.tema)
+        } ?: padrao.tema,
         contaTipo = this["contaTipo"]?.let {
             runCatching { TipoContaVinculada.valueOf(it) }.getOrDefault(padrao.contaTipo)
         } ?: padrao.contaTipo,
@@ -117,11 +143,28 @@ fun ConfiguracaoUsuario.paraMotor(): br.com.gestordriver.core.ConfiguracaoUsuari
         ano = anoVeiculo.toIntOrNull() ?: 0,
         consumoGasolina = consumoGasolina,
         consumoEtanol = consumoEtanol,
+        consumoEnergia = consumoEnergia,
         precoGasolina = precoGasolina,
         precoEtanol = precoEtanol,
+        precoEnergia = precoEnergia,
         combustivel = when (combustivel) {
             Combustivel.GASOLINA -> br.com.gestordriver.core.Combustivel.GASOLINA
             Combustivel.ETANOL -> br.com.gestordriver.core.Combustivel.ETANOL
+            Combustivel.ENERGIA -> br.com.gestordriver.core.Combustivel.ENERGIA
         },
+        oleoValor = oleoValor,
+        oleoKilometragem = oleoKilometragem,
+        pneuDianteiroValor = pneuDianteiroValor,
+        pneuDianteiroRodagem = pneuDianteiroRodagem,
+        pneuTraseiroValor = pneuTraseiroValor,
+        pneuTraseiroRodagem = pneuTraseiroRodagem,
+        ipvaValor = ipvaValor,
+        seguroValor = seguroValor,
+        seguroRecorrencia = when (seguroRecorrencia) {
+            SeguroRecorrencia.MENSAL -> br.com.gestordriver.core.SeguroRecorrencia.MENSAL
+            SeguroRecorrencia.ANUAL -> br.com.gestordriver.core.SeguroRecorrencia.ANUAL
+        },
+        kmAnual = kmAnual,
     )
 }
+

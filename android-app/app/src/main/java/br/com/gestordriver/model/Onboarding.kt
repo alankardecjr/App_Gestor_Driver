@@ -16,27 +16,27 @@ object TutorialConteudo {
     val passos: List<TutorialPasso> = listOf(
         TutorialPasso(
             titulo = "Selo",
-            texto = "Bolinha flutuante sobre o mapa. Toque para abrir a análise. Arraste para o canto que não atrapalhe o recusar.",
+            texto = "Ícone redondo ~60 dp. Toque abre/fecha o menu atalho. Arraste para o X na base para esconder o selo; monitoramento e notificação continuam.",
         ),
         TutorialPasso(
-            titulo = "Cabeçalho",
-            texto = "💵 R$/KM — valor por km. 💰 VALOR — total da oferta. 🛞 DIST. — km total. 🕐 TEMPO — minutos. ⭐ NOTA — passageiro. ⬇️ abre os detalhes.",
+            titulo = "Compacta",
+            texto = "Card no topo só na oferta: $/Km, $/Lucro, $/Gasto e Nota. Some em 1 s (expirou/recusou) ou 2 s (aceitou). Toque na compacta ou fora não faz nada.",
         ),
         TutorialPasso(
-            titulo = "Expandida",
-            texto = "DISTÂNCIAS: até o passageiro, até o destino e total. CUSTOS: litros, gasto e lucro só do combustível atual (aba CUSTOS + combustível marcado).",
+            titulo = "Menu",
+            texto = "Histórico, Dashboard, Despesas, Semáforo, Veiculo, Configurar e Fechar. A seta das abas sempre volta ao atalho.",
         ),
         TutorialPasso(
-            titulo = "Botões",
-            texto = "📴 Fechar — encerra o app. ⚙️ Config — abre ajustes. ❎ Ocultar — deixa só o selo. 📜 Histórico — corridas aceitas.",
+            titulo = "Notificação",
+            texto = "Resumo da oferta. Expirar ou recusar limpa e volta a Monitorando ofertas. Aceite mantém o resumo até a próxima oferta. Abrir App / Desligar App.",
         ),
         TutorialPasso(
             titulo = "Config",
-            texto = "Abas VEÍCULO, CUSTOS, CALIBRAR e APP. Cancelar descarta. Salvar grava e fecha. Campos 🔒 são da versão Pro.",
+            texto = "Abas em formato de ficheiro: Histórico, Dashboard, Despesas, Semáforo, Veiculo e Configurar. Cancelar descarta. Salvar grava.",
         ),
         TutorialPasso(
             titulo = "Histórico",
-            texto = "Só entra corrida aceita na Uber, 99 ou inDrive. Toque na linha para ver de novo. Recusar não grava.",
+            texto = "Só entra corrida aceita. Filtro Todos/Uber/99/inDrive. Semana (DOM–SÁB) com setas. Card: ganhos, $/Km, lucro, gasto e nota.",
         ),
     )
 }

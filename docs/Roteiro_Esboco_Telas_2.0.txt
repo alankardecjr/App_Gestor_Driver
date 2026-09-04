@@ -1,0 +1,435 @@
+GESTOR DRIVER 2.0 — ROTEIRO E ESBOÇO DAS TELAS
+Para aprovação (analisar, marcar SIM / NÃO / AJUSTAR)
+Data: 02/09/2026
+Versão alvo: 2.0.0  |  ramo vs-2.0  |  retorno: Beta 1.1.10 em main
+Plataforma: Android (min 11)  |  o Gestor NÃO aceita corrida
+
+
+================================================================================
+0. COMO LER ESTE ARQUIVO
+================================================================================
+
+Cada tela tem:
+  - o que faz
+  - esboço (texto)
+  - o que entra de cada inspiração
+  - o que NÃO entra
+  - ponto para você marcar: [ ] ok   [ ] ajustar (escreva o que)
+
+Três fontes (ideia, não clone):
+  A) Gigu — compacta 3 linhas, cards de histórico, valor grande, rota ● / ■
+  B) Líder da loja (teal/limão) — notificação magra, botões de mapa, config em lista
+  C) Gestor Beta — selo, classificação na borda, abas Uber/99/inDrive, lucro/gasto/litros
+     do combustível atual, histórico só no aceite
+
+
+================================================================================
+1. O QUE FICA IGUAL À BETA (não negociar na 2.0)
+================================================================================
+
+- O Gestor não tem botão Aceitar / Recusar.
+- Histórico só grava quando o aceite foi identificado na Uber, 99 ou inDrive.
+- Classificação = faixas de R$/km (CALIBRAR) → cor da borda.
+- Cálculos de litros / gasto / lucro = só combustível atual (CUSTOS + VEÍCULO).
+- Permissões obrigatórias: notificação, sobrepor, acessibilidade, bateria.
+- Toque na compacta NÃO recolhe ao selo (toque fora também NÃO recolhe).
+
+
+================================================================================
+2. FLUXO (ROTEIRO DE USO)
+================================================================================
+
+2.1 Abrir o app
+    Permissões ok? → tema (escuro / claro / celular) → monitoramento + selo + notificação
+    Permissões faltando? → Config > APP (permissões) até completar
+
+2.2 Sem oferta
+    Selo flutuante + notificação: "Monitorando ofertas" + Abrir App + Desligar App
+    Compacta escondida. Menu fechado.
+
+2.3 Oferta chega
+    Compacta aparece (3 linhas, borda da classificação)
+    Notificação passa a mostrar o resumo da oferta
+    Motorista decide na Uber/99/inDrive (Aceitar/Recusar da PLATAFORMA)
+
+2.4 Recusou ou expirou
+    Compacta some em 2 segundos → volta ao selo
+    Notificação: manter o último resumo até a próxima oferta
+      (se você preferir voltar a "Monitorando", marcar em 6.1)
+
+2.5 Aceitou (detectado pelo Gestor)
+    Compacta some em 4 segundos → selo
+    Grava histórico na aba da plataforma
+    Notificação: resumo da corrida aceita até a próxima oferta
+
+2.6 Selo
+    Toque = abre / fecha o MENU ao lado do selo
+    Arrastar até o X na base = esconde o selo; monitoramento e notificação continuam
+    (reabrir: notificação "Abrir App" ou abrir o app)
+
+2.7 Menu
+    Histórico | Calibrar | Custos | Usuário | Dashboard (Pro) | Configurações | Fechar
+    Fechar = caixa Cancelar / Fechar (encerra monitoramento)
+
+2.8 Histórico
+    Abas Uber | 99 | inDrive  (setas, deslize ou toque no rótulo)
+    Cards. Toque no card = seleciona a corrida (detalhe já está no próprio card)
+    Embarque / Destino = mapa escolhido (Maps ou Waze), só se houver endereço
+    Limpar histórico = confirmação
+
+2.9 Config pelos atalhos
+    Usuário  → aba VEÍCULO
+    Custos   → aba CUSTOS
+    Calibrar → aba CALIBRAR
+    Configurações → aba APP (permissões, tema, navegação, enviar log)
+
+
+================================================================================
+3. TELAS — ESBOÇOS
+================================================================================
+
+--------------------------------------------------------------------------------
+3.1 NOTIFICAÇÃO DO ANDROID (sombra do celular)     origem: B + C
+--------------------------------------------------------------------------------
+
+SEM OFERTA
+┌─────────────────────────────────────────────┐
+│ Gestor Driver                               │
+│ Monitorando ofertas                         │
+│                                             │
+│ [ Abrir App ]           [ Desligar App ]    │
+└─────────────────────────────────────────────┘
+
+COM OFERTA (uma linha de título + uma de métricas)
+┌─────────────────────────────────────────────┐
+│ R$ 38,00  ·  0h28m  ·  16,0 Km              │
+│ 2,38/km · Lucro R$32,10 · 1,2 L · Nota 4,9  │
+│                                             │
+│ [ Abrir App ]           [ Desligar App ]    │
+└─────────────────────────────────────────────┘
+
+NÃO entra nesta versão (cabe na notificação expandida do Android, se você
+autorizar depois — hoje a notificação do sistema NÃO tem botões Embarque/Destino
+confiáveis em todos os aparelhos):
+  - lista de paradas
+  - botões MAPA EMB. / MAPA DEST.  → esses botões ficam no CARD DO HISTÓRICO
+    e, se houver endereço, podem ir também na compacta (ver 6.2)
+
+[ ] ok   [ ] ajustar: ________________________________
+
+
+--------------------------------------------------------------------------------
+3.2 COMPACTA (overlay no mapa, só na oferta)       origem: A + C
+--------------------------------------------------------------------------------
+
+Posição: topo, não cobrir Recusar da 99.
+Borda: 5 dp na cor da classificação (ruim vermelho / regular laranja /
+boa verde / ótima azul). Sem oferta não aparece.
+
+  $/Km = R$ por quilômetro (classificação)
+  Lucro = valor da oferta − gasto de combustível estimado     (no lugar de R$/hora)
+  Gasto = R$ do combustível estimado                          (no lugar de R$/min)
+  Consumo = litros estimados  → linha de baixo, junto de km e tempo
+  Nota = nota do passageiro
+
+┌──────────────────────────────────────────────────────────┐
+│  $/Km          Lucro           Gasto           Nota      │  ← cinza, pequeno
+│  R$ 2,38       R$ 32,10        R$ 5,90         4,9       │  ← branco, grande
+│  U   0h28m   16,0 Km   1,2 L   1 Parada(s)               │  ← cinza, médio
+│                                    ↑ consumo estimado    │
+└──────────────────────────────────────────────────────────┘
+     borda grossa = classificação
+
+Toque na compacta: não faz nada (não abre menu, não some).
+Toque fora: não some.
+Some sozinha: 2 s (expirou/recusou) ou 4 s (aceitou).
+
+[ ] ok   [ ] ajustar: ________________________________
+
+
+--------------------------------------------------------------------------------
+3.3 SELO + X PARA ESCONDER                         origem: C + regra 1.3
+--------------------------------------------------------------------------------
+
+Selo = ícone redondo do app, um pouco maior que a Beta (hoje 52 dp → sugerido ~60 dp).
+Arrastável. Toque curto = menu.
+
+Ao arrastar para baixo:
+
+                    (selo)
+                       ↓
+              ┌─────────────┐
+              │      X      │   círculo na base, tamanho do selo
+              └─────────────┘
+
+Soltar em cima do X → selo some. Monitoramento ON. Notificação permanece.
+Não encerra o app.
+
+[ ] ok   [ ] ajustar: ________________________________
+
+
+--------------------------------------------------------------------------------
+3.4 MENU (no lugar da expandida antiga)            origem: regra 1.4
+--------------------------------------------------------------------------------
+
+Janela estreita AO LADO do selo (não no topo da tela).
+Toque no selo abre/fecha. Toque fora fecha.
+
+        (selo)  ┌─────────────────┐
+                │ Histórico       │
+                │ Calibrar        │
+                │ Custos          │
+                │ Usuário         │
+                │ Dashboard  🔒   │  → Pro: aviso "disponível no Pro"
+                │ Configurações   │
+                │ Fechar          │
+                └─────────────────┘
+
+NÃO volta o cartão antigo de distâncias/custos no topo (isso agora é
+compacta + notificação + card do histórico).
+
+[ ] ok   [ ] ajustar: ________________________________
+
+
+--------------------------------------------------------------------------------
+3.5 CONFIRMAÇÃO FECHAR / LIMPAR                    origem: C (Beta)
+--------------------------------------------------------------------------------
+
+┌─────────────────────────────────────────┐
+│  Fechar gestor driver                   │
+│  Deseja encerrar o aplicativo e parar   │
+│  o monitoramento de corridas?           │
+│                                         │
+│     Cancelar              Fechar        │
+└─────────────────────────────────────────┘
+
+Limpar histórico: mesma caixa, textos "Limpar histórico" / "Limpar".
+
+[ ] ok   [ ] ajustar: ________________________________
+
+
+--------------------------------------------------------------------------------
+3.6 HISTÓRICO (cards, estilo Gigu + Gestor)        origem: A + C + B (mapa)
+--------------------------------------------------------------------------------
+
+Painel overlay (não tela cheia). Abas Uber | 99 | inDrive.
+Título: ⬅️ HISTÓRICO ➡️
+Só corridas ACEITAS. Mais recente em cima.
+Rodapé: 🗑️ Limpar histórico
+
+CARD (um por corrida) — borda 2 dp na cor da classificação:
+
+┌──────────────────────────────────────────────────────────┐
+│ Uber                              02/09  14:32           │
+│ R$ 38,00                                                 │  ← valor grande
+│ ┌──────┐ ┌──────┐ ┌──────┐ ┌──────┐                     │
+│ │$/Km  │ │Lucro │ │Consumo│ │Nota │                     │
+│ │2,38  │ │32,10 │ │1,2 L │ │4,9  │                     │
+│ └──────┘ └──────┘ └──────┘ └──────┘                     │
+│ 16,0 Km  ·  0h28m  ·  Gasto R$ 5,90                      │
+│ ● Rua do embarque, 100                                   │
+│ ■ Av. do destino, 200                                    │
+│        Embarque              Destino                     │  ← só se houver endereço
+└──────────────────────────────────────────────────────────┘
+
+Toque no card: seleciona (para conferir). Não aceita corrida.
+Embarque / Destino: abre Maps ou Waze (o que estiver em APP).
+
+NÃO entra:
+  - calendário horizontal do Gigu
+  - tag "TEMPO VIAGEM"
+  - menu "..." por card
+  - coluna Class. (a cor da borda já é a classificação)
+
+[ ] ok   [ ] ajustar: ________________________________
+
+
+--------------------------------------------------------------------------------
+3.7 CONFIGURAÇÃO                                   origem: C agora; lista+Ajuda depois
+--------------------------------------------------------------------------------
+
+MESMA CAIXA do histórico (abaixo / overlay). Abas:
+
+  VEÍCULO | CUSTOS | CALIBRAR | APP
+
+Atalhos do menu abrem já na aba certa.
+
+VEÍCULO
+  Descrição (marca, modelo, versão, ano, final da placa)
+  Consumo km/L gasolina e etanol
+  🔒 Calcular abastecimento (Pro)
+
+CUSTOS
+  R$/L gasolina e etanol
+  Combustível atual (um só marcado)  ← obrigatório para o cálculo não errar
+  🔒 óleo / pneus (Pro)
+
+CALIBRAR
+  Faixas R$/km  − / +   (ruim / regular / boa / ótima)
+
+APP
+  Permissões (notificação, sobrepor, acessibilidade, bateria)
+  Tema: Escuro | Claro | Celular
+  Navegação: Google Maps | Waze
+  Apps de motorista instalados
+  ENVIAR LOG
+  (Ajuda por item: fase seguinte, estilo lista do líder da loja)
+
+[ ] ok   [ ] ajustar: ________________________________
+
+
+--------------------------------------------------------------------------------
+3.8 DASHBOARD                                      origem: regra 1.4 — só Pro
+--------------------------------------------------------------------------------
+
+NÃO construir a tela agora.
+Toque em Dashboard → mensagem: "Dashboard disponível no Pro."
+
+[ ] ok   [ ] ajustar: ________________________________
+
+
+--------------------------------------------------------------------------------
+3.9 TELA DO APP (quando abre pelo ícone / Abrir App)
+--------------------------------------------------------------------------------
+
+Mesmo conteúdo do overlay (compacta se houver oferta, senão selo/menu).
+Não é uma segunda identidade visual.
+Onboarding / tutorial de permissões: manter o da Beta, com o caminho
+Configurações restritas → Serviços instalados para acessibilidade.
+
+[ ] ok   [ ] ajustar: ________________________________
+
+
+================================================================================
+4. TABELA RÁPIDA — ONDE CADA NÚMERO APARECE
+================================================================================
+
+Dado                    Compacta     Notificação     Histórico (card)     Menu
+R$/km                   sim          sim             sim                  não
+Lucro estimado          sim          sim             sim                  não
+Gasto estimado          sim          não *           linha do meio        não
+Consumo (litros)        linha 3      sim             caixa Consumo        não
+Nota                    sim          sim             sim                  não
+Valor total             (implícito)  título          herói do card        não
+Tempo h/m               linha 3      título          linha do meio        não
+Km total                linha 3      título          linha do meio        não
+Paradas                 linha 3      não *           se houver            não
+Embarque / destino      não *        não *           sim + botões mapa    não
+Classificação (cor)     borda        —               borda do card        —
+
+* = ponto 6 (você decide se sobe para compacta/notificação)
+
+
+================================================================================
+5. O QUE NÃO COPIAR (lista fechada)
+================================================================================
+
+- Botão Aceitar / Selecionar / contraproposta no Gestor
+- Overlay branco gigante em cima do card da plataforma
+- Semáforo % e custo operacional (isso é Pro)
+- Planilha 7 colunas no histórico
+- Expandida antiga (dois blocos DISTÂNCIAS | CUSTOS no topo)
+- Jogar a expandida inteira na barra de notificação
+- R$/hora e R$/min (trocados por Lucro e Consumo/Gasto)
+
+
+================================================================================
+6. DECISÕES PARA VOCÊ MARCAR (aprovação)
+================================================================================
+
+6.1 Depois que a compacta some, a notificação:
+    [ ] A) fica com o resumo da última oferta até chegar outra
+    [ ] B) volta para "Monitorando ofertas"
+
+6.2 Botões Embarque / Destino na COMPACTA (além do histórico):
+    [ ] sim, se houver endereço
+    [ ] não, só no histórico (compacta fica magra)
+
+6.3 Destino quando há parada:
+    [ ] mostrar parada(s) E destino (todas as pernas)
+    [ ] mostrar só a próxima perna
+
+6.4 Tamanho do selo:
+    [ ] ~60 dp (um pouco maior que a Beta)
+    [ ] manter 52 dp
+    [ ] outro: ______ dp
+
+6.5 Tema 2.0:
+    [ ] escuro agora, opções claro/celular na aba APP nesta versão
+    [ ] só seguir o tema do celular por enquanto
+
+6.6 Config em lista + botão Ajuda (estilo loja):
+    [ ] nesta 2.0
+    [ ] deixar para um recorte depois (manter abas atuais)
+
+6.7 Histórico: toque no card
+    [ ] só visual (já tem tudo no card)
+    [ ] também abre o menu / um detalhe extra
+
+6.8 Compacta cobrindo Recusar (2–4 s):
+    [ ] aceitar (some sozinha)
+    [ ] deslocar a compacta para o canto (menor, tipo mini-card Gigu no topo-esquerdo)
+
+
+================================================================================
+7. ORDEM DE ENTREGA (depois da sua aprovação)
+================================================================================
+
+1. Compacta 3 linhas + timers 2 s / 4 s + toque fora inerte
+2. Notificação magra (monitorar / oferta) + Abrir / Desligar
+3. Selo maior + menu ao lado + X na base
+4. Histórico em cards (já esboçado no código vs-2.0 — só fecha se você aprovar)
+5. Atalhos do menu → abas de config
+6. Tema na aba APP
+7. Lista + Ajuda (se 6.6 = nesta 2.0)
+8. APK 2.0.0 no celular de teste (SM-A145M)
+
+Nada disto vai para a Beta 1.1.10 (main). Se a 2.0 não servir, volta-se daí.
+
+
+================================================================================
+8. EXEMPLO NUMÉRICO ÚNICO (rótulos = seções 3 e 6 aprovadas)
+================================================================================
+
+Oferta: R$ 38,00  |  16,0 km  |  28 min  |  nota 4,9  |  parada só se o app informar
+Combustível atual: 1,2 L  |  gasto R$ 5,90  |  lucro R$ 32,10  |  R$/km 2,38  |  Uber
+(Pro: lucro e gasto passam a incluir todos os custos, não só combustível)
+
+COMPACTA — mini-card canto superior esquerdo (não cobre Recusar)
+  títulos:  $/Km     $/Lucro     $/Gasto     Nota
+  valores:  2,38     32,10       5,90        4,9
+  linha 3:  *  0h28m  16,0 Km  Parada(s)
+            * = selo do app remetente
+            Parada(s) só se a plataforma informou
+            Consumo (litros) NÃO entra na compacta
+
+NOTIFICAÇÃO — com oferta
+  R$ 38,00  ·  0h28m  ·  16,0 Km
+  $/km · $/Lucro · Consumo · Nota
+  2,38 ·  32,10  ·  1,2 L  ·  4,9
+  [ Abrir App ]    [ Desligar App ]
+
+NOTIFICAÇÃO — expirou ou recusou (compacta some em 2 s)
+  limpa os dados da oferta
+  Gestor Driver / Monitorando ofertas
+  [ Abrir App ]    [ Desligar App ]
+
+NOTIFICAÇÃO — aceitou (compacta some em 4 s)
+  mantém o resumo da corrida aceita até a próxima oferta
+  (mesmo layout da notificação com oferta)
+  histórico já gravou o card
+
+HISTÓRICO — overlay tela cheia, semana DOM–SÁB
+  setas ou deslize = outra semana
+  toque no dia = todas as corridas ACEITAS daquele dia (Uber + 99 + inDrive juntas)
+  card (toque só visual):
+    Uber                              02/09  14:32
+    R$ 38,00
+    $/Km 2,38   Lucro 32,10   Consumo 1,2 L   Nota 4,9
+    16,0 Km  ·  0h28m  ·  Gasto R$ 5,90
+    ● embarque (todas as pernas)   ■ destino
+    Embarque / Destino = mapa, só se houver endereço
+
+
+Fim do roteiro. Telas 3.1–3.9 e decisões 6.2–6.8 conferidas.
+Cópia no projeto: docs/Roteiro_Esboco_Telas_2.0.txt

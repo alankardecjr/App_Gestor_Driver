@@ -8,6 +8,13 @@ class BarraSistemaTest {
     @Test
     fun home_samsung_recolhe() {
         assertTrue(
+            BarraSistema.ehHome(
+                pacote = "com.sec.android.app.launcher",
+                classe = "Launcher",
+                tipoJanelaAlterada = true,
+            ),
+        )
+        assertTrue(
             BarraSistema.deveRecolherParaSelo(
                 pacote = "com.sec.android.app.launcher",
                 classe = "Launcher",
@@ -17,8 +24,22 @@ class BarraSistemaTest {
     }
 
     @Test
-    fun recents_systemui_recolhe() {
+    fun recents_nao_e_home() {
         assertTrue(
+            BarraSistema.ehRecentes(
+                pacote = "com.android.systemui",
+                classe = "com.android.systemui.recents.RecentsActivity",
+                tipoJanelaAlterada = true,
+            ),
+        )
+        assertFalse(
+            BarraSistema.ehHome(
+                pacote = "com.android.systemui",
+                classe = "com.android.systemui.recents.RecentsActivity",
+                tipoJanelaAlterada = true,
+            ),
+        )
+        assertFalse(
             BarraSistema.deveRecolherParaSelo(
                 pacote = "com.android.systemui",
                 classe = "com.android.systemui.recents.RecentsActivity",

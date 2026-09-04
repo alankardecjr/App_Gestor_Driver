@@ -21,6 +21,18 @@ data class OverlayHistoricoItem(
     val marcador: String,
     val corMarcador: String,
     val plataforma: String,
+    val lucro: String = "—",
+    val gasto: String = "—",
+    val consumo: String = "—",
+    val tempoHm: String = "—",
+    val cabecalhoData: String = "",
+    val embarque: String? = null,
+    val destino: String? = null,
+    val classificacao: String = "",
+    val valorTotalNum: Double = 0.0,
+    val kmNum: Double = 0.0,
+    val minutosNum: Int = 0,
+    val gastoNum: Double? = null,
 )
 
 data class OverlaySnapshot(
@@ -30,9 +42,24 @@ data class OverlaySnapshot(
     val expandidaVisivel: Boolean = false,
     val historicoVisivel: Boolean = false,
     val configuracoesVisivel: Boolean = false,
+    val dashboardVisivel: Boolean = false,
     val confirmacaoFecharVisivel: Boolean = false,
     val confirmacaoLimparHistoricoVisivel: Boolean = false,
-    val historicoAba: String = "Uber",
+    val historicoAba: String = "Todos",
+    val historicoFaturamento: String = "—",
+    val historicoDistancia: String = "—",
+    val historicoGasto: String = "—",
+    val historicoLucro: String = "—",
+    val historicoChaveSelecionada: String = "",
+    val historicoChavesSelecionadas: List<String> = emptyList(),
+    val historicoLimparQuantidade: Int = 0,
+    val planoPro: Boolean = true,
+    val dashboardGanhosDia: String = "—",
+    val dashboardGanhosSemana: String = "—",
+    val dashboardGanhosMes: String = "—",
+    val historicoEpochDay: Long = br.com.gestordriver.core.CalendarioApp.hoje().toEpochDay(),
+    val historicoDiasComCorrida: List<Long> = emptyList(),
+    val historicoPeriodo: String = br.com.gestordriver.core.CalendarioPeriodo.DIA.name,
     val historicoItens: List<OverlayHistoricoItem> = emptyList(),
     val destacarPermissoes: Boolean = false,
     val abaConfiguracao: Int = 0,
@@ -51,6 +78,9 @@ data class OverlaySnapshot(
     val lucroEstimado: String = "—",
     val kmAtePassageiro: String = "—",
     val kmViagem: String = "—",
+    val quantidadeParadas: Int = 0,
+    val plataformaSigla: String = "",
+    val tempoHm: String = "—",
     val enderecoEmbarque: String? = null,
     val enderecoDestino: String? = null,
     val corridaAceita: Boolean = false,
@@ -71,6 +101,19 @@ sealed class OverlayAcao {
     data object Retratil : OverlayAcao()
     data object ToqueForaDaCompacta : OverlayAcao()
     data object RecolherParaSelo : OverlayAcao()
+    data object VoltarAtalho : OverlayAcao()
+    data object VoltarBarra : OverlayAcao()
+    data object RecentesBarra : OverlayAcao()
+    data object EsconderSelo : OverlayAcao()
+    data object SairParaMapaHistorico : OverlayAcao()
+    data object DashboardPro : OverlayAcao()
+    data object FecharDashboard : OverlayAcao()
+    data class AbrirAtalhoConfig(val indice: Int) : OverlayAcao()
+    data class HistoricoDia(val epochDay: Long) : OverlayAcao()
+    data class HistoricoSemana(val deltaSemanas: Int) : OverlayAcao()
+    data class HistoricoMes(val deltaMeses: Int) : OverlayAcao()
+    data class HistoricoModo(val periodo: String) : OverlayAcao()
+    data class HistoricoAvancar(val delta: Int) : OverlayAcao()
     data object Fechar : OverlayAcao()
     data object CancelarFechar : OverlayAcao()
     data object ConfirmarFechar : OverlayAcao()
@@ -113,5 +156,15 @@ object OverlayBridge {
             pausarLeitura()
         }
         _acoes.tryEmit(acao)
+    }
+
+    private val _reafirmarCamada = MutableSharedFlow<Unit>(
+        extraBufferCapacity = 8,
+        onBufferOverflow = BufferOverflow.DROP_OLDEST,
+    )
+    val reafirmarCamada: SharedFlow<Unit> = _reafirmarCamada.asSharedFlow()
+
+    fun reafirmarCamada() {
+        _reafirmarCamada.tryEmit(Unit)
     }
 }

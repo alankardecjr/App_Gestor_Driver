@@ -56,6 +56,7 @@ data class HistoricoItemPresentation(
 
     fun pertenceAba(aba: String): Boolean {
         return when (aba.lowercase()) {
+            "todos", "" -> true
             "uber" -> plataforma.contains("Uber", ignoreCase = true)
             "99" -> plataforma.contains("99")
             else -> plataforma.contains("inDrive", ignoreCase = true) ||

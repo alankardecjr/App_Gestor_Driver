@@ -18,6 +18,7 @@ class ParserPadrao : NotificationParser {
             tempoEstimado = campos.tempoEstimado,
             enderecoEmbarque = enderecos.embarque,
             enderecoDestino = enderecos.destino,
+            quantidadeParadas = campos.quantidadeParadas,
         )
     }
 }

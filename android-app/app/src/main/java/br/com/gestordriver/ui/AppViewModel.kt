@@ -6,6 +6,8 @@ import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import br.com.gestordriver.core.AnaliseCorrida
+import br.com.gestordriver.core.CalendarioApp
+import br.com.gestordriver.core.CalendarioPeriodo
 import br.com.gestordriver.data.HistoricoRepository
 import br.com.gestordriver.data.MemoriaHistoricoRepository
 import br.com.gestordriver.data.MemoriaOnboardingStore
@@ -42,6 +44,9 @@ class AppViewModel(
     private var estadoAntesFechar: AppState? = null
     private var estadoAntesLimparHistorico: AppState? = null
     private var ofertaParaHistorico: AnaliseCorrida? = null
+    /** Período/dia do Dashboard — o Histórico não sobrescreve. */
+    private var calendarioPeriodoAntesHistorico: CalendarioPeriodo? = null
+    private var historicoDiaAntesHistorico: java.time.LocalDate? = null
 
     // ================================================================
     // ESTADO
@@ -71,6 +76,14 @@ class AppViewModel(
 
     val irParaSegundoPlano: SharedFlow<Unit> =
         _irParaSegundoPlano.asSharedFlow()
+
+    private val _irParaFrente =
+        MutableSharedFlow<Unit>(
+            extraBufferCapacity = 1,
+        )
+
+    val irParaFrente: SharedFlow<Unit> =
+        _irParaFrente.asSharedFlow()
 
     // ================================================================
     // NOTIFICAÇÕES
@@ -131,14 +144,22 @@ class AppViewModel(
                 when (acao) {
                     is OverlayAcao.Reabrir -> reabrirInterface(acao.origemCompacta)
                     is OverlayAcao.MoverSelo -> atualizarPosicaoSelo(acao.offsetX, acao.offsetY)
-                    OverlayAcao.AbrirHistorico -> alternarHistorico()
+                    OverlayAcao.AbrirHistorico -> abrirHistoricoPeloOverlay()
                     OverlayAcao.AbrirConfig -> alternarConfiguracoes()
                     OverlayAcao.SalvarConfig -> fecharConfiguracoes()
-                    OverlayAcao.CancelarConfig -> fecharConfiguracoes()
+                    OverlayAcao.CancelarConfig -> voltarParaAtalho()
                     OverlayAcao.Ocultar -> ocultarInterface()
                     OverlayAcao.Retratil -> retrairParaCompactaTemporaria()
-                    OverlayAcao.ToqueForaDaCompacta -> recolherCompactaPorToqueFora()
+                    OverlayAcao.ToqueForaDaCompacta -> Unit
                     OverlayAcao.RecolherParaSelo -> recolherPorBarraSistema()
+                    OverlayAcao.VoltarAtalho -> voltarParaAtalho()
+                    OverlayAcao.VoltarBarra -> voltarPelaBarra()
+                    OverlayAcao.RecentesBarra -> aoAbrirRecentes()
+                    OverlayAcao.EsconderSelo -> esconderSeloManterMonitor()
+                    OverlayAcao.SairParaMapaHistorico -> sairParaMapaHistorico()
+                    OverlayAcao.DashboardPro -> abrirDashboard()
+                    OverlayAcao.FecharDashboard -> voltarParaAtalho()
+                    is OverlayAcao.AbrirAtalhoConfig -> abrirAtalhoConfig(acao.indice)
                     OverlayAcao.Fechar -> solicitarFecharApp()
                     OverlayAcao.CancelarFechar -> cancelarFecharApp()
                     OverlayAcao.ConfirmarFechar -> confirmarFecharApp()
@@ -147,10 +168,16 @@ class AppViewModel(
                     OverlayAcao.ConfirmarLimparHistorico -> confirmarLimparHistorico()
                     is OverlayAcao.SelecionarHistorico -> selecionarHistoricoPorChave(acao.chave)
                     is OverlayAcao.AbaHistorico -> selecionarAbaHistorico(acao.aba)
+                    is OverlayAcao.HistoricoDia -> selecionarDiaHistorico(acao.epochDay)
+                    is OverlayAcao.HistoricoSemana -> avancarSemanaHistorico(acao.deltaSemanas)
+                    is OverlayAcao.HistoricoMes -> avancarMesHistorico(acao.deltaMeses)
+                    is OverlayAcao.HistoricoModo -> selecionarPeriodoHistorico(acao.periodo)
+                    is OverlayAcao.HistoricoAvancar -> avancarPeriodoHistorico(acao.delta)
                     is OverlayAcao.AbaConfiguracao -> {
                         state = state.copy(
                             abaConfiguracao = acao.indice.coerceIn(0, 3),
                             historicoVisivel = false,
+                            dashboardVisivel = false,
                             configuracoesVisivel = true,
                         )
                         publicarOverlay()
@@ -320,11 +347,16 @@ class AppViewModel(
             fecharHistoricoELimpar()
             return
         }
+        calendarioPeriodoAntesHistorico = state.calendarioPeriodo
+        historicoDiaAntesHistorico = state.historicoDia
         state = state.copy(
             historicoVisivel = true,
             configuracoesVisivel = false,
+            dashboardVisivel = false,
             interfaceOculta = true,
             seloFlutuante = false,
+            abaHistorico = "Todos",
+            historicoDia = CalendarioApp.hoje(),
             corrida = state.corrida.copy(
                 modo = ModoApresentacao.DETALHES,
                 acaoDetalhes = "Menos detalhes",
@@ -336,7 +368,15 @@ class AppViewModel(
 
     private fun fecharHistoricoELimpar() {
         val manterOferta = state.ofertaAtiva
-        val analise = if (manterOferta) state.analiseAtual else null
+        val analise = when {
+            manterOferta -> state.analiseAtual
+            state.corridaAceita -> state.ultimaCorridaAceita
+            else -> null
+        }
+        val periodoDashboard = calendarioPeriodoAntesHistorico ?: state.calendarioPeriodo
+        val diaDashboard = historicoDiaAntesHistorico ?: state.historicoDia
+        calendarioPeriodoAntesHistorico = null
+        historicoDiaAntesHistorico = null
         state = PresentationBuilder.criarEstado(
             analise = analise,
             plano = state.plano,
@@ -350,20 +390,24 @@ class AppViewModel(
             configuracoesVisivel = false,
             interfaceOculta = true,
             overlayAtivo = true,
-            notificacaoDisponivel = manterOferta,
+            notificacaoDisponivel = manterOferta || state.corridaAceita,
             seloFlutuante = false,
             compactaTemporaria = false,
             monitorando = true,
             seloOffsetX = state.seloOffsetX,
             seloOffsetY = state.seloOffsetY,
             estadoSalvo = state.estadoSalvo,
-            corridaAceita = false,
+            corridaAceita = if (manterOferta) false else state.corridaAceita,
             ultimaCorridaAceita = state.ultimaCorridaAceita,
             ofertaAtiva = manterOferta,
             corridaAntesDaOferta = null,
             ofertasPendentes = state.ofertasPendentes,
             onboardingEtapa = state.onboardingEtapa,
             tutorialPasso = state.tutorialPasso,
+        ).copy(
+            calendarioPeriodo = periodoDashboard,
+            historicoDia = diaDashboard,
+            dashboardVisivel = false,
         )
         publicarOverlay()
         _irParaSegundoPlano.tryEmit(Unit)
@@ -411,11 +455,41 @@ class AppViewModel(
             ofertasPendentes = state.ofertasPendentes,
             onboardingEtapa = state.onboardingEtapa,
             tutorialPasso = state.tutorialPasso,
-        )
+        ).copy(dashboardVisivel = false)
         publicarOverlay()
         if (usarOverlay) {
             _irParaSegundoPlano.tryEmit(Unit)
         }
+    }
+
+    fun abrirDashboard() {
+        state = state.copy(
+            dashboardVisivel = true,
+            historicoVisivel = false,
+            configuracoesVisivel = false,
+            confirmacaoFecharVisivel = false,
+            confirmacaoLimparHistoricoVisivel = false,
+            seloFlutuante = false,
+            seloEscondido = false,
+            interfaceOculta = true,
+            overlayAtivo = true,
+            historicoDia = CalendarioApp.hoje(),
+            calendarioPeriodo = CalendarioPeriodo.DIA,
+            corrida = state.corrida.copy(modo = ModoApresentacao.DETALHES),
+        )
+        publicarOverlay()
+        _irParaSegundoPlano.tryEmit(Unit)
+    }
+
+    fun fecharDashboard() {
+        state = state.copy(
+            dashboardVisivel = false,
+            seloFlutuante = false,
+            interfaceOculta = true,
+            corrida = state.corrida.copy(modo = ModoApresentacao.DETALHES),
+        )
+        publicarOverlay()
+        _irParaSegundoPlano.tryEmit(Unit)
     }
 
     fun abrirHistoricoPeloOverlay() {
@@ -432,6 +506,27 @@ class AppViewModel(
             destacarPermissoes = false,
             interfaceOculta = true,
             seloFlutuante = false,
+            corrida = state.corrida.copy(modo = ModoApresentacao.DETALHES),
+        )
+        publicarOverlay()
+        _irParaSegundoPlano.tryEmit(Unit)
+    }
+
+    /** Volta da tela menu (abas) para o menu atalho ao lado do selo. */
+    fun voltarParaAtalho() {
+        state = state.copy(
+            historicoVisivel = false,
+            configuracoesVisivel = false,
+            dashboardVisivel = false,
+            confirmacaoFecharVisivel = false,
+            confirmacaoLimparHistoricoVisivel = false,
+            destacarPermissoes = false,
+            interfaceOculta = true,
+            seloFlutuante = false,
+            seloEscondido = false,
+            compactaTemporaria = false,
+            overlayAtivo = true,
+            corrida = state.corrida.copy(modo = ModoApresentacao.DETALHES),
         )
         publicarOverlay()
         _irParaSegundoPlano.tryEmit(Unit)
@@ -451,6 +546,7 @@ class AppViewModel(
             plano = state.plano,
             historico = state.historico,
             historicoSelecionado = item,
+            historicoChavesSelecionadas = setOf(item.chaveHistorico()),
             abaHistorico = state.abaHistorico,
             abaConfiguracao = state.abaConfiguracao,
             destacarPermissoes = false,
@@ -480,11 +576,67 @@ class AppViewModel(
 
     fun selecionarHistoricoPorChave(chave: String) {
         val item = state.historico.firstOrNull { it.chaveHistorico() == chave } ?: return
-        selecionarHistorico(item)
+        if (state.historicoVisivel) {
+            marcarItemHistorico(item)
+        } else {
+            selecionarHistorico(item)
+        }
+    }
+
+    fun marcarItemHistorico(item: HistoricoItemPresentation) {
+        val chave = item.chaveHistorico()
+        val atuais = state.historicoChavesSelecionadas.toMutableSet()
+        if (atuais.contains(chave)) {
+            atuais.remove(chave)
+            state = state.copy(
+                historicoChavesSelecionadas = atuais,
+                historicoSelecionado = state.historico.firstOrNull {
+                    it.chaveHistorico() in atuais
+                },
+            )
+        } else {
+            atuais.add(chave)
+            state = state.copy(
+                historicoChavesSelecionadas = atuais,
+                historicoSelecionado = item,
+            )
+        }
+        publicarOverlay()
     }
 
     fun selecionarAbaHistorico(aba: String) {
         state = state.copy(abaHistorico = aba)
+        publicarOverlay()
+    }
+
+    fun selecionarDiaHistorico(epochDay: Long) {
+        state = state.copy(historicoDia = CalendarioApp.diaDe(epochDay))
+        publicarOverlay()
+    }
+
+    fun avancarSemanaHistorico(deltaSemanas: Int) {
+        state = state.copy(historicoDia = CalendarioApp.avancarSemana(state.historicoDia, deltaSemanas))
+        publicarOverlay()
+    }
+
+    fun avancarMesHistorico(deltaMeses: Int) {
+        state = state.copy(historicoDia = CalendarioApp.avancarMes(state.historicoDia, deltaMeses))
+        publicarOverlay()
+    }
+
+    fun selecionarPeriodoHistorico(periodo: String) {
+        state = state.copy(calendarioPeriodo = CalendarioPeriodo.de(periodo))
+        publicarOverlay()
+    }
+
+    fun avancarPeriodoHistorico(delta: Int) {
+        state = state.copy(
+            historicoDia = CalendarioApp.avancarPeriodo(
+                state.historicoDia,
+                state.calendarioPeriodo,
+                delta,
+            ),
+        )
         publicarOverlay()
     }
 
@@ -540,7 +692,7 @@ class AppViewModel(
             )
         } else {
             state = PresentationBuilder.criarEstado(
-                analise = null,
+                analise = analise,
                 plano = state.plano,
                 historico = historico,
                 historicoSelecionado = null,
@@ -551,9 +703,9 @@ class AppViewModel(
                 configuracoesVisivel = false,
                 interfaceOculta = true,
                 overlayAtivo = true,
-                notificacaoDisponivel = false,
-                seloFlutuante = true,
-                compactaTemporaria = false,
+                notificacaoDisponivel = true,
+                seloFlutuante = false,
+                compactaTemporaria = true,
                 monitorando = true,
                 seloOffsetX = state.seloOffsetX,
                 seloOffsetY = state.seloOffsetY,
@@ -565,6 +717,7 @@ class AppViewModel(
                 onboardingEtapa = state.onboardingEtapa,
                 tutorialPasso = state.tutorialPasso,
             )
+            agendarCompactaParaSelo(COMPACTA_ACEITE_MS)
         }
         publicarOverlay()
         _irParaSegundoPlano.tryEmit(Unit)
@@ -601,10 +754,126 @@ class AppViewModel(
     }
 
     fun recolherAoSairDoApp() {
-        if (!state.monitorando || state.interfaceOculta) {
+        if (!state.monitorando) {
             return
         }
+        if (state.seloFlutuante && state.interfaceOculta &&
+            !state.historicoVisivel &&
+            !state.configuracoesVisivel &&
+            !state.dashboardVisivel
+        ) {
+            return
+        }
+        guardarTelaSeVazio()
         ocultarInterface()
+    }
+
+    fun voltarPelaBarra() {
+        if (!state.monitorando) {
+            return
+        }
+        if (state.confirmacaoFecharVisivel) {
+            cancelarFecharApp()
+            return
+        }
+        if (state.confirmacaoLimparHistoricoVisivel) {
+            cancelarLimparHistorico()
+            return
+        }
+        if (state.dashboardVisivel || state.historicoVisivel || state.configuracoesVisivel) {
+            if (!state.interfaceOculta || state.recentesConfig) {
+                irParaSelo()
+                return
+            }
+            abrirMenuAposPainel()
+            return
+        }
+        val noMenu = state.corrida.modo == ModoApresentacao.DETALHES &&
+            !state.seloFlutuante &&
+            !state.seloEscondido
+        if (noMenu || state.ofertaAtiva || state.compactaTemporaria || !state.seloFlutuante) {
+            irParaSelo()
+        }
+    }
+
+    fun aoAbrirRecentes() {
+        if (!state.monitorando) {
+            return
+        }
+        guardarTelaSeVazio()
+        irParaSelo()
+    }
+
+    fun restaurarTelaAposRecentes() {
+        if (!state.monitorando) {
+            return
+        }
+        // Abrir App / voltar ao app com selo escondido no X → mostra o selo na última posição.
+        if (state.seloEscondido) {
+            irParaSelo()
+            return
+        }
+        val salvo = state.estadoSalvo
+        if (salvo == null) {
+            publicarOverlay()
+            _irParaSegundoPlano.tryEmit(Unit)
+            return
+        }
+        cancelarCompactaTemporaria()
+        state = state.copy(
+            estadoSalvo = null,
+            recentesConfig = false,
+            historicoVisivel = salvo.historicoVisivel,
+            configuracoesVisivel = salvo.configuracoesVisivel,
+            dashboardVisivel = salvo.dashboardVisivel,
+            seloFlutuante = salvo.seloFlutuante,
+            seloEscondido = salvo.seloEscondido,
+            compactaTemporaria = salvo.compactaTemporaria,
+            interfaceOculta = true,
+            overlayAtivo = true,
+            abaConfiguracao = salvo.abaConfiguracao,
+            confirmacaoFecharVisivel = salvo.confirmacaoFecharVisivel,
+            confirmacaoLimparHistoricoVisivel = salvo.confirmacaoLimparHistoricoVisivel,
+            corrida = state.corrida.copy(modo = salvo.modo),
+        )
+        publicarOverlay()
+        _irParaSegundoPlano.tryEmit(Unit)
+    }
+
+    private fun guardarTelaSeVazio() {
+        if (state.estadoSalvo != null) {
+            return
+        }
+        state = state.copy(
+            estadoSalvo = EstadoInterfaceSalvo(
+                modo = state.corrida.modo,
+                historicoVisivel = state.historicoVisivel,
+                configuracoesVisivel = state.configuracoesVisivel,
+                dashboardVisivel = state.dashboardVisivel,
+                seloFlutuante = state.seloFlutuante,
+                seloEscondido = state.seloEscondido,
+                compactaTemporaria = state.compactaTemporaria,
+                abaConfiguracao = state.abaConfiguracao,
+                confirmacaoFecharVisivel = state.confirmacaoFecharVisivel,
+                confirmacaoLimparHistoricoVisivel = state.confirmacaoLimparHistoricoVisivel,
+            ),
+        )
+    }
+
+    private fun abrirMenuAposPainel() {
+        state = state.copy(
+            historicoVisivel = false,
+            configuracoesVisivel = false,
+            dashboardVisivel = false,
+            recentesConfig = false,
+            interfaceOculta = true,
+            seloFlutuante = false,
+            seloEscondido = false,
+            overlayAtivo = true,
+            corrida = state.corrida.copy(modo = ModoApresentacao.DETALHES),
+        )
+        publicarOverlay()
+        _irParaSegundoPlano.tryEmit(Unit)
     }
 
     fun recolherCompactaPorToqueFora() {
@@ -626,16 +895,55 @@ class AppViewModel(
         if (!state.monitorando) {
             return
         }
+        state = state.copy(estadoSalvo = null)
         val jaNoSelo = state.seloFlutuante &&
             !state.historicoVisivel &&
             !state.configuracoesVisivel &&
+            !state.dashboardVisivel &&
             !state.confirmacaoFecharVisivel &&
             !state.confirmacaoLimparHistoricoVisivel &&
-            state.corrida.modo != ModoApresentacao.DETALHES
+            state.corrida.modo != ModoApresentacao.DETALHES &&
+            !state.seloEscondido
         if (jaNoSelo) {
             return
         }
         irParaSelo()
+    }
+
+    fun esconderSeloManterMonitor() {
+        if (!state.monitorando) {
+            return
+        }
+        cancelarCompactaTemporaria()
+        state = state.copy(
+            seloEscondido = true,
+            seloFlutuante = false,
+            compactaTemporaria = false,
+            historicoVisivel = false,
+            configuracoesVisivel = false,
+            dashboardVisivel = false,
+            confirmacaoFecharVisivel = false,
+            confirmacaoLimparHistoricoVisivel = false,
+            overlayAtivo = true,
+            interfaceOculta = true,
+            corrida = state.corrida.copy(modo = ModoApresentacao.COMPACTA),
+        )
+        publicarOverlay()
+    }
+
+    fun abrirAtalhoConfig(indice: Int) {
+        state = state.copy(
+            seloEscondido = false,
+            seloFlutuante = false,
+            interfaceOculta = true,
+            overlayAtivo = true,
+            historicoVisivel = false,
+            dashboardVisivel = false,
+            configuracoesVisivel = true,
+            abaConfiguracao = indice.coerceIn(0, 3),
+            corrida = state.corrida.copy(modo = ModoApresentacao.DETALHES),
+        )
+        publicarOverlay()
     }
 
     fun retrairParaCompactaTemporaria() {
@@ -643,6 +951,7 @@ class AppViewModel(
         state = state.copy(
             interfaceOculta = true,
             seloFlutuante = false,
+            seloEscondido = false,
             compactaTemporaria = true,
             historicoVisivel = false,
             configuracoesVisivel = false,
@@ -656,7 +965,7 @@ class AppViewModel(
         publicarOverlay()
         _irParaSegundoPlano.tryEmit(Unit)
         compactaTemporariaJob = scope.launch {
-            delay(COMPACTA_TEMPORARIA_MS)
+            delay(COMPACTA_EXPIRA_MS)
             if (!state.compactaTemporaria) {
                 return@launch
             }
@@ -669,15 +978,37 @@ class AppViewModel(
     // ================================================================
 
     fun reabrirInterface(@Suppress("UNUSED_PARAMETER") origemCompacta: Boolean = false) {
+        if (origemCompacta) {
+            return
+        }
         cancelarCompactaTemporaria()
+        // Após mapa (ou recentes): volta para a tela que estava (ex.: Histórico).
+        if (state.estadoSalvo != null) {
+            restaurarTelaAposRecentes()
+            return
+        }
+        val menuAberto = state.corrida.modo == ModoApresentacao.DETALHES &&
+            !state.seloEscondido &&
+            !state.ofertaAtiva &&
+            !state.historicoVisivel &&
+            !state.configuracoesVisivel &&
+            !state.dashboardVisivel &&
+            !state.confirmacaoFecharVisivel &&
+            !state.confirmacaoLimparHistoricoVisivel
+        if (menuAberto) {
+            irParaSelo()
+            return
+        }
         state = state.copy(
             interfaceOculta = true,
             seloFlutuante = false,
+            seloEscondido = false,
             compactaTemporaria = false,
             overlayAtivo = true,
             monitorando = true,
             historicoVisivel = false,
             configuracoesVisivel = false,
+            dashboardVisivel = false,
             corrida = state.corrida.copy(
                 modo = ModoApresentacao.DETALHES,
                 acaoDetalhes = "Menos detalhes",
@@ -686,6 +1017,15 @@ class AppViewModel(
         )
         publicarOverlay()
         _irParaSegundoPlano.tryEmit(Unit)
+    }
+
+    /** Guarda a tela atual (ex. Histórico), vai ao selo e deixa o mapa abrir. */
+    fun sairParaMapaHistorico() {
+        if (!state.monitorando) {
+            return
+        }
+        guardarTelaSeVazio()
+        irParaSelo()
     }
 
     // ================================================================
@@ -747,17 +1087,18 @@ class AppViewModel(
     }
 
     fun solicitarLimparHistorico() {
+        if (state.historicoChavesSelecionadas.isEmpty()) {
+            return
+        }
         estadoAntesLimparHistorico = state
         state = state.copy(
             confirmacaoLimparHistoricoVisivel = true,
             confirmacaoFecharVisivel = false,
-            historicoVisivel = false,
+            historicoVisivel = true,
             configuracoesVisivel = false,
+            dashboardVisivel = false,
             seloFlutuante = false,
-            corrida = state.corrida.copy(
-                modo = ModoApresentacao.DETALHES,
-                acaoDetalhes = "Menos detalhes",
-            ),
+            corrida = state.corrida.copy(modo = ModoApresentacao.DETALHES),
         )
         publicarOverlay()
         if (state.interfaceOculta) {
@@ -766,32 +1107,43 @@ class AppViewModel(
     }
 
     fun cancelarLimparHistorico() {
-        val anterior = estadoAntesLimparHistorico
-        estadoAntesLimparHistorico = null
-        if (anterior != null) {
-            state = anterior.copy(confirmacaoLimparHistoricoVisivel = false)
-            publicarOverlay()
-            if (state.interfaceOculta) {
-                _irParaSegundoPlano.tryEmit(Unit)
-            }
-            return
-        }
-        state = state.copy(
-            confirmacaoLimparHistoricoVisivel = false,
-            historicoVisivel = true,
-        )
-        publicarOverlay()
-    }
-
-    fun confirmarLimparHistorico() {
-        historicoRepository.limpar()
         estadoAntesLimparHistorico = null
         state = state.copy(
-            historico = emptyList(),
-            historicoSelecionado = null,
             confirmacaoLimparHistoricoVisivel = false,
             historicoVisivel = true,
             configuracoesVisivel = false,
+            dashboardVisivel = false,
+            seloFlutuante = false,
+            corrida = state.corrida.copy(modo = ModoApresentacao.DETALHES),
+        )
+        publicarOverlay()
+        if (state.interfaceOculta) {
+            _irParaSegundoPlano.tryEmit(Unit)
+        }
+    }
+
+    fun confirmarLimparHistorico() {
+        val chaves = state.historicoChavesSelecionadas
+        if (chaves.isEmpty()) {
+            estadoAntesLimparHistorico = null
+            state = state.copy(
+                confirmacaoLimparHistoricoVisivel = false,
+                historicoVisivel = true,
+            )
+            publicarOverlay()
+            return
+        }
+        historicoRepository.remover(chaves)
+        estadoAntesLimparHistorico = null
+        state = state.copy(
+            historico = historicoRepository.listar(),
+            historicoSelecionado = null,
+            historicoChavesSelecionadas = emptySet(),
+            confirmacaoLimparHistoricoVisivel = false,
+            historicoVisivel = true,
+            configuracoesVisivel = false,
+            dashboardVisivel = false,
+            seloFlutuante = false,
             corrida = state.corrida.copy(
                 modo = ModoApresentacao.DETALHES,
                 acaoDetalhes = "Menos detalhes",
@@ -811,12 +1163,15 @@ class AppViewModel(
         offsetX: Float,
         offsetY: Float
     ) {
-
         state =
             state.copy(
                 seloOffsetX = offsetX,
                 seloOffsetY = offsetY
             )
+        // Mantém o snapshot alinhado para o overlay não recriar o selo no topo.
+        if (state.monitorando && (state.seloFlutuante || state.seloEscondido)) {
+            publicarOverlay()
+        }
     }
 
     // ================================================================
@@ -840,22 +1195,17 @@ class AppViewModel(
         ofertaParaHistorico = analise
         val chave = chavePlataforma(analise)
         val pendentes = state.ofertasPendentes + (chave to analise)
-        val emAppExpandido = !state.interfaceOculta && state.monitorando
-        val expandidaOverlay = state.interfaceOculta &&
-            state.corrida.modo == ModoApresentacao.DETALHES &&
-            !state.seloFlutuante
-        val manterDetalhes = emAppExpandido || expandidaOverlay || state.historicoVisivel
         state =
             PresentationBuilder.criarEstado(
                 analise = analise,
                 plano = state.plano,
                 historico = state.historico,
-                historicoSelecionado = state.historicoSelecionado,
+                historicoSelecionado = null,
                 abaHistorico = state.abaHistorico,
                 abaConfiguracao = state.abaConfiguracao,
                 destacarPermissoes = false,
-                modo = if (manterDetalhes) ModoApresentacao.DETALHES else ModoApresentacao.COMPACTA,
-                historicoVisivel = state.historicoVisivel && !state.configuracoesVisivel,
+                modo = ModoApresentacao.COMPACTA,
+                historicoVisivel = false,
                 configuracoesVisivel = false,
                 interfaceOculta = true,
                 overlayAtivo = true,
@@ -873,6 +1223,9 @@ class AppViewModel(
                 ofertasPendentes = pendentes,
                 onboardingEtapa = state.onboardingEtapa,
                 tutorialPasso = state.tutorialPasso,
+            ).copy(
+                seloEscondido = false,
+                dashboardVisivel = false,
             )
         publicarOverlay()
         _irParaSegundoPlano.tryEmit(Unit)
@@ -939,8 +1292,8 @@ class AppViewModel(
                 interfaceOculta = true,
                 overlayAtivo = true,
                 notificacaoDisponivel = false,
-                seloFlutuante = true,
-                compactaTemporaria = false,
+                seloFlutuante = false,
+                compactaTemporaria = true,
                 monitorando = true,
                 seloOffsetX = state.seloOffsetX,
                 seloOffsetY = state.seloOffsetY,
@@ -952,6 +1305,7 @@ class AppViewModel(
                 onboardingEtapa = state.onboardingEtapa,
                 tutorialPasso = state.tutorialPasso,
             )
+            agendarCompactaParaSelo(COMPACTA_EXPIRA_MS)
         }
         publicarOverlay()
         _irParaSegundoPlano.tryEmit(Unit)
@@ -964,9 +1318,12 @@ class AppViewModel(
             overlayAtivo = true,
             interfaceOculta = true,
             seloFlutuante = true,
+            seloEscondido = false,
             compactaTemporaria = false,
             historicoVisivel = false,
             configuracoesVisivel = false,
+            dashboardVisivel = false,
+            recentesConfig = false,
             confirmacaoFecharVisivel = false,
             corrida = state.corrida.copy(
                 modo = ModoApresentacao.COMPACTA,
@@ -984,20 +1341,51 @@ class AppViewModel(
 
     private fun publicarOverlay() {
         val emOverlay = state.monitorando && state.overlayAtivo && state.interfaceOculta
-        val expandidaVisivel = emOverlay &&
-            state.corrida.modo == ModoApresentacao.DETALHES &&
-            !state.seloFlutuante
         val compactaVisivel = emOverlay &&
-            !expandidaVisivel &&
-            !state.seloFlutuante &&
+            !state.seloEscondido &&
+            state.corrida.modo != ModoApresentacao.DETALHES &&
             (state.ofertaAtiva || state.compactaTemporaria)
-        val seloVisivel = emOverlay && !compactaVisivel && !expandidaVisivel
+        val confirmandoFechar = state.confirmacaoFecharVisivel
+        val confirmandoLimpar = state.confirmacaoLimparHistoricoVisivel
+        val expandidaVisivel = emOverlay &&
+            !state.seloEscondido &&
+            !compactaVisivel &&
+            (
+                confirmandoFechar ||
+                    (
+                        state.corrida.modo == ModoApresentacao.DETALHES &&
+                            !state.historicoVisivel &&
+                            !state.configuracoesVisivel &&
+                            !state.dashboardVisivel &&
+                            !confirmandoLimpar
+                        )
+                )
+        // Selo fica visível junto do menu atalho (toque abre/fecha). Some em oferta,
+        // histórico, config, dashboard e confirmação.
+        val seloVisivel = emOverlay &&
+            !state.seloEscondido &&
+            !compactaVisivel &&
+            !state.historicoVisivel &&
+            !state.configuracoesVisivel &&
+            !state.dashboardVisivel &&
+            !confirmandoFechar &&
+            !confirmandoLimpar
         val analise = analiseExibida()
         val campos = state.corrida.camposCompactos.associate { it.id to it.valor }
         val detalhes = state.corrida.camposDetalhes.associate { it.id to it.valor }
-        val itensHistorico = state.historico
+        val periodoHistorico = if (state.historicoVisivel) {
+            CalendarioPeriodo.SEMANA
+        } else {
+            state.calendarioPeriodo
+        }
+        val itensDoPeriodo = state.historico
             .sortedByDescending { it.dataHoraRegistro ?: java.time.LocalDateTime.MIN }
-            .filter { it.pertenceAba(state.abaHistorico) }
+            .filter { item ->
+                val dia = item.dataHoraRegistro?.toLocalDate() ?: return@filter false
+                CalendarioApp.noPeriodo(dia, state.historicoDia, periodoHistorico) &&
+                    item.pertenceAba(state.abaHistorico)
+            }
+        val itensHistorico = itensDoPeriodo
             .map { item ->
                 OverlayHistoricoItem(
                     chave = item.chaveHistorico(),
@@ -1005,12 +1393,31 @@ class AppViewModel(
                     hora = item.horaLista,
                     valorPorKm = PresentationBuilder.formatarCelulaHistoricoValorPorKm(item.valorPorKm),
                     valor = PresentationBuilder.formatarCelulaHistoricoValor(item.valorTotal),
-                    km = PresentationBuilder.formatarCelulaHistoricoDist(item.kmTotal),
-                    tempo = PresentationBuilder.formatarCelulaHistoricoTempo(item.tempoEstimado),
+                    km = PresentationBuilder.formatarDistanciaHistorico(item.kmTotal),
+                    tempo = PresentationBuilder.formatarTempoHistorico(item.tempoEstimado),
                     nota = PresentationBuilder.formatarCelulaHistoricoNota(item.notaPassageiro),
                     marcador = item.classificacao.marcador,
                     corMarcador = item.corClassificacao,
                     plataforma = item.plataforma,
+                    lucro = PresentationBuilder.formatarLucroHistorico(
+                        item.valorTotal,
+                        item.custoCombustivel,
+                    ),
+                    gasto = PresentationBuilder.formatarGastoHistorico(item.custoCombustivel),
+                    consumo = PresentationBuilder.formatarLitrosHistorico(item.combustivelEstimado),
+                    tempoHm = PresentationBuilder.formatarTempoHm(item.tempoEstimado),
+                    cabecalhoData = PresentationBuilder.formatarCabecalhoHistorico(
+                        item.dataHoraRegistro,
+                        item.dataLista,
+                        item.horaLista,
+                    ),
+                    embarque = item.enderecoEmbarque,
+                    destino = item.enderecoDestino,
+                    classificacao = item.classificacao.rotulo,
+                    valorTotalNum = item.valorTotal,
+                    kmNum = item.kmTotal,
+                    minutosNum = item.tempoEstimado ?: 0,
+                    gastoNum = item.custoCombustivel,
                 )
             }
         OverlayBridge.publicar(
@@ -1019,12 +1426,32 @@ class AppViewModel(
                 seloVisivel = seloVisivel,
                 compactaVisivel = compactaVisivel,
                 expandidaVisivel = expandidaVisivel,
-                historicoVisivel = expandidaVisivel && state.historicoVisivel,
-                configuracoesVisivel = expandidaVisivel && state.configuracoesVisivel,
-                confirmacaoFecharVisivel = expandidaVisivel && state.confirmacaoFecharVisivel,
-                confirmacaoLimparHistoricoVisivel = expandidaVisivel && state.confirmacaoLimparHistoricoVisivel,
+                historicoVisivel = emOverlay && !state.seloEscondido && !compactaVisivel && state.historicoVisivel,
+                configuracoesVisivel = emOverlay && !state.seloEscondido && !compactaVisivel && state.configuracoesVisivel,
+                dashboardVisivel = emOverlay && !state.seloEscondido && !compactaVisivel && state.dashboardVisivel,
+                // Fechar continua no menu atalho; limpar histórico fica sobre a aba Histórico.
+                confirmacaoFecharVisivel = emOverlay && !state.seloEscondido && state.confirmacaoFecharVisivel,
+                confirmacaoLimparHistoricoVisivel = emOverlay && !state.seloEscondido &&
+                    state.confirmacaoLimparHistoricoVisivel &&
+                    state.historicoVisivel,
                 historicoAba = state.abaHistorico,
+                historicoEpochDay = state.historicoDia.toEpochDay(),
+                historicoPeriodo = state.calendarioPeriodo.name,
+                historicoDiasComCorrida = state.historico.mapNotNull {
+                    it.dataHoraRegistro?.toLocalDate()?.toEpochDay()
+                }.distinct(),
                 historicoItens = itensHistorico,
+                historicoFaturamento = PresentationBuilder.formatarResumoFaturamento(itensDoPeriodo),
+                historicoDistancia = PresentationBuilder.formatarResumoDistancia(itensDoPeriodo),
+                historicoGasto = PresentationBuilder.formatarResumoGasto(itensDoPeriodo),
+                historicoLucro = PresentationBuilder.formatarResumoLucro(itensDoPeriodo),
+                historicoChaveSelecionada = state.historicoSelecionado?.chaveHistorico().orEmpty(),
+                historicoChavesSelecionadas = state.historicoChavesSelecionadas.toList(),
+                historicoLimparQuantidade = state.historicoChavesSelecionadas.size,
+                planoPro = state.plano.ehPro,
+                dashboardGanhosDia = ganhosDoPeriodo(CalendarioPeriodo.DIA),
+                dashboardGanhosSemana = ganhosDoPeriodo(CalendarioPeriodo.SEMANA),
+                dashboardGanhosMes = ganhosDoPeriodo(CalendarioPeriodo.MES),
                 destacarPermissoes = state.destacarPermissoes,
                 abaConfiguracao = state.abaConfiguracao,
                 offsetX = state.seloOffsetX,
@@ -1035,13 +1462,16 @@ class AppViewModel(
                 tempo = campos["tempo_estimado"] ?: "—",
                 nota = campos["nota_passageiro"] ?: "—",
                 detalhes = state.corrida.camposDetalhes.map { "${it.titulo}: ${it.valor}" },
-                aguardandoOferta = analise == null,
+                aguardandoOferta = !state.ofertaAtiva && !state.corridaAceita,
                 liquidoPorKm = PresentationBuilder.formatarLiquidoPorKm(analise),
                 litrosEstimados = detalhes["combustivel_estimado"] ?: "—",
                 gastoEstimado = detalhes["custo_combustivel"] ?: "—",
                 lucroEstimado = detalhes["lucro_estimado"] ?: "—",
                 kmAtePassageiro = detalhes["km_ate_passageiro"] ?: "—",
                 kmViagem = detalhes["km_viagem"] ?: "—",
+                quantidadeParadas = analise?.corrida?.quantidadeParadas ?: 0,
+                plataformaSigla = siglaPlataforma(analise?.plataforma),
+                tempoHm = formatarTempoHm(analise?.tempoEstimado),
                 enderecoEmbarque = analise?.corrida?.enderecoEmbarque,
                 enderecoDestino = analise?.corrida?.enderecoDestino,
                 corridaAceita = state.corridaAceita,
@@ -1054,14 +1484,29 @@ class AppViewModel(
         )
     }
 
+    private fun ganhosDoPeriodo(periodo: CalendarioPeriodo): String {
+        if (!state.plano.ehPro) {
+            return "🔒"
+        }
+        val itens = state.historico.filter { item ->
+            val dia = item.dataHoraRegistro?.toLocalDate() ?: return@filter false
+            CalendarioApp.noPeriodo(dia, state.historicoDia, periodo)
+        }
+        return PresentationBuilder.formatarResumoFaturamento(itens)
+    }
+
     private fun analiseExibida(): AnaliseCorrida? {
-        if (state.ofertaAtiva) {
-            return state.analiseAtual
+        if (state.ofertaAtiva || state.compactaTemporaria) {
+            return state.analiseAtual ?: state.ultimaCorridaAceita
+        }
+        if (state.corridaAceita) {
+            return state.ultimaCorridaAceita ?: state.analiseAtual
         }
         if (state.historicoVisivel) {
             return state.historicoSelecionado?.paraAnalise()
         }
-        return null
+        // Mantém resumo na notificação até a próxima oferta.
+        return state.ultimaCorridaAceita
     }
 
     private fun chavePlataforma(analise: AnaliseCorrida): String =
@@ -1077,7 +1522,41 @@ class AppViewModel(
         }
     }
 
-    companion object {
+    private fun agendarCompactaParaSelo(delayMs: Long) {
+        cancelarCompactaTemporaria()
+        compactaTemporariaJob = scope.launch {
+            delay(delayMs)
+            if (!state.compactaTemporaria) {
+                return@launch
+            }
+            irParaSelo()
+        }
+    }
+
+    private fun formatarTempoHm(minutos: Int?): String {
+        if (minutos == null) {
+            return "—"
+        }
+        val horas = minutos / 60
+        val resto = minutos % 60
+        return "${horas}h${resto}m"
+    }
+
+    private fun siglaPlataforma(plataforma: String?): String {
+        val nome = plataforma.orEmpty()
+        return when {
+            nome.contains("99") -> "99"
+            nome.contains("inDrive", ignoreCase = true) -> "in"
+            nome.isBlank() -> ""
+            else -> "U"
+        }
+    }
+
+        companion object {
         const val COMPACTA_TEMPORARIA_MS = 5_000L
+        /** Recusou ou expirou: compacta some em 1 s → selo. */
+        const val COMPACTA_EXPIRA_MS = 1_000L
+        /** Aceitou: compacta some em 2 s → selo. */
+        const val COMPACTA_ACEITE_MS = 2_000L
     }
 }

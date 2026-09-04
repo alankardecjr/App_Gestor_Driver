@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
@@ -30,13 +31,10 @@ import br.com.gestordriver.model.OnboardingEtapa
 import br.com.gestordriver.model.TipoContaVinculada
 import br.com.gestordriver.model.TutorialConteudo
 import br.com.gestordriver.permission.PermissoesMonitoramento
+import br.com.gestordriver.ui.theme.LocalPaletaApp
 
-private val TextoPrincipal = Color.White
-private val TextoSecundario = Color(0xFFB8C5D1)
 private val TextoAmarelo = Color(0xFFFFD54F)
 private val TextoVerde = Color(0xFF7CB342)
-private val Borda = Color(0xFF607D8B)
-private val Fundo = Color(0xF2050809)
 private val Forma = RoundedCornerShape(10.dp)
 
 @Composable
@@ -80,19 +78,35 @@ private fun PainelPermissoes(
     CaixaOnboarding("Permissões") {
         Text(
             "Toque em cada item e autorize. Sem isso o Gestor não lê a oferta nem fica sobre o mapa.",
-            color = TextoSecundario,
+            color = LocalPaletaApp.current.textoSecundario,
             fontSize = 12.sp,
         )
-        LinhaStatus("Notificações", listenerOk) {
+        LinhaStatus(
+            "1  Notificações",
+            "Lê as ofertas da Uber e da 99",
+            listenerOk,
+        ) {
             contexto.startActivity(PermissoesMonitoramento.intentNotificacoes())
         }
-        LinhaStatus("Sobrepor", overlayOk) {
+        LinhaStatus(
+            "2  Sobrepor",
+            "Mostra o card sobre o mapa",
+            overlayOk,
+        ) {
             contexto.startActivity(PermissoesMonitoramento.intentSobrepor(contexto))
         }
-        LinhaStatus("Acessib.", leituraOk) {
+        LinhaStatus(
+            "3  Acessibilidade",
+            "Configurações restritas → Serviços instalados",
+            leituraOk,
+        ) {
             contexto.startActivity(PermissoesMonitoramento.intentAcessibilidade())
         }
-        LinhaStatus("Bateria", bateriaOk) {
+        LinhaStatus(
+            "4  Bateria",
+            "Evita o overlay sumir no segundo plano",
+            bateriaOk,
+        ) {
             contexto.startActivity(PermissoesMonitoramento.intentBateria(contexto))
         }
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center) {
@@ -102,7 +116,7 @@ private fun PainelPermissoes(
             ) {
                 Text(
                     if (prontas) "Seguir" else "Autorize para seguir",
-                    color = if (prontas) TextoVerde else TextoSecundario,
+                    color = if (prontas) TextoVerde else LocalPaletaApp.current.textoSecundario,
                     fontWeight = FontWeight.SemiBold,
                 )
             }
@@ -126,8 +140,8 @@ private fun PainelConta(
     val conectado = viewModel.configuracao.contaTipo != TipoContaVinculada.NENHUMA
     CaixaOnboarding("Conta") {
         Text(
-            "Primeiro uso: conecte Google ou e-mail para identificar o motorista nas versões Free e Beta. Nada é enviado para a nuvem agora.",
-            color = TextoSecundario,
+            "Primeiro uso: conecte Google ou e-mail para identificar o motorista nas versões Free e Pro. Nada é enviado para a nuvem agora.",
+            color = LocalPaletaApp.current.textoSecundario,
             fontSize = 12.sp,
         )
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
@@ -155,7 +169,7 @@ private fun PainelConta(
         if (dialogoGoogle) {
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
                 TextButton(onClick = { dialogoGoogle = false }) {
-                    Text("Cancelar", color = TextoSecundario)
+                    Text("Cancelar", color = LocalPaletaApp.current.textoSecundario)
                 }
                 TextButton(onClick = { seletorGoogle.launch(ContaVinculo.intentEscolherContaGoogle()) }) {
                     Text("Conectar Google", color = TextoAmarelo, fontWeight = FontWeight.SemiBold)
@@ -167,7 +181,7 @@ private fun PainelConta(
             CampoEmailOnboarding(email) { email = it }
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
                 TextButton(onClick = { dialogoEmail = false }) {
-                    Text("Cancelar", color = TextoSecundario)
+                    Text("Cancelar", color = LocalPaletaApp.current.textoSecundario)
                 }
                 TextButton(
                     onClick = {
@@ -187,7 +201,7 @@ private fun PainelConta(
         ) {
             Text(
                 if (conectado) "Seguir" else "Conecte para seguir",
-                color = if (conectado) TextoVerde else TextoSecundario,
+                color = if (conectado) TextoVerde else LocalPaletaApp.current.textoSecundario,
                 fontWeight = FontWeight.SemiBold,
             )
         }
@@ -197,19 +211,19 @@ private fun PainelConta(
 @Composable
 private fun CampoEmailOnboarding(valor: String, onChange: (String) -> Unit) {
     Column(modifier = Modifier.fillMaxWidth()) {
-        Text("E-mail", color = TextoSecundario, fontSize = 12.sp)
+        Text("E-mail", color = LocalPaletaApp.current.textoSecundario, fontSize = 12.sp)
         androidx.compose.foundation.text.BasicTextField(
             value = valor,
             onValueChange = onChange,
             singleLine = true,
-            textStyle = androidx.compose.ui.text.TextStyle(color = TextoPrincipal, fontSize = 13.sp),
+            textStyle = androidx.compose.ui.text.TextStyle(color = LocalPaletaApp.current.texto, fontSize = 13.sp),
             modifier = Modifier
                 .fillMaxWidth()
-                .border(1.dp, Borda, Forma)
+                .border(1.dp, LocalPaletaApp.current.borda, Forma)
                 .padding(8.dp),
             decorationBox = { inner ->
                 if (valor.isBlank()) {
-                    Text("e-mail", color = TextoSecundario, fontSize = 13.sp)
+                    Text("e-mail", color = LocalPaletaApp.current.textoSecundario, fontSize = 13.sp)
                 }
                 inner()
             },
@@ -225,13 +239,13 @@ private fun PainelTutorial(
 ) {
     val atual = TutorialConteudo.passos.getOrElse(passo) { TutorialConteudo.passos.last() }
     CaixaOnboarding("${atual.titulo}  ${passo + 1}/${TutorialConteudo.passos.size}") {
-        Text(atual.texto, color = TextoSecundario, fontSize = 13.sp)
+        Text(atual.texto, color = LocalPaletaApp.current.textoSecundario, fontSize = 13.sp)
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceEvenly,
         ) {
             TextButton(onClick = onPular) {
-                Text("Pular", color = TextoSecundario)
+                Text("Pular", color = LocalPaletaApp.current.textoSecundario)
             }
             TextButton(onClick = onSeguir) {
                 Text(
@@ -245,16 +259,27 @@ private fun PainelTutorial(
 }
 
 @Composable
-private fun LinhaStatus(titulo: String, ok: Boolean, onClick: () -> Unit) {
-    Text(
-        text = if (ok) "$titulo 🆗" else "$titulo ❎",
-        color = if (ok) TextoVerde else TextoAmarelo,
-        fontSize = 13.sp,
+private fun LinhaStatus(titulo: String, dica: String, ok: Boolean, onClick: () -> Unit) {
+    Column(
         modifier = Modifier
             .fillMaxWidth()
+            .heightIn(min = 48.dp)
             .clickable(onClick = onClick)
-            .padding(vertical = 4.dp),
-    )
+            .padding(vertical = 6.dp),
+        horizontalAlignment = Alignment.Start,
+    ) {
+        Text(
+            text = if (ok) "$titulo  🆗" else "$titulo  ❎",
+            color = if (ok) TextoVerde else TextoAmarelo,
+            fontSize = 14.sp,
+            fontWeight = FontWeight.SemiBold,
+        )
+        Text(
+            text = dica,
+            color = LocalPaletaApp.current.textoSecundario,
+            fontSize = 12.sp,
+        )
+    }
 }
 
 @Composable
@@ -266,13 +291,13 @@ private fun CaixaOnboarding(
         modifier = Modifier
             .fillMaxWidth()
             .padding(12.dp)
-            .border(2.dp, Borda, Forma)
-            .background(Fundo, Forma)
+            .border(2.dp, LocalPaletaApp.current.borda, Forma)
+            .background(LocalPaletaApp.current.fundoPainel, Forma)
             .padding(horizontal = 12.dp, vertical = 12.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        Text(titulo, color = TextoPrincipal, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
+        Text(titulo, color = LocalPaletaApp.current.texto, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
         conteudo()
     }
 }
