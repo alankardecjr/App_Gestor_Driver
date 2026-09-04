@@ -9,6 +9,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -171,6 +172,11 @@ class AppViewModelTest {
     // =====================================================================
     // PLANO
     // =====================================================================
+
+    @Test
+    fun estado_inicial_e_pro() {
+        assertEquals(PlanoAcesso.PRO, novoViewModel().state.plano)
+    }
 
     @Test
     fun deve_selecionar_plano() {
@@ -497,15 +503,31 @@ class AppViewModelTest {
     }
 
     @Test
-    fun solicitar_limpar_historico_deve_exibir_confirmacao_sem_apagar() {
+    fun solicitar_limpar_historico_sem_selecao_nao_abre_confirmacao() {
         val viewModel = novoViewModel()
         viewModel.aplicarNovaCorrida(analiseFake())
         viewModel.registrarAceiteCorrida()
         viewModel.alternarHistorico()
         viewModel.solicitarLimparHistorico()
-        assertTrue(viewModel.state.confirmacaoLimparHistoricoVisivel)
-        assertFalse(viewModel.state.historicoVisivel)
+        assertFalse(viewModel.state.confirmacaoLimparHistoricoVisivel)
+        assertTrue(viewModel.state.historicoVisivel)
         assertEquals(1, viewModel.state.historico.size)
+    }
+
+    @Test
+    fun solicitar_limpar_historico_deve_exibir_confirmacao_sem_apagar() {
+        val viewModel = novoViewModel()
+        viewModel.aplicarNovaCorrida(analiseFake())
+        viewModel.registrarAceiteCorrida()
+        viewModel.alternarHistorico()
+        viewModel.marcarItemHistorico(viewModel.state.historico.first())
+        viewModel.solicitarLimparHistorico()
+        assertTrue(viewModel.state.confirmacaoLimparHistoricoVisivel)
+        assertTrue(viewModel.state.historicoVisivel)
+        assertEquals(1, viewModel.state.historico.size)
+        assertFalse(OverlayBridge.snapshot.value.expandidaVisivel)
+        assertTrue(OverlayBridge.snapshot.value.historicoVisivel)
+        assertTrue(OverlayBridge.snapshot.value.confirmacaoLimparHistoricoVisivel)
     }
 
     @Test
@@ -514,6 +536,7 @@ class AppViewModelTest {
         viewModel.aplicarNovaCorrida(analiseFake())
         viewModel.registrarAceiteCorrida()
         viewModel.alternarHistorico()
+        viewModel.marcarItemHistorico(viewModel.state.historico.first())
         viewModel.solicitarLimparHistorico()
         viewModel.cancelarLimparHistorico()
         assertFalse(viewModel.state.confirmacaoLimparHistoricoVisivel)
@@ -522,15 +545,22 @@ class AppViewModelTest {
     }
 
     @Test
-    fun confirmar_limpar_historico_deve_apagar_itens() {
+    fun confirmar_limpar_historico_deve_apagar_somente_selecionadas() {
         val viewModel = novoViewModel()
-        viewModel.aplicarNovaCorrida(analiseFake())
+        viewModel.aplicarNovaCorrida(analiseFake(38.0, "Uber"))
         viewModel.registrarAceiteCorrida()
+        viewModel.aplicarNovaCorrida(analiseFake(40.0, "99"))
+        viewModel.registrarAceiteCorrida()
+        val uber = viewModel.state.historico.first { it.plataforma == "Uber" }
+        val noventaNove = viewModel.state.historico.first { it.plataforma == "99" }
+        viewModel.marcarItemHistorico(uber)
         viewModel.solicitarLimparHistorico()
         viewModel.confirmarLimparHistorico()
         assertFalse(viewModel.state.confirmacaoLimparHistoricoVisivel)
         assertTrue(viewModel.state.historicoVisivel)
-        assertTrue(viewModel.state.historico.isEmpty())
+        assertEquals(listOf("99"), viewModel.state.historico.map { it.plataforma })
+        assertTrue(viewModel.state.historicoChavesSelecionadas.isEmpty())
+        assertEquals(noventaNove.plataforma, viewModel.state.historico.single().plataforma)
     }
 
     // =====================================================================
@@ -560,6 +590,24 @@ class AppViewModelTest {
     }
 
     @Test
+    fun esconder_selo_no_x_preserva_posicao_e_reabrir_restaura() {
+        val viewModel = novoViewModel()
+        viewModel.iniciarMonitoramento()
+        viewModel.atualizarPosicaoSelo(80f, 320f)
+        viewModel.esconderSeloManterMonitor()
+        assertTrue(viewModel.state.seloEscondido)
+        assertFalse(viewModel.state.seloFlutuante)
+        assertEquals(80f, viewModel.state.seloOffsetX)
+        assertEquals(320f, viewModel.state.seloOffsetY)
+
+        viewModel.restaurarTelaAposRecentes()
+        assertFalse(viewModel.state.seloEscondido)
+        assertTrue(viewModel.state.seloFlutuante)
+        assertEquals(80f, viewModel.state.seloOffsetX)
+        assertEquals(320f, viewModel.state.seloOffsetY)
+    }
+
+    @Test
     fun nova_oferta_nao_entra_no_historico() {
         val viewModel = novoViewModel()
         val analise = analiseFake()
@@ -581,9 +629,9 @@ class AppViewModelTest {
         assertEquals(1, viewModel.state.historico.size)
         assertTrue(viewModel.state.corridaAceita)
         assertFalse(viewModel.state.ofertaAtiva)
-        assertTrue(viewModel.state.seloFlutuante)
-        assertEquals(null, viewModel.state.analiseAtual)
-        assertEquals("—", viewModel.state.corrida.camposCompactos.first { it.id == "valor_total" }.valor)
+        assertFalse(viewModel.state.seloFlutuante)
+        assertTrue(viewModel.state.compactaTemporaria)
+        assertEquals(38.0, viewModel.state.analiseAtual?.valorTotal ?: 0.0, 0.001)
     }
 
     @Test
@@ -645,11 +693,103 @@ class AppViewModelTest {
         val viewModel = novoViewModel()
         viewModel.aplicarNovaCorrida(analiseFake())
         viewModel.reabrirInterface(origemCompacta = true)
-        viewModel.alternarDetalhes()
         assertTrue(viewModel.state.ofertaAtiva)
         assertTrue(viewModel.state.interfaceOculta)
-        assertTrue(viewModel.state.compactaTemporaria)
+        assertFalse(viewModel.state.compactaTemporaria)
         assertFalse(viewModel.state.seloFlutuante)
+        assertEquals(ModoApresentacao.COMPACTA, viewModel.state.corrida.modo)
+    }
+
+    @Test
+    fun voltar_fecha_historico_para_menu_depois_selo() {
+        val viewModel = novoViewModel()
+        viewModel.iniciarMonitoramento()
+        viewModel.reabrirInterface()
+        viewModel.abrirHistoricoPeloOverlay()
+        OverlayBridge.emitir(OverlayAcao.VoltarBarra)
+        assertFalse(viewModel.state.historicoVisivel)
+        assertEquals(ModoApresentacao.DETALHES, viewModel.state.corrida.modo)
+        assertFalse(viewModel.state.seloFlutuante)
+        OverlayBridge.emitir(OverlayAcao.VoltarBarra)
+        assertTrue(viewModel.state.seloFlutuante)
+    }
+
+    @Test
+    fun voltar_fecha_config_do_overlay_para_menu_depois_selo() {
+        val viewModel = novoViewModel()
+        viewModel.iniciarMonitoramento()
+        viewModel.reabrirInterface()
+        viewModel.abrirConfiguracoes()
+        OverlayBridge.emitir(OverlayAcao.VoltarBarra)
+        assertFalse(viewModel.state.configuracoesVisivel)
+        assertEquals(ModoApresentacao.DETALHES, viewModel.state.corrida.modo)
+        assertFalse(viewModel.state.seloFlutuante)
+        OverlayBridge.emitir(OverlayAcao.VoltarBarra)
+        assertTrue(viewModel.state.seloFlutuante)
+    }
+
+    @Test
+    fun recentes_recolhe_ao_selo_e_guarda_historico() {
+        val viewModel = novoViewModel()
+        viewModel.iniciarMonitoramento()
+        viewModel.reabrirInterface()
+        viewModel.abrirHistoricoPeloOverlay()
+        OverlayBridge.emitir(OverlayAcao.RecentesBarra)
+        assertTrue(viewModel.state.seloFlutuante)
+        assertTrue(viewModel.state.interfaceOculta)
+        assertFalse(viewModel.state.historicoVisivel)
+        assertTrue(viewModel.state.estadoSalvo?.historicoVisivel == true)
+    }
+
+    @Test
+    fun clique_nos_recentes_restaura_ultima_tela() {
+        val viewModel = novoViewModel()
+        viewModel.iniciarMonitoramento()
+        viewModel.reabrirInterface()
+        viewModel.abrirHistoricoPeloOverlay()
+        OverlayBridge.emitir(OverlayAcao.RecentesBarra)
+        viewModel.restaurarTelaAposRecentes()
+        assertTrue(viewModel.state.historicoVisivel)
+        assertFalse(viewModel.state.seloFlutuante)
+        assertTrue(viewModel.state.interfaceOculta)
+        assertNull(viewModel.state.estadoSalvo)
+    }
+
+    @Test
+    fun voltar_na_config_dos_recentes_vai_ao_selo() {
+        val viewModel = novoViewModel()
+        viewModel.iniciarMonitoramento()
+        viewModel.abrirAtalhoConfig(0)
+        OverlayBridge.emitir(OverlayAcao.RecentesBarra)
+        viewModel.restaurarTelaAposRecentes()
+        OverlayBridge.emitir(OverlayAcao.VoltarBarra)
+        assertFalse(viewModel.state.configuracoesVisivel)
+        assertTrue(viewModel.state.interfaceOculta)
+    }
+
+    @Test
+    fun home_descarta_tela_salva_dos_recentes() {
+        val viewModel = novoViewModel()
+        viewModel.iniciarMonitoramento()
+        viewModel.reabrirInterface()
+        viewModel.abrirHistoricoPeloOverlay()
+        OverlayBridge.emitir(OverlayAcao.RecentesBarra)
+        OverlayBridge.emitir(OverlayAcao.RecolherParaSelo)
+        viewModel.restaurarTelaAposRecentes()
+        assertTrue(viewModel.state.seloFlutuante)
+        assertFalse(viewModel.state.historicoVisivel)
+        assertNull(viewModel.state.estadoSalvo)
+    }
+
+    @Test
+    fun home_vai_ao_selo() {
+        val viewModel = novoViewModel()
+        viewModel.iniciarMonitoramento()
+        viewModel.abrirAtalhoConfig(0)
+        OverlayBridge.emitir(OverlayAcao.RecolherParaSelo)
+        assertTrue(viewModel.state.seloFlutuante)
+        assertFalse(viewModel.state.configuracoesVisivel)
+        assertTrue(viewModel.state.interfaceOculta)
     }
 
     @Test
@@ -676,27 +816,45 @@ class AppViewModelTest {
     }
 
     @Test
-    fun toque_fora_da_compacta_com_oferta_vai_ao_selo() {
+    fun toque_fora_da_compacta_com_oferta_nao_recolhe() {
         val viewModel = novoViewModel()
         viewModel.aplicarNovaCorrida(analiseFake())
         assertTrue(viewModel.state.ofertaAtiva)
         assertFalse(viewModel.state.seloFlutuante)
         OverlayBridge.emitir(OverlayAcao.ToqueForaDaCompacta)
-        assertTrue(viewModel.state.seloFlutuante)
+        assertFalse(viewModel.state.seloFlutuante)
         assertTrue(viewModel.state.ofertaAtiva)
         assertTrue(viewModel.state.interfaceOculta)
     }
 
     @Test
-    fun toque_fora_apos_retrair_vai_ao_selo_na_hora() {
+    fun toque_fora_apos_retrair_nao_vai_ao_selo() {
         val viewModel = novoViewModel()
         viewModel.aplicarNovaCorrida(analiseFake())
         viewModel.reabrirInterface()
         viewModel.alternarDetalhes()
         assertTrue(viewModel.state.compactaTemporaria)
         OverlayBridge.emitir(OverlayAcao.ToqueForaDaCompacta)
+        assertTrue(viewModel.state.compactaTemporaria)
+        assertFalse(viewModel.state.seloFlutuante)
+    }
+
+    @Test
+    fun toque_no_selo_abre_e_fecha_menu_atalho_mantendo_selo_visivel() {
+        val viewModel = novoViewModel()
+        viewModel.iniciarMonitoramento()
+        assertTrue(OverlayBridge.snapshot.value.seloVisivel)
+        assertFalse(OverlayBridge.snapshot.value.expandidaVisivel)
+
+        viewModel.reabrirInterface()
+        assertTrue(OverlayBridge.snapshot.value.expandidaVisivel)
+        assertTrue(OverlayBridge.snapshot.value.seloVisivel)
+        assertEquals(ModoApresentacao.DETALHES, viewModel.state.corrida.modo)
+
+        viewModel.reabrirInterface()
+        assertFalse(OverlayBridge.snapshot.value.expandidaVisivel)
+        assertTrue(OverlayBridge.snapshot.value.seloVisivel)
         assertTrue(viewModel.state.seloFlutuante)
-        assertFalse(viewModel.state.compactaTemporaria)
     }
 
     @Test
@@ -711,14 +869,15 @@ class AppViewModelTest {
     }
 
     @Test
-    fun recolher_ao_sair_nao_fecha_overlay_ja_visivel() {
+    fun recolher_ao_sair_vai_ao_selo() {
         val viewModel = novoViewModel()
+        viewModel.iniciarMonitoramento()
         viewModel.reabrirInterface()
         viewModel.abrirHistoricoPeloOverlay()
         viewModel.recolherAoSairDoApp()
         assertTrue(viewModel.state.interfaceOculta)
-        assertTrue(viewModel.state.historicoVisivel)
-        assertFalse(viewModel.state.seloFlutuante)
+        assertTrue(viewModel.state.seloFlutuante)
+        assertFalse(viewModel.state.historicoVisivel)
     }
 
     @Test
@@ -764,7 +923,8 @@ class AppViewModelTest {
         viewModel.expirarOfertaAtual()
         assertEquals(null, viewModel.state.analiseAtual)
         assertFalse(viewModel.state.ofertaAtiva)
-        assertTrue(viewModel.state.seloFlutuante)
+        assertFalse(viewModel.state.seloFlutuante)
+        assertTrue(viewModel.state.compactaTemporaria)
         assertEquals(1, viewModel.state.historico.size)
         assertEquals(40.0, viewModel.state.historico.first().valorTotal, 0.001)
         assertEquals(ModoApresentacao.COMPACTA, viewModel.state.corrida.modo)
@@ -778,10 +938,102 @@ class AppViewModelTest {
         viewModel.atualizarPosicaoSelo(80f, 160f)
         viewModel.aplicarNovaCorrida(analiseFake())
         viewModel.expirarOfertaAtual()
-        assertTrue(viewModel.state.seloFlutuante)
+        assertFalse(viewModel.state.seloFlutuante)
+        assertTrue(viewModel.state.compactaTemporaria)
         assertTrue(viewModel.state.interfaceOculta)
         assertEquals(80f, viewModel.state.seloOffsetX)
         assertEquals(160f, viewModel.state.seloOffsetY)
+    }
+
+    @Test
+    fun nova_oferta_fecha_historico_e_abre_compacta() {
+        val viewModel = novoViewModel()
+        viewModel.iniciarMonitoramento()
+        viewModel.alternarHistorico()
+        assertTrue(viewModel.state.historicoVisivel)
+        viewModel.aplicarNovaCorrida(analiseFake())
+        assertFalse(viewModel.state.historicoVisivel)
+        assertFalse(viewModel.state.configuracoesVisivel)
+        assertFalse(viewModel.state.dashboardVisivel)
+        assertEquals(ModoApresentacao.COMPACTA, viewModel.state.corrida.modo)
+        assertTrue(viewModel.state.ofertaAtiva)
+        assertTrue(viewModel.state.interfaceOculta)
+    }
+
+    @Test
+    fun nova_oferta_fecha_config_e_dashboard() {
+        val viewModel = novoViewModel()
+        viewModel.iniciarMonitoramento()
+        viewModel.abrirDashboard()
+        assertTrue(viewModel.state.dashboardVisivel)
+        viewModel.aplicarNovaCorrida(analiseFake())
+        assertFalse(viewModel.state.dashboardVisivel)
+        assertEquals(ModoApresentacao.COMPACTA, viewModel.state.corrida.modo)
+        viewModel.abrirConfiguracoes()
+        assertTrue(viewModel.state.configuracoesVisivel)
+        viewModel.aplicarNovaCorrida(analiseFake(valor = 22.0))
+        assertFalse(viewModel.state.configuracoesVisivel)
+        assertTrue(viewModel.state.ofertaAtiva)
+    }
+
+    @Test
+    fun calendario_mes_e_semana_usam_data_civil() {
+        val viewModel = novoViewModel()
+        viewModel.selecionarDiaHistorico(java.time.LocalDate.of(2026, 1, 31).toEpochDay())
+        viewModel.avancarMesHistorico(1)
+        assertEquals(java.time.LocalDate.of(2026, 2, 28), viewModel.state.historicoDia)
+        viewModel.avancarSemanaHistorico(1)
+        assertEquals(java.time.LocalDate.of(2026, 3, 7), viewModel.state.historicoDia)
+    }
+
+    @Test
+    fun abrir_historico_inicia_dia_atual_todos_sem_mexer_periodo_dashboard() {
+        val viewModel = novoViewModel()
+        viewModel.iniciarMonitoramento()
+        viewModel.selecionarPeriodoHistorico("MES")
+        val diaDashboard = viewModel.state.historicoDia
+        viewModel.alternarHistorico()
+        assertTrue(viewModel.state.historicoVisivel)
+        assertEquals("Todos", viewModel.state.abaHistorico)
+        assertEquals(br.com.gestordriver.core.CalendarioPeriodo.MES, viewModel.state.calendarioPeriodo)
+        assertEquals(
+            br.com.gestordriver.core.CalendarioApp.hoje(),
+            viewModel.state.historicoDia,
+        )
+        viewModel.alternarHistorico()
+        assertFalse(viewModel.state.historicoVisivel)
+        assertEquals(br.com.gestordriver.core.CalendarioPeriodo.MES, viewModel.state.calendarioPeriodo)
+        assertEquals(diaDashboard, viewModel.state.historicoDia)
+    }
+
+    @Test
+    fun setas_do_dashboard_seguem_modo_dia_semana_mes() {
+        val viewModel = novoViewModel()
+        viewModel.selecionarDiaHistorico(java.time.LocalDate.of(2026, 9, 2).toEpochDay())
+        viewModel.selecionarPeriodoHistorico("DIA")
+        viewModel.avancarPeriodoHistorico(1)
+        assertEquals(java.time.LocalDate.of(2026, 9, 3), viewModel.state.historicoDia)
+        viewModel.selecionarPeriodoHistorico("SEMANA")
+        viewModel.avancarPeriodoHistorico(1)
+        assertEquals(java.time.LocalDate.of(2026, 9, 10), viewModel.state.historicoDia)
+        viewModel.selecionarPeriodoHistorico("MES")
+        viewModel.avancarPeriodoHistorico(1)
+        assertEquals(java.time.LocalDate.of(2026, 10, 10), viewModel.state.historicoDia)
+        assertEquals(br.com.gestordriver.core.CalendarioPeriodo.MES, viewModel.state.calendarioPeriodo)
+    }
+
+    @Test
+    fun abas_do_historico_andam_com_seta_e_modo() {
+        val viewModel = novoViewModel()
+        assertEquals(br.com.gestordriver.core.CalendarioPeriodo.DIA, viewModel.state.calendarioPeriodo)
+        OverlayBridge.emitir(
+            OverlayAcao.HistoricoModo(
+                br.com.gestordriver.core.CalendarioPeriodo.DIA.vizinho(1).name,
+            ),
+        )
+        assertEquals(br.com.gestordriver.core.CalendarioPeriodo.SEMANA, viewModel.state.calendarioPeriodo)
+        OverlayBridge.emitir(OverlayAcao.HistoricoModo("MES"))
+        assertEquals(br.com.gestordriver.core.CalendarioPeriodo.MES, viewModel.state.calendarioPeriodo)
     }
 
     @Test

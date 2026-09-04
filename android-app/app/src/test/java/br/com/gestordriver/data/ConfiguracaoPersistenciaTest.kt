@@ -79,7 +79,7 @@ class ConfiguracaoPersistenciaTest {
         assertEquals(8.0, analise.custoCombustivel!!, 0.01)
         assertEquals(30.0, analise.valorTotal - analise.custoCombustivel!!, 0.01)
         assertEquals("1,88 /km", br.com.gestordriver.presentation.PresentationBuilder.formatarLiquidoPorKm(analise))
-        assertEquals(Classificacao.REGULAR, analise.classificacao)
+        assertEquals(Classificacao.RUIM, analise.classificacao)
     }
 
     @Test
@@ -91,7 +91,7 @@ class ConfiguracaoPersistenciaTest {
             limiteRuimMax = 1.0,
         )
         val motor = MotorClassificacao.daConfiguracao(configuracao)
-        assertEquals(Classificacao.REGULAR, motor.classificarPorValorKm(2.375))
+        assertEquals(Classificacao.RUIM, motor.classificarPorValorKm(2.375))
         assertEquals(Classificacao.EXCELENTE, motor.classificarPorValorKm(4.1))
         assertTrue(configuracao.faixasDefinidas())
     }

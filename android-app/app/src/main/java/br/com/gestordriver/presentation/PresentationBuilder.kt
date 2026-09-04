@@ -62,7 +62,7 @@ object PresentationBuilder {
     // =====================================================================
 
     fun criarEstadoInicial(
-        plano: PlanoAcesso = PlanoAcesso.BETA,
+        plano: PlanoAcesso = PlanoAcesso.PRO,
     ): AppState {
         return criarEstado(
             analise = null,
@@ -106,7 +106,8 @@ object PresentationBuilder {
         plano: PlanoAcesso,
         historico: List<HistoricoItemPresentation> = emptyList(),
         historicoSelecionado: HistoricoItemPresentation? = null,
-        abaHistorico: String = "Uber",
+        historicoChavesSelecionadas: Set<String> = emptySet(),
+        abaHistorico: String = "Todos",
         abaConfiguracao: Int = 0,
         destacarPermissoes: Boolean = false,
         modo: ModoApresentacao = ModoApresentacao.COMPACTA,
@@ -165,6 +166,9 @@ object PresentationBuilder {
 
             historicoSelecionado =
                 historicoSelecionado,
+
+            historicoChavesSelecionadas =
+                historicoChavesSelecionadas,
 
             abaHistorico =
                 abaHistorico,
@@ -280,6 +284,66 @@ object PresentationBuilder {
     fun formatarCelulaHistoricoNota(valor: Double?): String =
         valor?.let { formatarQuantidade(it) } ?: "—"
 
+    fun formatarLitrosHistorico(litros: Double?, unidade: String = "L"): String =
+        litros?.let { formatLiters(it, unidade) } ?: "—"
+
+    fun formatarGastoHistorico(custo: Double?): String =
+        custo?.let { formatMoney(it) } ?: "—"
+
+    fun formatarLucroHistorico(valorTotal: Double, custo: Double?): String =
+        custo?.let { formatMoney(valorTotal - it) } ?: "—"
+
+    fun formatarMensagemApagarHistorico(quantidade: Int): String =
+        "Deseja apagar a(s) corrida(s) selecionada(s)?".also { check(quantidade >= 0) }
+
+    fun formatarResumoFaturamento(itens: List<HistoricoItemPresentation>): String =
+        formatarDinheiroHistorico(itens.sumOf { it.valorTotal })
+
+    fun formatarResumoDistancia(itens: List<HistoricoItemPresentation>): String =
+        formatarDistanciaHistorico(itens.sumOf { it.kmTotal })
+
+    fun formatarResumoGasto(itens: List<HistoricoItemPresentation>): String {
+        val total = itens.mapNotNull { it.custoCombustivel }.sum()
+        return if (itens.any { it.custoCombustivel != null }) formatarGastoHistorico(total) else "—"
+    }
+
+    fun formatarResumoLucro(itens: List<HistoricoItemPresentation>): String {
+        val comCusto = itens.filter { it.custoCombustivel != null }
+        if (comCusto.isEmpty()) {
+            return "—"
+        }
+        return formatarLucroHistorico(
+            comCusto.sumOf { it.valorTotal },
+            comCusto.sumOf { it.custoCombustivel ?: 0.0 },
+        )
+    }
+
+    fun formatarTempoHm(minutos: Int?): String {
+        if (minutos == null) {
+            return "—"
+        }
+        return "${minutos / 60}h${minutos % 60}m"
+    }
+
+    fun formatarCabecalhoHistorico(
+        registro: java.time.LocalDateTime?,
+        dataLista: String,
+        horaLista: String,
+    ): String {
+        if (registro == null) {
+            return "$dataLista  $horaLista"
+        }
+        val diaSemana = registro.dayOfWeek
+            .getDisplayName(java.time.format.TextStyle.FULL, br.com.gestordriver.core.CalendarioApp.localePtBr)
+            .replaceFirstChar { it.titlecase(br.com.gestordriver.core.CalendarioApp.localePtBr) }
+        val mes = registro.month
+            .getDisplayName(java.time.format.TextStyle.SHORT, br.com.gestordriver.core.CalendarioApp.localePtBr)
+            .replaceFirstChar { it.titlecase(br.com.gestordriver.core.CalendarioApp.localePtBr) }
+            .trimEnd('.')
+        val hora = registro.format(java.time.format.DateTimeFormatter.ofPattern("HH:mm"))
+        return "$diaSemana ${registro.dayOfMonth} de $mes ${registro.year}  as $hora hr"
+    }
+
     fun formatarKmPublico(valor: Double): String = formatKm(valor)
 
     // =====================================================================
@@ -301,7 +365,7 @@ object PresentationBuilder {
             CampoApresentacao(id = "km_ate_passageiro", titulo = "Até o passageiro", valor = "—"),
             CampoApresentacao(id = "km_viagem", titulo = "Até o destino", valor = "—"),
             CampoApresentacao(id = "km_total_detalhe", titulo = "Total percorrido", valor = "—"),
-            CampoApresentacao(id = "combustivel_estimado", titulo = "Combustível estimado", valor = "—"),
+            CampoApresentacao(id = "combustivel_estimado", titulo = "Consumo estimado", valor = "—"),
             CampoApresentacao(id = "custo_combustivel", titulo = "Gasto estimado", valor = "—"),
             CampoApresentacao(id = "lucro_estimado", titulo = "Lucro estimado", valor = "—"),
             CampoApresentacao(id = "status_oferta", titulo = "Status", valor = "Aguardando oferta"),
@@ -439,7 +503,7 @@ object PresentationBuilder {
 
                 CampoApresentacao(
                     id = "combustivel_estimado",
-                    titulo = "Combustível estimado",
+                    titulo = "Consumo estimado",
                     valor =
                         if (
                             recursos.exibeCombustivelEstimado
@@ -561,5 +625,6 @@ object PresentationBuilder {
 
     private fun formatLiters(
         valor: Double,
-    ): String = formatarQuantidade(valor) + " L"
+        unidade: String = "L",
+    ): String = formatarQuantidade(valor) + " $unidade"
 }

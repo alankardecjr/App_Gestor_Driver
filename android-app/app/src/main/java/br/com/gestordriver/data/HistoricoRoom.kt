@@ -43,6 +43,9 @@ interface HistoricoDao {
     @Insert(onConflict = OnConflictStrategy.IGNORE)
     fun inserir(entity: HistoricoCorridaEntity)
 
+    @Query("DELETE FROM historico_corridas_aceitas WHERE chave IN (:chaves)")
+    fun remover(chaves: List<String>)
+
     @Query("DELETE FROM historico_corridas_aceitas")
     fun limpar()
 }
@@ -64,6 +67,13 @@ class RoomHistoricoRepository(
 
     override fun salvar(item: HistoricoItemPresentation) {
         dao.inserir(item.paraEntity())
+    }
+
+    override fun remover(chaves: Collection<String>) {
+        if (chaves.isEmpty()) {
+            return
+        }
+        dao.remover(chaves.distinct())
     }
 
     override fun limpar() {

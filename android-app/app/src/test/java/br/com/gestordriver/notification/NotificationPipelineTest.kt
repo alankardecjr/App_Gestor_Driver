@@ -18,6 +18,16 @@ class NotificationExtractorTest {
         assertEquals(3.2, campos.kmAtePassageiro, 0.001)
         assertEquals(12.8, campos.kmViagem, 0.001)
         assertEquals(24, campos.tempoEstimado)
+        assertEquals(0, campos.quantidadeParadas)
+    }
+
+    @Test
+    fun deve_extrair_paradas_quando_a_plataforma_informa() {
+        val texto = "R$ 38,00 • 3,2 km ate o passageiro • 12,8 km viagem • 24 min • +1 parada"
+
+        val campos = NotificationExtractor.extrairCamposPadrao(texto)
+
+        assertEquals(1, campos.quantidadeParadas)
     }
 
     @Test
@@ -485,6 +495,6 @@ class CalculadoraCorridaTest {
         assertEquals(1.28, resultado.combustivelEstimado!!, 0.01)
         assertEquals(7.9232, resultado.custoCombustivel!!, 0.01)
         assertEquals(br.com.gestordriver.core.Classificacao.EXCELENTE, resultado.classificacao)
-        assertEquals("#1E88E5", resultado.corClassificacao)
+        assertEquals("#2E7D32", resultado.corClassificacao)
     }
 }

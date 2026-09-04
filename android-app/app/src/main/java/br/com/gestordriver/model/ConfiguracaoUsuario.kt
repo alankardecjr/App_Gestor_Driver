@@ -3,6 +3,7 @@ package br.com.gestordriver.model
 import br.com.gestordriver.core.CalcularCombustivel
 
 data class ConfiguracaoUsuario(
+    val tipoVeiculo: TipoVeiculo = TipoVeiculo.CARRO,
     val marcaVeiculo: String = "",
     val modeloVeiculo: String = "",
     val versaoVeiculo: String = "",
@@ -11,11 +12,13 @@ data class ConfiguracaoUsuario(
 
     val consumoGasolina: Double = 0.0,
     val consumoEtanol: Double = 0.0,
+    val consumoEnergia: Double = 0.0,
 
     val combustivel: Combustivel = Combustivel.GASOLINA,
 
     val precoGasolina: Double = 0.0,
     val precoEtanol: Double = 0.0,
+    val precoEnergia: Double = 0.0,
 
     val oleoValor: Double = 0.0,
     val oleoKilometragem: Double = 0.0,
@@ -31,8 +34,14 @@ data class ConfiguracaoUsuario(
     val abastecimentoKmInicial: Double = 0.0,
     val abastecimentoKmFinal: Double = 0.0,
     val ipvaVencimento: String = "",
+    val ipvaValor: Double = 0.0,
+    val seguroValor: Double = 0.0,
+    val seguroData: String = "",
+    val seguroRecorrencia: SeguroRecorrencia = SeguroRecorrencia.ANUAL,
+    val kmAnual: Double = 0.0,
 
     val navegacao: AppNavegacao = AppNavegacao.GOOGLE_MAPS,
+    val tema: TemaApp = TemaApp.CELULAR,
 
     val contaTipo: TipoContaVinculada = TipoContaVinculada.NENHUMA,
     val contaEmail: String = "",
@@ -52,9 +61,23 @@ data class ConfiguracaoUsuario(
     fun faixasDefinidas(): Boolean {
         return limiteOtimaMin > 0.0 ||
             limiteBoaMin > 0.0 ||
-            limiteRegularMin > 0.0 ||
             limiteRuimMax > 0.0
     }
+
+    fun consumoAtivo(): Double = when (combustivel) {
+        Combustivel.GASOLINA -> consumoGasolina
+        Combustivel.ETANOL -> consumoEtanol
+        Combustivel.ENERGIA -> consumoEnergia
+    }
+
+    fun precoAtivo(): Double = when (combustivel) {
+        Combustivel.GASOLINA -> precoGasolina
+        Combustivel.ETANOL -> precoEtanol
+        Combustivel.ENERGIA -> precoEnergia
+    }
+
+    fun calculadoraCombustivelPronta(): Boolean =
+        consumoAtivo() > 0.0 && precoAtivo() > 0.0
 
     fun aplicarCalculoAbastecimento(): ConfiguracaoUsuario {
         val preco = CalcularCombustivel.precoPorLitro(abastecimentoValor, abastecimentoLitros)
@@ -72,25 +95,29 @@ data class ConfiguracaoUsuario(
                 precoEtanol = preco ?: precoEtanol,
                 consumoEtanol = consumo ?: consumoEtanol,
             )
+            Combustivel.ENERGIA -> this
         }
     }
 
     companion object {
         fun padrao(): ConfiguracaoUsuario = ConfiguracaoUsuario(
+            tipoVeiculo = TipoVeiculo.CARRO,
             marcaVeiculo = "Toyota",
             modeloVeiculo = "Corolla",
             versaoVeiculo = "XEi",
             anoVeiculo = "2021",
             consumoGasolina = 12.5,
             consumoEtanol = 9.0,
+            consumoEnergia = 6.0,
             combustivel = Combustivel.GASOLINA,
             precoGasolina = 6.19,
             precoEtanol = 4.39,
+            precoEnergia = 0.85,
             navegacao = AppNavegacao.GOOGLE_MAPS,
             limiteRuimMin = 0.0,
-            limiteRuimMax = 1.19,
-            limiteRegularMin = 1.20,
-            limiteRegularMax = 1.59,
+            limiteRuimMax = 1.59,
+            limiteRegularMin = 1.60,
+            limiteRegularMax = 1.99,
             limiteBoaMin = 1.60,
             limiteBoaMax = 1.99,
             limiteOtimaMin = 2.00,
@@ -99,9 +126,26 @@ data class ConfiguracaoUsuario(
     }
 }
 
+enum class TipoVeiculo {
+    CARRO,
+    MOTO,
+}
+
 enum class Combustivel {
     GASOLINA,
     ETANOL,
+    ENERGIA,
+}
+
+enum class SeguroRecorrencia {
+    MENSAL,
+    ANUAL,
+}
+
+enum class TemaApp {
+    CELULAR,
+    ESCURO,
+    CLARO,
 }
 
 enum class AppNavegacao {

@@ -47,7 +47,7 @@ class AnaliseCorridaContractTestCase(unittest.TestCase):
         self.assertAlmostEqual(resultado.combustivel_estimado, 1.28)
         self.assertAlmostEqual(resultado.custo_combustivel, 7.9232)
         self.assertEqual(resultado.classificacao, Classificacao.EXCELENTE)
-        self.assertEqual(resultado.cor_classificacao, "#1E88E5")
+        self.assertEqual(resultado.cor_classificacao, "#2E7D32")
         self.assertIsNotNone(resultado.data_hora)
         self.assertIsNone(resultado.nota_passageiro)
         self.assertIsNone(resultado.plataforma)

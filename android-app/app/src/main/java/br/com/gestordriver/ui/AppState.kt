@@ -6,11 +6,21 @@ import br.com.gestordriver.model.HistoricoItemPresentation
 import br.com.gestordriver.model.ModoApresentacao
 import br.com.gestordriver.model.OnboardingEtapa
 import br.com.gestordriver.model.PlanoAcesso
+import br.com.gestordriver.core.CalendarioApp
+import br.com.gestordriver.core.CalendarioPeriodo
+import java.time.LocalDate
 
 data class EstadoInterfaceSalvo(
     val modo: ModoApresentacao,
     val historicoVisivel: Boolean,
     val configuracoesVisivel: Boolean = false,
+    val dashboardVisivel: Boolean = false,
+    val seloFlutuante: Boolean = false,
+    val seloEscondido: Boolean = false,
+    val compactaTemporaria: Boolean = false,
+    val abaConfiguracao: Int = 0,
+    val confirmacaoFecharVisivel: Boolean = false,
+    val confirmacaoLimparHistoricoVisivel: Boolean = false,
 )
 
 data class AppState(
@@ -31,7 +41,7 @@ data class AppState(
     // PLANO
     // ================================================================
 
-    val plano: PlanoAcesso = PlanoAcesso.BETA,
+    val plano: PlanoAcesso = PlanoAcesso.PRO,
 
     // ================================================================
     // HISTÓRICO
@@ -49,7 +59,13 @@ data class AppState(
     val historicoSelecionado:
         HistoricoItemPresentation? = null,
 
-    val abaHistorico: String = "Uber",
+    val historicoChavesSelecionadas: Set<String> = emptySet(),
+
+    val abaHistorico: String = "Todos",
+
+    val historicoDia: LocalDate = CalendarioApp.hoje(),
+
+    val calendarioPeriodo: CalendarioPeriodo = CalendarioPeriodo.DIA,
 
     val abaConfiguracao: Int = 0,
 
@@ -78,6 +94,10 @@ data class AppState(
 
     val configuracoesVisivel: Boolean = false,
 
+    val dashboardVisivel: Boolean = false,
+
+    val recentesConfig: Boolean = false,
+
     val interfaceOculta: Boolean = false,
 
     val overlayAtivo: Boolean = true,
@@ -91,6 +111,8 @@ data class AppState(
     val seloFlutuante: Boolean = false,
 
     val compactaTemporaria: Boolean = false,
+
+    val seloEscondido: Boolean = false,
 
     val corridaAntesDaOferta: AnaliseCorrida? = null,
 

@@ -4,7 +4,7 @@ Objetivo: o app funcionar no celular de trabalho. Parser e aceite se calibram co
 
 **Versão alvo: Beta.** Cálculos visíveis (R$/KM, litros, gasto e lucro de combustível). Sem Pro. Sem Play Store / Free.
 
-**Interfaces congeladas até o Pro.** Não pedir nem aplicar novos ajustes de layout/tamanho nas telas. O restante da Beta é calibração (oferta/aceite) e correção de erro de funcionamento.
+**Interfaces oficiais da Beta congeladas em 02/09/2026.** Próxima etapa: testes de rua e feedback. Não pedir nem aplicar novos ajustes de layout/tamanho nas telas. O restante da Beta é calibração (oferta/aceite) e correção de erro de funcionamento.
 
 ## O que entra agora
 

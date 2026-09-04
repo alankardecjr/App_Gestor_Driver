@@ -7,6 +7,7 @@ import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -30,6 +31,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -38,58 +40,28 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.PlatformTextStyle
-import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.LineHeightStyle
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.ui.unit.Dp
-import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import br.com.gestordriver.model.CampoApresentacao
-import br.com.gestordriver.model.HistoricoItemPresentation
 import br.com.gestordriver.model.ModoApresentacao
 import br.com.gestordriver.presentation.PresentationBuilder
+import br.com.gestordriver.ui.theme.LocalPaletaApp
+import br.com.gestordriver.ui.theme.PaletaApp
 
 // =====================================================================
 // CORES DA INTERFACE
 // =====================================================================
 
-private val FundoPrincipal = Color(0xFF10161D)
-private val FundoPainel = Color(0xF2050809)
-private val BordaNeutra = Color(0xFF607D8B)
-
-private val TextoPrincipal = Color.White
-private val TextoSecundario = Color(0xFFB8C5D1)
-private val TextoDetalhes = Color(0xFFD0D9E2)
-private val TextoHistorico = Color(0xFFDDE6F2)
 private val TextoAzul = Color(0xFF42A5F5)
 private val TextoVerde = Color(0xFF7CB342)
 private val TextoLaranja = Color(0xFFFF9800)
 private val TextoAmarelo = Color(0xFFFFD54F)
 private val AlturaPainelSecundario = 268.dp + 188.dp + 15.dp + 12.6.dp
-private val titulosColunaHistorico = listOf(
-    "Data",
-    "Hora",
-    "R$/Km",
-    "Valor",
-    "Dist.",
-    "Tempo",
-    "Nota",
-)
-private val pesosColunaHistorico = listOf(0.85f, 0.75f, 1f, 1.2f, 1.15f, 1.2f, 0.85f)
-private val estiloCelulaHistorico = TextStyle(
-    platformStyle = PlatformTextStyle(includeFontPadding = false),
-    lineHeightStyle = LineHeightStyle(
-        alignment = LineHeightStyle.Alignment.Center,
-        trim = LineHeightStyle.Trim.Both,
-    ),
-)
 
 // =====================================================================
 // TELA PRINCIPAL
@@ -104,9 +76,12 @@ fun AppScreen(
     val state = viewModel.state
     val janelaCheia = state.historicoVisivel ||
         state.configuracoesVisivel ||
+        state.dashboardVisivel ||
+        state.recentesConfig ||
         state.confirmacaoFecharVisivel ||
         state.confirmacaoLimparHistoricoVisivel ||
-        state.onboardingEtapa != br.com.gestordriver.model.OnboardingEtapa.NENHUMA
+        state.onboardingEtapa != br.com.gestordriver.model.OnboardingEtapa.NENHUMA ||
+        (state.monitorando && state.interfaceOculta)
     val activity = LocalContext.current as? br.com.gestordriver.MainActivity
     androidx.compose.runtime.SideEffect {
         activity?.aplicarJanela(
@@ -115,13 +90,46 @@ fun AppScreen(
         )
     }
 
+    val escuroSistema = isSystemInDarkTheme()
+    val escuro = when (configuracoesViewModel.configuracao.tema) {
+        br.com.gestordriver.model.TemaApp.ESCURO -> true
+        br.com.gestordriver.model.TemaApp.CLARO -> false
+        br.com.gestordriver.model.TemaApp.CELULAR -> escuroSistema
+    }
+    val paleta = PaletaApp.de(escuro)
+    CompositionLocalProvider(LocalPaletaApp provides paleta) {
     Surface(
         modifier = Modifier
             .fillMaxSize()
             .windowInsetsPadding(WindowInsets.safeDrawing),
-        color = Color.Transparent,
+        color = if (state.interfaceOculta && state.monitorando) {
+            paleta.fundo
+        } else {
+            Color.Transparent
+        },
     ) {
         if (state.interfaceOculta) {
+            if (state.monitorando &&
+                state.onboardingEtapa == br.com.gestordriver.model.OnboardingEtapa.NENHUMA
+            ) {
+                when {
+                    state.dashboardVisivel -> DashboardTela(
+                        state = state,
+                        configuracao = configuracoesViewModel.configuracao,
+                        onVoltar = viewModel::fecharDashboard,
+                        onDia = viewModel::selecionarDiaHistorico,
+                        onAvancar = viewModel::avancarPeriodoHistorico,
+                        onPeriodo = viewModel::selecionarPeriodoHistorico,
+                    )
+                    else -> ConfiguracoesScreen(
+                        viewModel = configuracoesViewModel,
+                        onVoltar = viewModel::voltarPelaBarra,
+                        abaInicial = state.abaConfiguracao,
+                        destacarPermissoes = state.destacarPermissoes,
+                        plano = state.plano,
+                    )
+                }
+            }
             return@Surface
         }
 
@@ -131,7 +139,7 @@ fun AppScreen(
         ) {
             Surface(
                 modifier = Modifier.fillMaxSize(),
-                color = FundoPrincipal,
+                color = LocalPaletaApp.current.fundo,
             ) {
                 if (state.onboardingEtapa != br.com.gestordriver.model.OnboardingEtapa.NENHUMA) {
                     OnboardingHost(
@@ -152,6 +160,7 @@ fun AppScreen(
             }
         }
     }
+    }
 }
 
 @Composable
@@ -160,15 +169,16 @@ private fun ConteudoPrincipal(
     configuracoesViewModel: ConfiguracoesViewModel,
     state: AppState,
 ) {
+        Box(modifier = Modifier.fillMaxSize()) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .background(
                     Brush.linearGradient(
                         colors = listOf(
-                            Color(0xFF101418),
-                            Color(0xFF171D25),
-                            Color(0xFF0D1117),
+                            LocalPaletaApp.current.fundo,
+                            LocalPaletaApp.current.fundoPainel,
+                            LocalPaletaApp.current.fundo,
                         ),
                     ),
                 )
@@ -190,7 +200,7 @@ private fun ConteudoPrincipal(
             ) {
                 Text(
                     text = "Gestor Driver 🚗",
-                    color = TextoPrincipal,
+                    color = LocalPaletaApp.current.texto,
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.SemiBold,
                 )
@@ -218,7 +228,7 @@ private fun ConteudoPrincipal(
                         shape = CardDefaults.shape,
                     ),
                 colors = CardDefaults.cardColors(
-                    containerColor = FundoPainel,
+                    containerColor = LocalPaletaApp.current.fundoPainel,
                 ),
             ) {
 
@@ -275,47 +285,17 @@ private fun ConteudoPrincipal(
             // =========================================================
 
             AnimatedVisibility(
-                visible = (state.confirmacaoFecharVisivel || state.confirmacaoLimparHistoricoVisivel) &&
+                visible = state.confirmacaoFecharVisivel &&
                     state.corrida.modo == ModoApresentacao.DETALHES,
                 enter = slideInVertically(animationSpec = tween(220)) { -it },
                 exit = slideOutVertically(animationSpec = tween(180)) { -it },
             ) {
                 ConfirmacaoFecharSection(
-                    titulo = if (state.confirmacaoLimparHistoricoVisivel) {
-                        "Limpar histórico"
-                    } else {
-                        "Fechar gestor driver"
-                    },
-                    mensagem = if (state.confirmacaoLimparHistoricoVisivel) {
-                        "Deseja apagar todas as corridas aceitas do histórico?"
-                    } else {
-                        "Deseja encerrar o aplicativo e parar o monitoramento de corridas?"
-                    },
-                    textoConfirmar = if (state.confirmacaoLimparHistoricoVisivel) "Limpar" else "Fechar",
-                    onCancelar = if (state.confirmacaoLimparHistoricoVisivel) {
-                        viewModel::cancelarLimparHistorico
-                    } else {
-                        viewModel::cancelarFecharApp
-                    },
-                    onConfirmar = if (state.confirmacaoLimparHistoricoVisivel) {
-                        viewModel::confirmarLimparHistorico
-                    } else {
-                        viewModel::confirmarFecharApp
-                    },
-                )
-            }
-
-            AnimatedVisibility(
-                visible = state.configuracoesVisivel &&
-                    state.corrida.modo == ModoApresentacao.DETALHES,
-                enter = slideInVertically(animationSpec = tween(220)) { -it },
-                exit = slideOutVertically(animationSpec = tween(180)) { -it },
-            ) {
-                ConfiguracoesScreen(
-                    viewModel = configuracoesViewModel,
-                    onVoltar = viewModel::fecharConfiguracoes,
-                    abaInicial = state.abaConfiguracao,
-                    destacarPermissoes = state.destacarPermissoes,
+                    titulo = "gestor driver",
+                    mensagem = "Deseja encerrar o aplicativo e parar o monitoramento de corridas?",
+                    textoConfirmar = "Fechar",
+                    onCancelar = viewModel::cancelarFecharApp,
+                    onConfirmar = viewModel::confirmarFecharApp,
                 )
             }
 
@@ -325,15 +305,106 @@ private fun ConteudoPrincipal(
                 enter = slideInVertically(animationSpec = tween(220)) { -it },
                 exit = slideOutVertically(animationSpec = tween(180)) { -it },
             ) {
-                HistoricoSection(
-                    state = state,
-                    onSelecionarHistorico = viewModel::selecionarHistorico,
-                    onAba = viewModel::selecionarAbaHistorico,
-                    onLimpar = viewModel::solicitarLimparHistorico,
-                )
+                Box(modifier = Modifier.fillMaxWidth()) {
+                    HistoricoTela(
+                        state = state,
+                        onVoltar = viewModel::alternarHistorico,
+                        onDia = viewModel::selecionarDiaHistorico,
+                        onAvancarSemana = viewModel::avancarSemanaHistorico,
+                        onAba = viewModel::selecionarAbaHistorico,
+                        onSelecionar = viewModel::marcarItemHistorico,
+                        onLimpar = viewModel::solicitarLimparHistorico,
+                    )
+                    if (state.confirmacaoLimparHistoricoVisivel) {
+                        Box(
+                            modifier = Modifier
+                                .matchParentSize()
+                                .background(Color.Black.copy(alpha = 0.45f))
+                                .clickable(enabled = false, onClick = {})
+                                .padding(horizontal = 16.dp, vertical = 24.dp),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            ConfirmacaoFecharSection(
+                                titulo = "gestor driver",
+                                mensagem = "Limpar histórico",
+                                textoConfirmar = "Limpar",
+                                onCancelar = viewModel::cancelarLimparHistorico,
+                                onConfirmar = viewModel::confirmarLimparHistorico,
+                            )
+                        }
+                    }
+                }
             }
             }
         }
+        if (state.configuracoesVisivel) {
+            ConfiguracoesScreen(
+                viewModel = configuracoesViewModel,
+                onVoltar = viewModel::fecharConfiguracoes,
+                abaInicial = state.abaConfiguracao,
+                destacarPermissoes = state.destacarPermissoes,
+                plano = state.plano,
+            )
+        }
+        if (state.dashboardVisivel) {
+            DashboardTela(
+                state = state,
+                configuracao = configuracoesViewModel.configuracao,
+                onVoltar = viewModel::fecharDashboard,
+                onDia = viewModel::selecionarDiaHistorico,
+                onAvancar = viewModel::avancarPeriodoHistorico,
+                onPeriodo = viewModel::selecionarPeriodoHistorico,
+            )
+        }
+        }
+}
+
+@Composable
+private fun ConfirmacaoFecharSection(
+    titulo: String,
+    mensagem: String,
+    textoConfirmar: String,
+    onCancelar: () -> Unit,
+    onConfirmar: () -> Unit,
+) {
+    val paleta = LocalPaletaApp.current
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .border(width = 2.dp, color = paleta.borda, shape = CardDefaults.shape)
+            .background(paleta.fundoPainel, CardDefaults.shape)
+            .padding(horizontal = 12.dp, vertical = 10.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        Text(
+            text = titulo,
+            color = paleta.texto,
+            style = MaterialTheme.typography.titleSmall,
+            fontWeight = FontWeight.SemiBold,
+        )
+        Text(
+            text = mensagem,
+            color = paleta.textoSecundario,
+            style = MaterialTheme.typography.bodySmall,
+            textAlign = TextAlign.Center,
+        )
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceEvenly,
+        ) {
+            TextButton(onClick = onCancelar) {
+                Text(text = "Cancelar", color = paleta.textoSecundario)
+            }
+            TextButton(onClick = onConfirmar) {
+                Text(
+                    text = textoConfirmar,
+                    color = TextoAmarelo,
+                    fontWeight = FontWeight.SemiBold,
+                )
+            }
+        }
+    }
 }
 
 // =====================================================================
@@ -545,7 +616,7 @@ private fun CabecalhoSimples(
     titulo: String,
     valor: String,
     destaque: Boolean,
-    corTitulo: Color = TextoSecundario,
+    corTitulo: Color = LocalPaletaApp.current.textoSecundario,
 ) {
 
     Column(
@@ -576,7 +647,7 @@ private fun CabecalhoSimples(
 
             Text(
                 text = valor,
-                color = TextoPrincipal,
+                color = LocalPaletaApp.current.texto,
                 fontSize = 13.sp,
                 fontWeight = FontWeight.SemiBold,
                 maxLines = 1,
@@ -691,13 +762,13 @@ private fun LinhaDetalhe(
 
         Text(
             text = campo.titulo,
-            color = TextoDetalhes,
+            color = LocalPaletaApp.current.textoDetalhes,
             style = MaterialTheme.typography.bodySmall,
         )
 
         Text(
             text = campo.valor,
-            color = TextoPrincipal,
+            color = LocalPaletaApp.current.texto,
             style = MaterialTheme.typography.bodySmall,
             fontWeight = FontWeight.SemiBold,
         )
@@ -764,261 +835,6 @@ private fun ControlesInterface(
                 color = TextoAmarelo,
                 style = MaterialTheme.typography.labelSmall,
             )
-        }
-    }
-}
-
-// =====================================================================
-// SEÇÃO DE HISTÓRICO
-//
-// Listas por plataforma (esboço: Uber | 99, com setas).
-// Borda neutra em cada item; classificação = marcador.
-// =====================================================================
-
-@Composable
-private fun HistoricoSection(
-    state: AppState,
-    onSelecionarHistorico: (HistoricoItemPresentation) -> Unit,
-    onAba: (String) -> Unit,
-    onLimpar: () -> Unit,
-) {
-    val plataformas = listOf("Uber", "99", "inDrive")
-    val aba = state.abaHistorico
-    val indice = plataformas.indexOfFirst { it.equals(aba, ignoreCase = true) }.coerceAtLeast(0)
-    val itens = state.historico
-        .sortedByDescending { it.dataHoraRegistro ?: java.time.LocalDateTime.MIN }
-        .filter { it.pertenceAba(aba) }
-
-    val formaPainel = RoundedCornerShape(10.dp)
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(AlturaPainelSecundario)
-            .deslizeHorizontalAbas(indice, plataformas.size) { onAba(plataformas[it]) }
-            .border(
-                width = 2.dp,
-                color = BordaNeutra,
-                shape = formaPainel,
-            )
-            .background(FundoPainel, formaPainel)
-            .padding(vertical = 8.dp),
-        verticalArrangement = Arrangement.spacedBy(4.dp),
-    ) {
-        Box(modifier = Modifier.padding(horizontal = 8.dp)) {
-            TituloComSetas(
-                titulo = "HISTÓRICO",
-                onEsquerda = {
-                    onAba(plataformas[(indice - 1).coerceAtLeast(0)])
-                },
-                onDireita = {
-                    onAba(plataformas[(indice + 1).coerceAtMost(plataformas.lastIndex)])
-                },
-            )
-        }
-
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 8.dp),
-            horizontalArrangement = Arrangement.SpaceEvenly,
-        ) {
-            plataformas.forEach { plataforma ->
-                Text(
-                    text = plataforma.uppercase(),
-                    color = if (aba.equals(plataforma, ignoreCase = true)) TextoVerde else TextoSecundario,
-                    fontSize = 12.sp,
-                    fontWeight = if (aba.equals(plataforma, ignoreCase = true)) FontWeight.SemiBold else FontWeight.Normal,
-                    modifier = Modifier
-                        .clickable { onAba(plataforma) }
-                        .padding(horizontal = 2.dp, vertical = 2.dp),
-                )
-            }
-        }
-
-        val rolagemHistorico = rememberScrollState()
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .weight(1f, fill = true)
-                .barraRolagemAoToque(rolagemHistorico)
-                .verticalScroll(rolagemHistorico)
-                .padding(start = 8.dp, end = 12.dp),
-        ) {
-            GradeColunasHistorico(
-                borda = 2.dp,
-                corBorda = BordaNeutra,
-                forma = RoundedCornerShape(8.dp),
-                paddingHorizontal = 2.dp,
-                paddingVertical = 6.dp,
-            ) {
-                titulosColunaHistorico.forEachIndexed { indice, titulo ->
-                    CelulaHistorico(
-                        texto = titulo,
-                        destaque = true,
-                        fonte = 11.sp,
-                        peso = pesosColunaHistorico[indice],
-                    )
-                }
-            }
-
-            if (itens.isEmpty()) {
-                Text(
-                    text = "Nenhuma corrida aceita.",
-                    color = TextoSecundario,
-                    fontSize = 12.sp,
-                    modifier = Modifier.padding(horizontal = 4.dp, vertical = 8.dp),
-                )
-            } else {
-                itens.forEach { item ->
-                    HistoricoItemLista(
-                        item = item,
-                        onClick = { onSelecionarHistorico(item) },
-                    )
-                }
-            }
-        }
-
-        TextButton(
-            onClick = onLimpar,
-            modifier = Modifier.fillMaxWidth(),
-        ) {
-            Text(
-                text = "🗑️ Limpar histórico",
-                color = TextoAmarelo,
-                fontSize = 13.sp,
-                fontWeight = FontWeight.SemiBold,
-                textAlign = TextAlign.Center,
-                modifier = Modifier.fillMaxWidth(),
-            )
-        }
-    }
-}
-
-@Composable
-private fun ConfirmacaoFecharSection(
-    titulo: String,
-    mensagem: String,
-    textoConfirmar: String,
-    onCancelar: () -> Unit,
-    onConfirmar: () -> Unit,
-) {
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .border(
-                width = 2.dp,
-                color = BordaNeutra,
-                shape = CardDefaults.shape,
-            )
-            .background(FundoPainel, CardDefaults.shape)
-            .padding(horizontal = 12.dp, vertical = 10.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-    ) {
-        Text(
-            text = titulo,
-            color = TextoPrincipal,
-            style = MaterialTheme.typography.titleSmall,
-            fontWeight = FontWeight.SemiBold,
-        )
-        Text(
-            text = mensagem,
-            color = TextoSecundario,
-            style = MaterialTheme.typography.bodySmall,
-            textAlign = TextAlign.Center,
-        )
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceEvenly,
-        ) {
-            TextButton(onClick = onCancelar) {
-                Text(
-                    text = "Cancelar",
-                    color = TextoSecundario,
-                )
-            }
-            TextButton(onClick = onConfirmar) {
-                Text(
-                    text = textoConfirmar,
-                    color = TextoAmarelo,
-                    fontWeight = FontWeight.SemiBold,
-                )
-            }
-        }
-    }
-}
-
-// =====================================================================
-// ITEM DE LISTA DO HISTÓRICO
-//
-// BORDA FINA = CLASSIFICAÇÃO DA CORRIDA ACEITA
-// =====================================================================
-
-@Composable
-private fun GradeColunasHistorico(
-    modifier: Modifier = Modifier,
-    borda: Dp = 1.dp,
-    corBorda: Color = Color.Transparent,
-    forma: Shape = CardDefaults.shape,
-    paddingHorizontal: Dp = 2.dp,
-    paddingVertical: Dp = 3.dp,
-    conteudo: @Composable RowScope.() -> Unit,
-) {
-    Row(
-        modifier = modifier
-            .fillMaxWidth()
-            .border(width = borda, color = corBorda, shape = forma)
-            .padding(horizontal = paddingHorizontal, vertical = paddingVertical),
-        verticalAlignment = Alignment.CenterVertically,
-        content = conteudo,
-    )
-}
-
-@Composable
-private fun RowScope.CelulaHistorico(
-    texto: String,
-    destaque: Boolean = false,
-    fonte: TextUnit = 9.sp,
-    peso: Float = 1f,
-) {
-    Text(
-        text = texto,
-        color = if (destaque) TextoHistorico else TextoPrincipal,
-        fontSize = fonte,
-        lineHeight = fonte * 1.15f,
-        maxLines = 1,
-        overflow = TextOverflow.Ellipsis,
-        fontWeight = if (destaque) FontWeight.SemiBold else FontWeight.Normal,
-        textAlign = TextAlign.Center,
-        style = estiloCelulaHistorico,
-        modifier = Modifier.weight(peso, fill = true),
-    )
-}
-
-@Composable
-private fun HistoricoItemLista(
-    item: HistoricoItemPresentation,
-    onClick: () -> Unit,
-) {
-    val valores = listOf(
-        item.dataLista,
-        item.horaLista,
-        PresentationBuilder.formatarCelulaHistoricoValorPorKm(item.valorPorKm),
-        PresentationBuilder.formatarCelulaHistoricoValor(item.valorTotal),
-        PresentationBuilder.formatarCelulaHistoricoDist(item.kmTotal),
-        PresentationBuilder.formatarCelulaHistoricoTempo(item.tempoEstimado),
-        PresentationBuilder.formatarCelulaHistoricoNota(item.notaPassageiro),
-    )
-    GradeColunasHistorico(
-        modifier = Modifier.clickable(onClick = onClick),
-        borda = 2.dp,
-        corBorda = parseColor(item.corClassificacao),
-        forma = CardDefaults.shape,
-        paddingHorizontal = 3.dp,
-        paddingVertical = 3.dp,
-    ) {
-        valores.forEachIndexed { indice, valor ->
-            CelulaHistorico(texto = valor, peso = pesosColunaHistorico[indice])
         }
     }
 }

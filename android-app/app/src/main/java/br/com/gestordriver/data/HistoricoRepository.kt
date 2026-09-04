@@ -8,6 +8,8 @@ interface HistoricoRepository {
 
     fun salvar(item: HistoricoItemPresentation)
 
+    fun remover(chaves: Collection<String>)
+
     fun limpar()
 }
 
@@ -25,6 +27,14 @@ class MemoriaHistoricoRepository(
             return
         }
         itens += item
+    }
+
+    override fun remover(chaves: Collection<String>) {
+        if (chaves.isEmpty()) {
+            return
+        }
+        val alvo = chaves.toSet()
+        itens.removeAll { it.chaveHistorico() in alvo }
     }
 
     override fun limpar() {

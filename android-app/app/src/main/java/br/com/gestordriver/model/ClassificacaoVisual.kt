@@ -12,10 +12,16 @@ enum class ClassificacaoVisual {
 
     val marcador: String
         get() = when (this) {
-            EXCELENTE -> "🔵"
-            BOA -> "🟢"
-            REGULAR, BAIXA -> "🟠"
-            RUIM -> "🔴"
+            EXCELENTE -> "🟢"
+            BOA -> "🟡"
+            REGULAR, BAIXA, RUIM -> "🔴"
+        }
+
+    val rotulo: String
+        get() = when (this) {
+            EXCELENTE -> "Ótima"
+            BOA -> "Boa"
+            REGULAR, BAIXA, RUIM -> "Ruim"
         }
 
     companion object {

@@ -2,7 +2,7 @@
 
 Este documento descreve o escopo inicial do produto, seus objetivos, regras de negócio e critérios de aceitação para o MVP.
 
-**Implementação atual: Beta.** Overlay, análise com cálculos visíveis, histórico no aceite, configurações. **Pro** (custo operacional) vem depois. **Free** (cálculos ocultos na UI) só no lançamento da loja. Regras oficiais: [REGRAS_NEGOCIO.md](REGRAS_NEGOCIO.md). Estado: [README](../README.md) e [Roadmap](Roadmap.md).
+**Implementação atual: Pro 2.0** (`vs-2.0`). Free = demo com calculadora/dashboard ocultos. Beta `1.1.10` congelado em `main`. Regras: [REGRAS_NEGOCIO.md](REGRAS_NEGOCIO.md) §38. Fechamento: [ROTEIRO_PRO.md](ROTEIRO_PRO.md). Estado: [README](../README.md) e [Roadmap](Roadmap.md).
 
 ## 1. Objetivo do produto
 
@@ -24,7 +24,7 @@ O Gestor Driver **nunca aceita a corrida pelo usuário**. O aceite ocorre no Ube
 
 - calcular distância total;
 - calcular valor por quilômetro (R$/KM);
-- estimar consumo e custo de **combustível atual** (Beta; operacional completo só no Pro);
+- estimar consumo e **gasto total** da corrida (combustível + óleo/pneu/IPVA/seguro no Pro; Free oculta);
 - gerar uma classificação visual de rentabilidade (borda).
 
 ### 4.2 Configurações do usuário
@@ -172,30 +172,25 @@ O histórico deve armazenar o resultado da análise, e não recalculá-lo quando
 - consultas futuras devem devolver exatamente o resultado salvo;
 - alterações futuras em classificação ou combustível não podem modificar corridas antigas retroativamente.
 
-## 7. Planos Free / Beta / Pro
+## 7. Planos Free / Pro
 
 O aplicativo controla o que a **interface mostra**, sem alterar a análise, o histórico ou o motor.
 
-**Ordem:** Beta (desenvolvimento e testes) → Pro (depois) → Free no lançamento da loja.
+**Produto:** Free (demo) + Pro (paga). No código, `PlanoAcesso.BETA` = Pro. Beta `1.1.10` permanece só em `main`.
 
-### Free (lançamento)
+### Free
 
-Mesma app; **não mostra os cálculos**: R$/KM, litros, gasto e lucro ocultos. Valor, km, tempo, nota, cor e histórico visíveis.
+Mesma app; **não mostra os cálculos**: R$/KM, litros, gasto, lucro e dashboard ocultos (🔒). Valor, km, tempo, nota, cor e histórico visíveis.
 
-### Beta (agora)
+### Pro
 
-Free + R$/KM, consumo estimado, gasto e lucro de combustível visíveis.
-
-### Pro (depois)
-
-Beta + custos operacionais (pneus, óleo, manutenção, depreciação), R$/KM líquido, relatórios, estatísticas.
+Tudo liberado: combustível + óleo/pneus/IPVA/seguro, dashboard, tema, histórico com Consumo/Gasto e Embarque/Destino.
 
 ### Regra de acesso
 
 - o plano não recalcula a análise;
 - o plano não altera o histórico salvo;
-- a UI consulta o contrato de recursos do plano ativo. A build atual inicia em **Beta**.
-
+- a UI consulta o contrato de recursos do plano ativo. A build Pro inicia com plano liberado; Free só aplica cadeados.
 ## 8. Regras de negócio
 
 - o valor por quilômetro é calculado com base na distância total e no valor da corrida;

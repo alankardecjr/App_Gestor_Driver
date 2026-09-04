@@ -2,33 +2,38 @@
 
 Estado alinhado ao código em `android-app/` e às regras em [`REGRAS_NEGOCIO.md`](REGRAS_NEGOCIO.md).
 
-**Ordem de produto:** Beta (agora) → Pro (depois) → Free no lançamento da loja (cálculos ocultos).
+**Produto:** **Free** (demo, 🔒) + **Pro** (paga, liberada). Branch ativa: `vs-2.0` / `2.0.0`. Beta `1.1.10` congelado em `main`.
 
-## Agora — Beta
+## Feito — Beta 1.1.10 (`main`)
 
-- [x] Overlay: selo, compacta (cabeçalho), expandida (altura do conteúdo)
-- [x] Histórico e configuração como painéis overlay (exclusivos)
-- [x] Custo só de combustível atual (km/L + preço do litro)
-- [x] Faixas de classificação editáveis (padrão 1,19 / 1,20–1,59 / 1,60–1,99 / 2,00)
+- [x] Overlay: selo, compacta, expandida
+- [x] Histórico e configuração como painéis overlay
+- [x] Custo de combustível atual (km/L + preço do litro)
+- [x] Faixas de classificação editáveis (4 faixas na Beta)
 - [x] Histórico só no aceite (Room) + DataStore de config
 - [x] Listener, parser genérico, log `notificacoes_diagnostico.txt`
-- [x] Onboarding: permissões → conta → tutorial (seguir/pular) → monitoramento
-- [ ] Calibração de campo (parser / aceite com notificações reais)
+- [x] Onboarding: permissões → conta → tutorial → monitoramento
 
-## Depois — Pro
+## Agora — Pro 2.0 (`vs-2.0`)
 
-- [ ] Custo operacional (pneus, óleo, manutenção, depreciação)
-- [ ] Calcular combustível (valor/litros → R$/L; km inicial/final → km/L do combustível atual)
-- [ ] Vencimento do IPVA
-- [ ] R$/km líquido
-- [ ] Relatórios / estatísticas
-- [ ] Trajeto da corrida aceita no histórico (Maps/Waze)
+Código (telas A/B): ver [`ROTEIRO_PRO.md`](ROTEIRO_PRO.md).
 
-## Lançamento — Free
+- [x] Lucro = valor − combustível + óleo + pneus + IPVA + seguro
+- [x] Semáforo 3 faixas (padrão 1,59 / 1,60–1,99 / 2,00)
+- [x] Dashboard Diário / Semanal / Mensal (Compose + overlay)
+- [x] Tema Escuro / Claro / Celular
+- [x] Card histórico: Consumo (L) + Gasto; Embarque / Destino
+- [x] Alerta óleo 500 km; confirmação de abastecimento ao Salvar
+- [x] Free com cadeados na calculadora / dashboard
+- [ ] Bloco C — teste de rua (SM-A145M)
+- [ ] Freeze Pro após rua; commit só com pedido
 
-- [ ] Mesma app na loja, plano Free: valor, km, tempo, nota e cor **sem** R$/KM, litros, gasto e lucro
-- [ ] Publicação (Play Store)
+## Depois
+
+- [ ] Cobrança / Play Store (Free na loja = mesmo app com 🔒)
+- [ ] Calibração fina de parser / aceite com ofertas reais
+- [ ] Testes instrumentados; gráficos / metas além do dashboard atual
 
 ## Fora do escopo imediato
 
-Testes instrumentados com notificações reais, múltiplos veículos, seletor de plano na UI (a build inicia em Beta).
+Misturar 2.0 em `main`; botão Aceitar; sync em nuvem.
