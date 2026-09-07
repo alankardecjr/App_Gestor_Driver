@@ -81,7 +81,8 @@ class AppViewModelTest {
         viewModel.alternarDetalhes()
 
         assertTrue(viewModel.state.interfaceOculta)
-        assertTrue(viewModel.state.compactaTemporaria)
+        assertTrue(viewModel.state.seloFlutuante)
+        assertFalse(viewModel.state.compactaTemporaria)
         assertEquals(
             ModoApresentacao.COMPACTA,
             viewModel.state.corrida.modo,
@@ -154,10 +155,10 @@ class AppViewModelTest {
     fun aba_custos_e_app_devem_atualizar_estado() {
         val viewModel = novoViewModel()
         viewModel.abrirConfiguracoes()
-        OverlayBridge.emitir(OverlayAcao.AbaConfiguracao(1))
-        assertEquals(1, viewModel.state.abaConfiguracao)
-        OverlayBridge.emitir(OverlayAcao.AbaConfiguracao(3))
-        assertEquals(3, viewModel.state.abaConfiguracao)
+        OverlayBridge.emitir(OverlayAcao.AbaConfiguracao(0))
+        assertEquals(0, viewModel.state.abaConfiguracao)
+        OverlayBridge.emitir(OverlayAcao.AbaConfiguracao(2))
+        assertEquals(2, viewModel.state.abaConfiguracao)
     }
 
     @Test
@@ -398,18 +399,19 @@ class AppViewModelTest {
     }
 
     @Test
-    fun solicitar_fechar_deve_manter_expandida_e_abrir_painel_abaixo() {
+    fun solicitar_fechar_abre_confirmacao_na_activity() {
         val viewModel = novoViewModel()
         viewModel.iniciarMonitoramento()
         viewModel.reabrirInterface()
         viewModel.solicitarFecharApp()
 
         assertTrue(viewModel.state.confirmacaoFecharVisivel)
-        assertTrue(viewModel.state.interfaceOculta)
+        assertFalse(viewModel.state.interfaceOculta)
         assertFalse(viewModel.state.historicoVisivel)
         assertFalse(viewModel.state.configuracoesVisivel)
         assertFalse(viewModel.state.seloFlutuante)
         assertEquals(ModoApresentacao.DETALHES, viewModel.state.corrida.modo)
+        assertFalse(OverlayBridge.snapshot.value.expandidaVisivel)
     }
 
     // =====================================================================
@@ -524,10 +526,11 @@ class AppViewModelTest {
         viewModel.solicitarLimparHistorico()
         assertTrue(viewModel.state.confirmacaoLimparHistoricoVisivel)
         assertTrue(viewModel.state.historicoVisivel)
+        assertFalse(viewModel.state.interfaceOculta)
         assertEquals(1, viewModel.state.historico.size)
         assertFalse(OverlayBridge.snapshot.value.expandidaVisivel)
-        assertTrue(OverlayBridge.snapshot.value.historicoVisivel)
-        assertTrue(OverlayBridge.snapshot.value.confirmacaoLimparHistoricoVisivel)
+        assertFalse(OverlayBridge.snapshot.value.historicoVisivel)
+        assertFalse(OverlayBridge.snapshot.value.confirmacaoLimparHistoricoVisivel)
     }
 
     @Test
@@ -608,6 +611,39 @@ class AppViewModelTest {
     }
 
     @Test
+    fun selo_no_x_com_historico_guardado_abrir_app_reabre_menu() {
+        val viewModel = novoViewModel()
+        viewModel.iniciarMonitoramento()
+        viewModel.reabrirInterface()
+        viewModel.abrirHistoricoPeloOverlay()
+        OverlayBridge.emitir(OverlayAcao.RecentesBarra)
+        viewModel.esconderSeloManterMonitor()
+        assertTrue(viewModel.state.seloEscondido)
+        assertTrue(viewModel.state.estadoSalvo?.historicoVisivel == true)
+
+        viewModel.restaurarTelaAposRecentes()
+        assertTrue(viewModel.state.historicoVisivel)
+        assertFalse(viewModel.state.seloEscondido)
+        assertNull(viewModel.state.estadoSalvo)
+
+        viewModel.voltarParaAtalho()
+        assertFalse(viewModel.state.historicoVisivel)
+        assertFalse(viewModel.state.seloEscondido)
+        assertTrue(viewModel.state.opcoesVisivel)
+        assertFalse(OverlayBridge.snapshot.value.seloVisivel)
+    }
+
+    @Test
+    fun desligar_app_pela_notificacao_pede_confirmacao() {
+        val viewModel = novoViewModel()
+        viewModel.iniciarMonitoramento()
+        viewModel.esconderSeloManterMonitor()
+        viewModel.solicitarFecharApp()
+        assertTrue(viewModel.state.confirmacaoFecharVisivel)
+        assertTrue(viewModel.state.monitorando)
+    }
+
+    @Test
     fun nova_oferta_nao_entra_no_historico() {
         val viewModel = novoViewModel()
         val analise = analiseFake()
@@ -629,9 +665,9 @@ class AppViewModelTest {
         assertEquals(1, viewModel.state.historico.size)
         assertTrue(viewModel.state.corridaAceita)
         assertFalse(viewModel.state.ofertaAtiva)
-        assertFalse(viewModel.state.seloFlutuante)
-        assertTrue(viewModel.state.compactaTemporaria)
-        assertEquals(38.0, viewModel.state.analiseAtual?.valorTotal ?: 0.0, 0.001)
+        assertTrue(viewModel.state.seloFlutuante)
+        assertFalse(viewModel.state.compactaTemporaria)
+        assertEquals(null, viewModel.state.analiseAtual)
     }
 
     @Test
@@ -751,7 +787,23 @@ class AppViewModelTest {
         viewModel.restaurarTelaAposRecentes()
         assertTrue(viewModel.state.historicoVisivel)
         assertFalse(viewModel.state.seloFlutuante)
-        assertTrue(viewModel.state.interfaceOculta)
+        assertFalse(viewModel.state.interfaceOculta)
+        assertNull(viewModel.state.estadoSalvo)
+    }
+
+    @Test
+    fun apos_recentes_toque_no_selo_reabre_historico() {
+        val viewModel = novoViewModel()
+        viewModel.iniciarMonitoramento()
+        viewModel.reabrirInterface()
+        viewModel.abrirHistoricoPeloOverlay()
+        OverlayBridge.emitir(OverlayAcao.RecentesBarra)
+        assertTrue(viewModel.state.seloFlutuante)
+        assertTrue(viewModel.state.estadoSalvo?.historicoVisivel == true)
+
+        viewModel.reabrirInterface()
+        assertTrue(viewModel.state.historicoVisivel)
+        assertFalse(viewModel.state.seloFlutuante)
         assertNull(viewModel.state.estadoSalvo)
     }
 
@@ -833,32 +885,86 @@ class AppViewModelTest {
         viewModel.aplicarNovaCorrida(analiseFake())
         viewModel.reabrirInterface()
         viewModel.alternarDetalhes()
-        assertTrue(viewModel.state.compactaTemporaria)
+        assertTrue(viewModel.state.ofertaAtiva)
+        assertFalse(viewModel.state.compactaTemporaria)
         OverlayBridge.emitir(OverlayAcao.ToqueForaDaCompacta)
-        assertTrue(viewModel.state.compactaTemporaria)
+        assertTrue(viewModel.state.ofertaAtiva)
         assertFalse(viewModel.state.seloFlutuante)
     }
 
     @Test
-    fun toque_no_selo_abre_e_fecha_menu_atalho_mantendo_selo_visivel() {
+    fun historico_e_config_abrem_como_tela_nativa() {
         val viewModel = novoViewModel()
         viewModel.iniciarMonitoramento()
+        viewModel.abrirHistoricoPeloOverlay()
+        assertTrue(viewModel.state.historicoVisivel)
+        assertFalse(viewModel.state.interfaceOculta)
+        assertFalse(OverlayBridge.snapshot.value.historicoVisivel)
+        assertFalse(OverlayBridge.snapshot.value.expandidaVisivel)
+
+        viewModel.voltarParaAtalho()
+        assertFalse(viewModel.state.historicoVisivel)
+        assertTrue(viewModel.state.opcoesVisivel)
+        assertFalse(viewModel.state.interfaceOculta)
+        assertFalse(OverlayBridge.snapshot.value.expandidaVisivel)
+
+        viewModel.abrirAtalhoConfig(0)
+        assertTrue(viewModel.state.configuracoesVisivel)
+        assertEquals(0, viewModel.state.abaConfiguracao)
+        assertFalse(viewModel.state.interfaceOculta)
+        assertFalse(OverlayBridge.snapshot.value.configuracoesVisivel)
+    }
+
+    @Test
+    fun semaforo_abre_como_tela_nativa_do_menu() {
+        val viewModel = novoViewModel()
+        viewModel.iniciarMonitoramento()
+        viewModel.abrirSemaforo()
+        assertTrue(viewModel.state.semaforoVisivel)
+        assertFalse(viewModel.state.configuracoesVisivel)
+        assertFalse(viewModel.state.interfaceOculta)
+        viewModel.voltarParaAtalho()
+        assertFalse(viewModel.state.semaforoVisivel)
+        assertTrue(viewModel.state.opcoesVisivel)
+        assertFalse(viewModel.state.interfaceOculta)
+    }
+
+    @Test
+    fun toque_no_selo_abre_atalhos_escondendo_selo_e_x_devolve_selo() {
+        val viewModel = novoViewModel()
+        viewModel.iniciarMonitoramento()
+        // iniciarMonitoramento abre Opções; fecha para selo antes do fluxo overlay.
+        viewModel.fecharAtalhosParaSelo()
         assertTrue(OverlayBridge.snapshot.value.seloVisivel)
         assertFalse(OverlayBridge.snapshot.value.expandidaVisivel)
 
         viewModel.reabrirInterface()
         assertTrue(OverlayBridge.snapshot.value.expandidaVisivel)
-        assertTrue(OverlayBridge.snapshot.value.seloVisivel)
+        assertFalse(OverlayBridge.snapshot.value.seloVisivel)
         assertEquals(ModoApresentacao.DETALHES, viewModel.state.corrida.modo)
 
-        viewModel.reabrirInterface()
+        viewModel.fecharAtalhosParaSelo()
         assertFalse(OverlayBridge.snapshot.value.expandidaVisivel)
         assertTrue(OverlayBridge.snapshot.value.seloVisivel)
         assertTrue(viewModel.state.seloFlutuante)
     }
 
     @Test
-    fun toque_fora_na_expandida_nao_recolhe() {
+    fun toque_fora_dos_atalhos_fecha_e_devolve_selo() {
+        val viewModel = novoViewModel()
+        viewModel.iniciarMonitoramento()
+        viewModel.fecharAtalhosParaSelo()
+        viewModel.reabrirInterface()
+        assertTrue(OverlayBridge.snapshot.value.expandidaVisivel)
+        assertFalse(OverlayBridge.snapshot.value.seloVisivel)
+
+        OverlayBridge.emitir(OverlayAcao.FecharAtalhos)
+        assertFalse(OverlayBridge.snapshot.value.expandidaVisivel)
+        assertTrue(OverlayBridge.snapshot.value.seloVisivel)
+    }
+
+    @Test
+    fun toque_fora_na_expandida_nao_usa_toque_da_compacta() {
         val viewModel = novoViewModel()
         viewModel.aplicarNovaCorrida(analiseFake())
         viewModel.reabrirInterface()
@@ -881,13 +987,13 @@ class AppViewModelTest {
     }
 
     @Test
-    fun retrair_sem_oferta_inicia_espera_para_selo() {
+    fun retrair_sem_oferta_vai_ao_selo() {
         val viewModel = novoViewModel()
         viewModel.reabrirInterface()
         viewModel.alternarDetalhes()
-        assertTrue(viewModel.state.compactaTemporaria)
+        assertFalse(viewModel.state.compactaTemporaria)
         assertTrue(viewModel.state.interfaceOculta)
-        assertFalse(viewModel.state.seloFlutuante)
+        assertTrue(viewModel.state.seloFlutuante)
     }
 
     @Test
@@ -923,8 +1029,8 @@ class AppViewModelTest {
         viewModel.expirarOfertaAtual()
         assertEquals(null, viewModel.state.analiseAtual)
         assertFalse(viewModel.state.ofertaAtiva)
-        assertFalse(viewModel.state.seloFlutuante)
-        assertTrue(viewModel.state.compactaTemporaria)
+        assertTrue(viewModel.state.seloFlutuante)
+        assertFalse(viewModel.state.compactaTemporaria)
         assertEquals(1, viewModel.state.historico.size)
         assertEquals(40.0, viewModel.state.historico.first().valorTotal, 0.001)
         assertEquals(ModoApresentacao.COMPACTA, viewModel.state.corrida.modo)
@@ -938,8 +1044,9 @@ class AppViewModelTest {
         viewModel.atualizarPosicaoSelo(80f, 160f)
         viewModel.aplicarNovaCorrida(analiseFake())
         viewModel.expirarOfertaAtual()
-        assertFalse(viewModel.state.seloFlutuante)
-        assertTrue(viewModel.state.compactaTemporaria)
+        assertTrue(viewModel.state.seloFlutuante)
+        assertFalse(viewModel.state.compactaTemporaria)
+        assertFalse(viewModel.state.ofertaAtiva)
         assertTrue(viewModel.state.interfaceOculta)
         assertEquals(80f, viewModel.state.seloOffsetX)
         assertEquals(160f, viewModel.state.seloOffsetY)

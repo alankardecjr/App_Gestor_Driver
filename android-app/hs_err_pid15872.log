@@ -1,0 +1,236 @@
+#
+# There is insufficient memory for the Java Runtime Environment to continue.
+# Native memory allocation (malloc) failed to allocate 1048576 bytes for AllocateHeap
+# Possible reasons:
+#   The system is out of physical RAM or swap space
+#   The process is running with CompressedOops enabled, and the Java Heap may be blocking the growth of the native heap
+# Possible solutions:
+#   Reduce memory load on the system
+#   Increase physical memory or swap space
+#   Check if swap backing store is full
+#   Decrease Java heap size (-Xmx/-Xms)
+#   Decrease number of Java threads
+#   Decrease Java thread stack sizes (-Xss)
+#   Set larger code cache with -XX:ReservedCodeCacheSize=
+#   JVM is running with Unscaled Compressed Oops mode in which the Java heap is
+#     placed in the first 4GB address space. The Java Heap base address is the
+#     maximum limit for the native heap growth. Please use -XX:HeapBaseMinAddress
+#     to set the Java Heap base and to place the Java Heap above 4GB virtual address.
+# This output file may be truncated or incomplete.
+#
+#  Out of Memory Error (allocation.cpp:44), pid=15872, tid=1656
+#
+# JRE version:  (21.0.8+12) (build )
+# Java VM: Java HotSpot(TM) 64-Bit Server VM (21.0.8+12-LTS-250, mixed mode, sharing, tiered, compressed oops, compressed class ptrs, g1 gc, windows-amd64)
+# No core dump will be written. Minidumps are not enabled by default on client versions of Windows
+#
+
+---------------  S U M M A R Y ------------
+
+Command Line: org.jetbrains.kotlin.cli.jvm.K2JVMCompiler @C:\VisualCode\App_Gestor_Driver\android-app\app\build\20260831_3572221260660596230.compiler.options
+
+Host: Snapdragon (TM) 7c Gen 2 @ 2.55 GHz, 8 cores, 3G,  Windows 11 , 64 bit Build 26100 (10.0.26100.9278)
+Time: Mon Aug 31 08:32:48 2026 Hora Padrão da Bahia elapsed time: 0.126186 seconds (0d 0h 0m 0s)
+
+---------------  T H R E A D  ---------------
+
+Current thread (0x000001c2e55a6d60):  JavaThread "Unknown thread" [_thread_in_vm, id=1656, stack(0x000000c201300000,0x000000c201400000) (1024K)]
+
+Stack: [0x000000c201300000,0x000000c201400000]
+Native frames: (J=compiled Java code, j=interpreted, Vv=VM code, C=native code)
+V  [jvm.dll+0x6cc179]
+V  [jvm.dll+0x8584c1]
+V  [jvm.dll+0x85a9ee]
+V  [jvm.dll+0x85b0c3]
+V  [jvm.dll+0x27ebf6]
+V  [jvm.dll+0xbfae7]
+V  [jvm.dll+0x326c95]
+V  [jvm.dll+0x82183d]
+V  [jvm.dll+0x3bc541]
+V  [jvm.dll+0x80aaf8]
+V  [jvm.dll+0x45172e]
+V  [jvm.dll+0x453321]
+C  [jli.dll+0x52a3]
+C  [ucrtbase.dll+0x19a20c]
+
+
+---------------  P R O C E S S  ---------------
+
+Threads class SMR info:
+_java_thread_list=0x00007ff9a9defc48, length=0, elements={
+}
+
+Java Threads: ( => current thread )
+Total: 0
+
+Other Threads:
+
+=>0x000001c2e55a6d60 (exited) JavaThread "Unknown thread"    [_thread_in_vm, id=1656, stack(0x000000c201300000,0x000000c201400000) (1024K)]
+Total: 1
+
+Threads with active compile tasks:
+Total: 0
+
+VM state: not at safepoint (not fully initialized)
+
+VM Mutex/Monitor currently owned by a thread: None
+
+Heap address: 0x0000000000000000, size: 0 MB, Compressed Oops mode: 32-bit
+
+CDS archive(s) mapped at: [0x0000000000000000-0x0000000000000000-0x0000000000000000), size 0, SharedBaseAddress: 0x0000000800000000, ArchiveRelocationMode: 1.
+Narrow klass base: 0x0000000000000000, Narrow klass shift: 0, Narrow klass range: 0x0
+
+GC Precious Log:
+ CardTable entry size: 512
+ Card Set container configuration: InlinePtr #cards 5 size 8 Array Of Cards #cards 12 size 40 Howl #buckets 4 coarsen threshold 1843 Howl Bitmap #cards 512 size 80 coarsen threshold 460 Card regions per heap region 1 cards per card region 2048
+
+GC Heap History (0 events):
+No events
+
+Dll operation events (1 events):
+Event: 0.091 Loaded shared library C:\Program Files\Java\jdk-21_windows-x64_bin\jdk-21.0.8\bin\java.dll
+
+Deoptimization events (0 events):
+No events
+
+Classes loaded (0 events):
+No events
+
+Classes unloaded (0 events):
+No events
+
+Classes redefined (0 events):
+No events
+
+Internal exceptions (0 events):
+No events
+
+ZGC Phase Switch (0 events):
+No events
+
+VM Operations (0 events):
+No events
+
+Events (0 events):
+No events
+
+
+Dynamic libraries:
+0x00007ff7be150000 - 0x00007ff7be160000 	C:\Program Files\Java\jdk-21_windows-x64_bin\jdk-21.0.8\bin\java.exe
+0x00007ffa5af10000 - 0x00007ffa5b347000 	C:\WINDOWS\SYSTEM32\ntdll.dll
+0x00007ffa5a650000 - 0x00007ffa5a820000 	C:\WINDOWS\System32\xtajit64se.dll
+0x00007ffa5a830000 - 0x00007ffa5a99a000 	C:\WINDOWS\System32\KERNEL32.DLL
+0x00007ffa56360000 - 0x00007ffa56a40000 	C:\WINDOWS\System32\KERNELBASE.dll
+0x00007ffa55d70000 - 0x00007ffa55e76000 	C:\WINDOWS\SYSTEM32\apphelp.dll
+0x00007ffa56e00000 - 0x00007ffa57029000 	C:\WINDOWS\System32\ucrtbase.dll
+0x00007ffa1c500000 - 0x00007ffa1c519000 	C:\Program Files\Java\jdk-21_windows-x64_bin\jdk-21.0.8\bin\jli.dll
+0x00007ffa1f620000 - 0x00007ffa1f63b000 	C:\Program Files\Java\jdk-21_windows-x64_bin\jdk-21.0.8\bin\VCRUNTIME140.dll
+0x00007ffa586b0000 - 0x00007ffa587fd000 	C:\WINDOWS\System32\ADVAPI32.dll
+0x00007ffa58b30000 - 0x00007ffa58c78000 	C:\WINDOWS\System32\msvcrt.dll
+0x00007ffa57220000 - 0x00007ffa57344000 	C:\WINDOWS\System32\sechost.dll
+0x00007ffa5ac00000 - 0x00007ffa5ae03000 	C:\WINDOWS\System32\RPCRT4.dll
+0x00007ffa58130000 - 0x00007ffa583bb000 	C:\WINDOWS\System32\USER32.dll
+0x00007ffa56a50000 - 0x00007ffa56ab1000 	C:\WINDOWS\System32\win32u.dll
+0x00007ffa3a470000 - 0x00007ffa3a8da000 	C:\WINDOWS\WinSxS\arm64_microsoft.windows.common-controls_6595b64144ccf1df_6.0.26100.9278_none_3e0d1b06e3303345\COMCTL32.dll
+0x00007ffa57e50000 - 0x00007ffa57eb5000 	C:\WINDOWS\System32\GDI32.dll
+0x00007ffa56ac0000 - 0x00007ffa56ca3000 	C:\WINDOWS\System32\gdi32full.dll
+0x00007ffa56200000 - 0x00007ffa56359000 	C:\WINDOWS\System32\msvcp_win.dll
+0x00007ffa45140000 - 0x00007ffa45156000 	C:\WINDOWS\SYSTEM32\VERSION.dll
+0x00007ffa57350000 - 0x00007ffa573a7000 	C:\WINDOWS\System32\IMM32.DLL
+0x00007ffa4db90000 - 0x00007ffa4db9c000 	C:\Program Files\Java\jdk-21_windows-x64_bin\jdk-21.0.8\bin\vcruntime140_1.dll
+0x00007ffa02be0000 - 0x00007ffa02c6e000 	C:\Program Files\Java\jdk-21_windows-x64_bin\jdk-21.0.8\bin\msvcp140.dll
+0x00007ff9a9220000 - 0x00007ff9a9f3d000 	C:\Program Files\Java\jdk-21_windows-x64_bin\jdk-21.0.8\bin\server\jvm.dll
+0x00007ffa58050000 - 0x00007ffa58126000 	C:\WINDOWS\System32\WS2_32.dll
+0x00007ffa55fb0000 - 0x00007ffa5602c000 	C:\WINDOWS\SYSTEM32\POWRPROF.dll
+0x00007ffa3a400000 - 0x00007ffa3a463000 	C:\WINDOWS\SYSTEM32\WINMM.dll
+0x00007ffa55f80000 - 0x00007ffa55fa7000 	C:\WINDOWS\SYSTEM32\UMPDC.dll
+0x00007ffa53f70000 - 0x00007ffa53fa1000 	C:\WINDOWS\SYSTEM32\kernel.appcore.dll
+0x00007ffa4d9e0000 - 0x00007ffa4d9ea000 	C:\Program Files\Java\jdk-21_windows-x64_bin\jdk-21.0.8\bin\jimage.dll
+0x00007ffa434a0000 - 0x00007ffa438db000 	C:\WINDOWS\SYSTEM32\DBGHELP.DLL
+0x00007ffa58c80000 - 0x00007ffa59336000 	C:\WINDOWS\System32\combase.dll
+0x00007ffa5a4a0000 - 0x00007ffa5a646000 	C:\WINDOWS\System32\OLEAUT32.dll
+0x00007ffa0c510000 - 0x00007ffa0c57f000 	C:\WINDOWS\SYSTEM32\dbgcore.DLL
+0x00007ffa57030000 - 0x00007ffa5712f000 	C:\WINDOWS\System32\bcryptPrimitives.dll
+0x00007ffa1ba60000 - 0x00007ffa1ba7f000 	C:\Program Files\Java\jdk-21_windows-x64_bin\jdk-21.0.8\bin\java.dll
+
+dbghelp: loaded successfully - version: 4.0.5 - missing functions: none
+symbol engine: initialized successfully - sym options: 0x614 - pdb path: .;C:\Program Files\Java\jdk-21_windows-x64_bin\jdk-21.0.8\bin;C:\WINDOWS\SYSTEM32;C:\WINDOWS\WinSxS\arm64_microsoft.windows.common-controls_6595b64144ccf1df_6.0.26100.9278_none_3e0d1b06e3303345;C:\Program Files\Java\jdk-21_windows-x64_bin\jdk-21.0.8\bin\server
+
+VM Arguments:
+java_command: org.jetbrains.kotlin.cli.jvm.K2JVMCompiler @C:\VisualCode\App_Gestor_Driver\android-app\app\build\20260831_3572221260660596230.compiler.options
+java_class_path (initial): C:\Users\akard\.gradle\caches\modules-2\files-2.1\org.jetbrains.kotlin\kotlin-compiler-embeddable\2.2.10\6882d39ef03b18879c1a5d2a83c2212361bed5fe\kotlin-compiler-embeddable-2.2.10.jar;C:\Users\akard\.gradle\caches\modules-2\files-2.1\org.jetbrains.kotlin\kotlin-stdlib\2.2.10\30de6faa127a4a012db8e71bf1b9c0a99b1402b2\kotlin-stdlib-2.2.10.jar;C:\Users\akard\.gradle\caches\modules-2\files-2.1\org.jetbrains.kotlin\kotlin-script-runtime\2.2.10\712f9bc08f378c13a4a00f0bbb28c76e59183e83\kotlin-script-runtime-2.2.10.jar;C:\Users\akard\.gradle\caches\modules-2\files-2.1\org.jetbrains.kotlin\kotlin-reflect\1.6.10\1cbe9c92c12a94eea200d23c2bbaedaf3daf5132\kotlin-reflect-1.6.10.jar;C:\Users\akard\.gradle\caches\modules-2\files-2.1\org.jetbrains.kotlin\kotlin-daemon-embeddable\2.2.10\212fd3c2c6e4e5d0f4db3c4191233e2b622380cc\kotlin-daemon-embeddable-2.2.10.jar;C:\Users\akard\.gradle\caches\modules-2\files-2.1\org.jetbrains.kotlinx\kotlinx-coroutines-core-jvm\1.8.0\ac1dc37a30a93150b704022f8d895ee1bd3a36b3\kotlinx-coroutines-core-jvm-1.8.0.jar;C:\Users\akard\.gradle\caches\modules-2\files-2.1\org.jetbrains\annotations\13.0\919f0dfe192fb4e063e7dacadee7f8bb9a2672a9\annotations-13.0.jar
+Launcher Type: SUN_STANDARD
+
+[Global flags]
+     intx CICompilerCount                          = 4                                         {product} {ergonomic}
+     uint ConcGCThreads                            = 2                                         {product} {ergonomic}
+     uint G1ConcRefinementThreads                  = 8                                         {product} {ergonomic}
+   size_t G1HeapRegionSize                         = 1048576                                   {product} {ergonomic}
+    uintx GCDrainStackTargetSize                   = 64                                        {product} {ergonomic}
+   size_t InitialHeapSize                          = 62914560                                  {product} {ergonomic}
+   size_t MarkStackSize                            = 4194304                                   {product} {ergonomic}
+   size_t MaxHeapSize                              = 987758592                                 {product} {ergonomic}
+   size_t MinHeapDeltaBytes                        = 1048576                                   {product} {ergonomic}
+   size_t MinHeapSize                              = 8388608                                   {product} {ergonomic}
+    uintx NonNMethodCodeHeapSize                   = 5839372                                {pd product} {ergonomic}
+    uintx NonProfiledCodeHeapSize                  = 122909434                              {pd product} {ergonomic}
+    uintx ProfiledCodeHeapSize                     = 122909434                              {pd product} {ergonomic}
+    uintx ReservedCodeCacheSize                    = 251658240                              {pd product} {ergonomic}
+     bool SegmentedCodeCache                       = true                                      {product} {ergonomic}
+   size_t SoftMaxHeapSize                          = 987758592                              {manageable} {ergonomic}
+     bool UseCompressedOops                        = true                           {product lp64_product} {ergonomic}
+     bool UseG1GC                                  = true                                      {product} {ergonomic}
+     bool UseLargePagesIndividualAllocation        = false                                  {pd product} {ergonomic}
+
+Logging:
+Log output configuration:
+ #0: stdout all=warning uptime,level,tags foldmultilines=false
+ #1: stderr all=off uptime,level,tags foldmultilines=false
+
+Environment Variables:
+JAVA_HOME=C:\Program Files\Java\jdk-21_windows-x64_bin\jdk-21.0.8
+PATH=c:\Users\akard\AppData\Local\Programs\cursor\resources\app\node_modules\@vscode\ripgrep\bin;C:\Users\akard\AppData\Local\Programs\Python\Python313\Scripts\;C:\Users\akard\AppData\Local\Programs\Python\Python313;C:\Program Files\Java\jdk-21_windows-x64_bin\jdk-21.0.8\bin;C:\raylib\w64devkit\bin;C:\w64devkit\bin;C:\Program Files\Common Files\Oracle\Java\javapath;C:\Program Files\Java\jdk-25\bin;C:\WINDOWS\system32;C:\WINDOWS;C:\WINDOWS\System32\Wbem;C:\WINDOWS\System32\WindowsPowerShell\v1.0\;C:\WINDOWS\System32\OpenSSH\;C:\Program Files\Git\cmd;C:\Program Files\dotnet\;c:\Users\akard\AppData\Local\Programs\cursor\resources\app\codeBin;C:\Users\akard\AppData\Local\Programs\Python\Python313\Scripts\;C:\Users\akard\AppData\Local\Programs\Python\Python313\;C:\Users\akard\AppData\Local\Programs\Microsoft VS Code\bin;C:\Program Files\Java\jdk-25\bin;C:\raylib\w64devkit\bin;C:\w64devkit\bin;C:\Users\akard\.local\bin;C:\Users\akard\AppData\Local\Programs\cursor\resources\app\bin;C:\Users\akard\.dotnet\tools
+USERNAME=akardec
+TERM=dumb
+OS=Windows_NT
+PROCESSOR_IDENTIFIER=ARMv8 (64-bit) Family 8 Model 805 Revision D0E, Qualcomm Technologies Inc
+TMP=C:\Users\akard\AppData\Local\Temp
+TEMP=C:\Users\akard\AppData\Local\Temp
+
+
+
+
+Periodic native trim disabled
+
+---------------  S Y S T E M  ---------------
+
+OS:
+ Windows 11 , 64 bit Build 26100 (10.0.26100.9278)
+OS uptime: 0 days 10:11 hours
+
+CPU: total 8 (initial active 8) (8 cores per cpu, 1 threads per core) family 21 model 0 stepping 1 microcode 0x0, cx8, cmov, fxsr, mmx, 3dnowpref, sse, sse2, sse3, ssse3, sse4.1, sse4.2, popcnt, lzcnt, tsc, tscinvbit, avx, avx2, aes, clmul, bmi1, bmi2, fma, vzeroupper, clflush, rdtscp, f16c
+Processor Information for processor 0
+  Max Mhz: 1804, Current Mhz: 1804, Mhz Limit: 1804
+Processor Information for processor 1
+  Max Mhz: 1804, Current Mhz: 1804, Mhz Limit: 1804
+Processor Information for processor 2
+  Max Mhz: 1804, Current Mhz: 1804, Mhz Limit: 1804
+Processor Information for processor 3
+  Max Mhz: 1804, Current Mhz: 1804, Mhz Limit: 1804
+Processor Information for processor 4
+  Max Mhz: 1804, Current Mhz: 1804, Mhz Limit: 1804
+Processor Information for processor 5
+  Max Mhz: 1804, Current Mhz: 1804, Mhz Limit: 1804
+Processor Information for processor 6
+  Max Mhz: 2553, Current Mhz: 2553, Mhz Limit: 2553
+Processor Information for processor 7
+  Max Mhz: 2553, Current Mhz: 2553, Mhz Limit: 2553
+
+Memory: 4k page, system-wide physical 3767M (49M free)
+TotalPageFile size 15543M (AvailPageFile size 2M)
+current process WorkingSet (physical memory assigned to process): 25M, peak: 25M
+current process commit charge ("private bytes"): 22M, peak: 23M
+
+vm_info: Java HotSpot(TM) 64-Bit Server VM (21.0.8+12-LTS-250) for windows-amd64 JRE (21.0.8+12-LTS-250), built on 2025-06-27T08:11:22Z by "mach5one" with MS VC++ 17.6 (VS2022)
+
+END.

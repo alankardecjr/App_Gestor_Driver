@@ -63,12 +63,16 @@ Três fontes (ideia, não clone):
     Notificação: resumo da corrida aceita até a próxima oferta
 
 2.6 Selo
-    Toque = abre / fecha o MENU ao lado do selo
+    Toque = abre / fecha ATALHOS; o selo permanece visível com atalhos abertos
     Arrastar até o X na base = esconde o selo; monitoramento e notificação continuam
     (reabrir: notificação "Abrir App" ou abrir o app)
 
-2.7 Menu
-    Histórico | Calibrar | Custos | Usuário | Dashboard (Pro) | Configurações | Fechar
+2.7 Menu (Atalhos) — **CONGELADO 05/09/2026** §44
+    Histórico | Carteira | Despesas | Semáforo | Usuário | Configurar | Fechar
+    Sem botão X no card (selo abre/fecha). Ícones + cantos arredondados.
+    Posição: direita | esquerda | acima | abaixo conforme o selo na tela.
+    Descrições: Corridas aceitas | Gestor financeiro | Lançar despesas |
+    Calibrar faixas | Ajustar veiculo | Configurar App | Encerrar App
     Fechar = caixa Cancelar / Fechar (encerra monitoramento)
 
 2.8 Histórico
@@ -78,10 +82,14 @@ Três fontes (ideia, não clone):
     Limpar histórico = confirmação
 
 2.9 Config pelos atalhos
-    Usuário  → aba VEÍCULO
-    Custos   → aba CUSTOS
-    Calibrar → aba CALIBRAR
-    Configurações → aba APP (permissões, tema, navegação, enviar log)
+    Despesas  → aba Custos/Despesas
+    Usuário   → aba Veículo
+    Semáforo  → tela Semáforo (nativa; Km / Hora / Nota)
+    Carteira  → Dashboard
+    Configurar → aba Configurações/App (permissões, tema, navegação, enviar log)
+
+    Histórico / Carteira / Semáforo / Config = telas nativas (Activity),
+    mesmo painel com borda; ← volta aos Atalhos.
 
 
 ================================================================================
@@ -119,32 +127,33 @@ confiáveis em todos os aparelhos):
 
 
 --------------------------------------------------------------------------------
-3.2 COMPACTA (overlay no mapa, só na oferta)       origem: A + C
+3.2 COMPACTA (overlay no mapa, só na oferta)
 --------------------------------------------------------------------------------
 
-Posição: topo, não cobrir Recusar da 99.
-Borda: 5 dp na cor da classificação (ruim vermelho / regular laranja /
-boa verde / ótima azul). Sem oferta não aparece.
+Posição inicial: topo (não cobrir Recusar da 99). Arrastável; grava última posição.
+Borda: 6 dp na cor da classificação (ruim vermelho / boa amarelo / ótima verde).
+Tamanho aprox.: 4,5 cm × 1,7 cm. Fonte grossa.
+Sem oferta não aparece. Não forçar reaparecimento sobre a plataforma.
 
-  $/Km = R$ por quilômetro (classificação)
-  Lucro = valor da oferta − gasto de combustível estimado     (no lugar de R$/hora)
-  Gasto = R$ do combustível estimado                          (no lugar de R$/min)
-  Consumo = litros estimados  → linha de baixo, junto de km e tempo
-  Nota = nota do passageiro
+Campos (linha 1–2):
+  R$/Km  = título+valor grandes, cinza escuro
+  Dist.  = pequeno/médio, 1 casa decimal (ex.: 18,1 Km)
+  Tempo  = pequeno/médio (ex.: 45 Min; 1 decimal se houver)
+  Nota   = pequeno/médio
 
-┌──────────────────────────────────────────────────────────┐
-│  $/Km          Lucro           Gasto           Nota      │  ← cinza, pequeno
-│  R$ 2,38       R$ 32,10        R$ 5,90         4,9       │  ← branco, grande
-│  U   0h28m   16,0 Km   1,2 L   1 Parada(s)               │  ← cinza, médio
-│                                    ↑ consumo estimado    │
-└──────────────────────────────────────────────────────────┘
-     borda grossa = classificação
+Linha 3:
+  ícone do app remetente (U / 99 / in) + Parada(s)
+  Parada(s): cinza médio se zero; cinza escuro se houver
+
+┌──────────────────────────┐
+│  R$/Km   Dist.  Tempo  Nota │
+│   2,38  18,1 Km  45 Min  4,9│
+│        (**)   Parada(s)     │
+└──────────────────────────┘
 
 Toque na compacta: não faz nada (não abre menu, não some).
 Toque fora: não some.
-Some sozinha: 2 s (expirou/recusou) ou 4 s (aceitou).
-
-[ ] ok   [ ] ajustar: ________________________________
+Fluxo: nova oferta → (expirou/recusou/aceitou) → some junto com a oferta.
 
 
 --------------------------------------------------------------------------------
@@ -173,16 +182,16 @@ Não encerra o app.
 --------------------------------------------------------------------------------
 
 Janela estreita AO LADO do selo (não no topo da tela).
-Toque no selo abre/fecha. Toque fora fecha.
+Toque no selo abre/fecha. Sem botão X no card.
 
         (selo)  ┌─────────────────┐
-                │ Histórico       │
-                │ Calibrar        │
-                │ Custos          │
-                │ Usuário         │
-                │ Dashboard  🔒   │  → Pro: aviso "disponível no Pro"
-                │ Configurações   │
-                │ Fechar          │
+                │ Histórico       │  → Corridas aceitas
+                │ Carteira    🔒  │  → Gestor financeiro (Dashboard)
+                │ Despesas        │  → Lançar despesas
+                │ Semáforo        │  → Calibrar faixas
+                │ Usuário         │  → Ajustar veiculo
+                │ Configurar      │  → Configurar App
+                │ Fechar          │  → Encerrar App
                 └─────────────────┘
 
 NÃO volta o cartão antigo de distâncias/custos no topo (isso agora é
@@ -192,7 +201,28 @@ compacta + notificação + card do histórico).
 
 
 --------------------------------------------------------------------------------
-3.5 CONFIRMAÇÃO FECHAR / LIMPAR                    origem: C (Beta)
+3.5 CONFIRMAÇÃO (Fechar / Limpar) — superfície §44 #6
+--------------------------------------------------------------------------------
+
+Tela nativa (Activity), NÃO overlay.
+
+Fechar / Desligar App:
+┌─────────────────────────────────────────┐
+│  gestor driver                          │
+│  Deseja encerrar o aplicativo e parar   │
+│  o monitoramento de corridas?           │
+│                                         │
+│     Cancelar              Fechar        │
+└─────────────────────────────────────────┘
+
+Limpar histórico: mesma caixa; Cancelar / Limpar.
+Origem Fechar: Menu → Fechar ou notificação → Desligar App.
+
+[ ] ok   [ ] ajustar: ________________________________
+
+
+--------------------------------------------------------------------------------
+3.5b (legado) CONFIRMAÇÃO FECHAR / LIMPAR          origem: C (Beta)
 --------------------------------------------------------------------------------
 
 ┌─────────────────────────────────────────┐
@@ -212,8 +242,8 @@ Limpar histórico: mesma caixa, textos "Limpar histórico" / "Limpar".
 3.6 HISTÓRICO (cards, estilo Gigu + Gestor)        origem: A + C + B (mapa)
 --------------------------------------------------------------------------------
 
-Painel overlay (não tela cheia). Abas Uber | 99 | inDrive.
-Título: ⬅️ HISTÓRICO ➡️
+Tela nativa (Activity Compose), mesmo chrome do Dashboard/Config.
+Título: ← Histórico
 Só corridas ACEITAS. Mais recente em cima.
 Rodapé: 🗑️ Limpar histórico
 
@@ -248,24 +278,21 @@ NÃO entra:
 3.7 CONFIGURAÇÃO                                   origem: C agora; lista+Ajuda depois
 --------------------------------------------------------------------------------
 
-MESMA CAIXA do histórico (abaixo / overlay). Abas:
+Tela nativa, MESMO CHROME do histórico. Abas:
 
-  VEÍCULO | CUSTOS | CALIBRAR | APP
+  Despesas | Veículo | App
 
-Atalhos do menu abrem já na aba certa.
+Atalhos do menu abrem já na aba certa (exceto Semáforo → tela própria).
+
+DESPESAS
+  R$/L gasolina e etanol
+  Combustível atual (um só marcado)  ← obrigatório para o cálculo não errar
+  🔒 óleo / pneus / IPVA / seguro / km/ano (Pro)
 
 VEÍCULO
   Descrição (marca, modelo, versão, ano, final da placa)
   Consumo km/L gasolina e etanol
   🔒 Calcular abastecimento (Pro)
-
-CUSTOS
-  R$/L gasolina e etanol
-  Combustível atual (um só marcado)  ← obrigatório para o cálculo não errar
-  🔒 óleo / pneus (Pro)
-
-CALIBRAR
-  Faixas R$/km  − / +   (ruim / regular / boa / ótima)
 
 APP
   Permissões (notificação, sobrepor, acessibilidade, bateria)
@@ -273,17 +300,30 @@ APP
   Navegação: Google Maps | Waze
   Apps de motorista instalados
   ENVIAR LOG
-  (Ajuda por item: fase seguinte, estilo lista do líder da loja)
+  Conta Google / e-mail
 
 [ ] ok   [ ] ajustar: ________________________________
 
 
 --------------------------------------------------------------------------------
-3.8 DASHBOARD                                      origem: regra 1.4 — só Pro
+3.7b SEMÁFORO                                      origem: Pro 2.0
 --------------------------------------------------------------------------------
 
-NÃO construir a tela agora.
-Toque em Dashboard → mensagem: "Dashboard disponível no Pro."
+Tela nativa (menu → Semáforo). NÃO é aba de Config.
+Título: ← Semáforo
+Três cartões com RangeSlider (sem −/+):
+  Ganhos por Km · Ganhos por Hora · Nota do passageiro
+Legenda vermelho / amarelo / verde. Cancelar | Salvar.
+
+[ ] ok   [ ] ajustar: ________________________________
+
+
+--------------------------------------------------------------------------------
+3.8 DASHBOARD                                      origem: regra 1.4 — Pro
+--------------------------------------------------------------------------------
+
+Tela nativa (mesmo chrome). Abas Dia | Semana | Mês | Ano.
+Receitas / Despesas / Saldo; médias; receitas por plataforma.
 
 [ ] ok   [ ] ajustar: ________________________________
 
@@ -395,26 +435,25 @@ Oferta: R$ 38,00  |  16,0 km  |  28 min  |  nota 4,9  |  parada só se o app inf
 Combustível atual: 1,2 L  |  gasto R$ 5,90  |  lucro R$ 32,10  |  R$/km 2,38  |  Uber
 (Pro: lucro e gasto passam a incluir todos os custos, não só combustível)
 
-COMPACTA — mini-card canto superior esquerdo (não cobre Recusar)
-  títulos:  $/Km     $/Lucro     $/Gasto     Nota
-  valores:  2,38     32,10       5,90        4,9
-  linha 3:  *  0h28m  16,0 Km  Parada(s)
-            * = selo do app remetente
-            Parada(s) só se a plataforma informou
-            Consumo (litros) NÃO entra na compacta
+COMPACTA — topo (não cobre Recusar); ~4,5×1,7 cm; arrastável
+  títulos:  R$/Km    Dist.     Tempo     Nota
+  valores:  2,38    18,1 Km    28 Min     4,9
+  linha 3:  (**)  Parada(s)
+            (**) = selo/sigla do app remetente (U / 99 / in)
+            Parada(s): cinza médio se zero; cinza escuro se houver
+            Consumo / Lucro / Gasto NÃO entram na compacta
 
 NOTIFICAÇÃO — com oferta
   R$ 38,00  ·  0h28m  ·  16,0 Km
-  $/km · $/Lucro · Consumo · Nota
-  2,38 ·  32,10  ·  1,2 L  ·  4,9
+  2,38/km · Dist. · Tempo · Nota
   [ Abrir App ]    [ Desligar App ]
 
-NOTIFICAÇÃO — expirou ou recusou (compacta some em 2 s)
+NOTIFICAÇÃO — expirou ou recusou (compacta some com a oferta)
   limpa os dados da oferta
   Gestor Driver / Monitorando ofertas
   [ Abrir App ]    [ Desligar App ]
 
-NOTIFICAÇÃO — aceitou (compacta some em 4 s)
+NOTIFICAÇÃO — aceitou (compacta some com a oferta)
   mantém o resumo da corrida aceita até a próxima oferta
   (mesmo layout da notificação com oferta)
   histórico já gravou o card

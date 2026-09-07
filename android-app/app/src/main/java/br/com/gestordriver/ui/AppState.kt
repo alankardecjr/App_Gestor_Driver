@@ -15,6 +15,8 @@ data class EstadoInterfaceSalvo(
     val historicoVisivel: Boolean,
     val configuracoesVisivel: Boolean = false,
     val dashboardVisivel: Boolean = false,
+    val semaforoVisivel: Boolean = false,
+    val opcoesVisivel: Boolean = false,
     val seloFlutuante: Boolean = false,
     val seloEscondido: Boolean = false,
     val compactaTemporaria: Boolean = false,
@@ -61,6 +63,8 @@ data class AppState(
 
     val historicoChavesSelecionadas: Set<String> = emptySet(),
 
+    val detalhesCorridaVisivel: Boolean = false,
+
     val abaHistorico: String = "Todos",
 
     val historicoDia: LocalDate = CalendarioApp.hoje(),
@@ -95,6 +99,14 @@ data class AppState(
     val configuracoesVisivel: Boolean = false,
 
     val dashboardVisivel: Boolean = false,
+
+    val semaforoVisivel: Boolean = false,
+
+    /** Aba principal do Menu (mesmo layout da tela Atalhos). */
+    val opcoesVisivel: Boolean = false,
+
+    /** Permissões faltando: usuário pode navegar, sem monitoramento. */
+    val avisoSemMonitoramento: Boolean = false,
 
     val recentesConfig: Boolean = false,
 

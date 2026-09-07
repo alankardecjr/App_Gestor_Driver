@@ -2,7 +2,7 @@
 
 Objetivo: fechar a **versão Pro** na branch `vs-2.0` (`2.0.0` / versionCode 13). **Não misturar com o Beta congelado em `main` (1.1.10).** Sem commit e sem push até pedido explícito.
 
-Revisão: **03/09/2026** — telas A/B no código. **Bloco C em andamento** no SM-A145M (`2.0.0` instalado). Fonte oficial de telas: `Roteiro_Oficial_Gestor_Driver_Vs Pro_2.0.txt`.
+Revisão: **05/09/2026** — **tela Atalhos congelada** (§44). **Próximo:** roteiro de rua **06/09/2026** (abaixo). Bloco C no SM-A145M.
 
 ## Versões do produto (D1 + D12)
 
@@ -21,12 +21,12 @@ Revisão: **03/09/2026** — telas A/B no código. **Bloco C em andamento** no S
 | D2 | Lucro = valor − **todos** os gastos: combustível (selecionado), óleo, pneu, IPVA e seguro. | Aprovado · no código |
 | D3 | Abastecimento: ao Salvar, **perguntar** se aplica R$/L e km/L do combustível atual. | Aprovado · no código |
 | D4 | Dashboard: Diário / Semanal / Mensal — faturamento, gastos, lucro líquido, médias (km/hora/corrida) e rateio por item. Sem gráficos. | Aprovado · no código (Compose + overlay) |
-| D5 | Compacta: `$/Km $/Lucro $/Gasto Nota` + contexto. Sem R$/km líquido. | Aprovado · no código |
+| D5 | Compacta: `R$/Km Dist. Tempo Nota` + ícone plataforma · Parada(s); borda 6 dp; arrastável; toque não faz nada | Aprovado · no código |
 | D6 | Overlay = Compose; tema Escuro / Claro / Celular (aba App). | Aprovado · no código |
 | D7 | Semáforo **3** faixas: Ruim / Boa / Ótima. | Aprovado · no código |
 | D8 | Consumo ou preço 0 → `—` + aviso em Custos. | Aprovado · no código |
 | D9 | Lixeira só selecionadas. Sem seleção: **"Selecionar a(s) corrida(s)"**. Confirmação: **"Deseja apagar a(s) corrida(s) selecionada(s)?"** | Aprovado · no código |
-| D10 | Voltar em degraus; Home → selo; Recentes reabre a **última tela**. | Aprovado · no código |
+| D10 | Voltar em degraus; Home → selo; Recentes guarda última tela; toque no selo reabre (ex. Histórico). | Aprovado · no código |
 | D11 | Não publicar loja. Free só cadeado. | Aprovado |
 | D12 | Documentar Free vs Pro. | Aprovado · `REGRAS_NEGOCIO.md` §38 |
 | D13 | IPVA: vencimento (Veículo) + **Valor R$** (Custos). | Aprovado · no código |
@@ -49,14 +49,77 @@ Revisão: **03/09/2026** — telas A/B no código. **Bloco C em andamento** no S
 4. **Gasto** = 1+2+3. **Lucro** = valor − gasto.  
 5. Parcela zerada ignorada; se nada calculável → `—`.
 
-## O que está no código (03/09/2026)
+## Roteiro — 06/09/2026 (amanhã)
 
-- Menu: Histórico · Semáforo · Custos · Veículo · Dashboard · Configurações · Fechar  
-- Dashboard Compose + overlay (mesmos números via `DashboardNumeros`)  
-- Histórico: plataformas, período, DOM–SÁB, card com consumo+gasto, Embarque/Destino, lixeira seletiva  
-- Custos: combustível, óleo (+ alerta), pneus, IPVA R$, seguro, km/ano  
-- App: permissões, **tema**, Maps/Waze, enviar log, conta  
-- Free: cadeados na calculadora / dashboard  
+Objetivo do dia: **instalar o build atual** (working tree com §44) no SM-A145M e **fechar o Bloco C** na rua. Sem commit/push até pedido. Não misturar em `main`.
+
+### Manhã — build e instalação (~30–45 min)
+
+| # | Ação | Critério |
+| --- | --- | --- |
+| M1 | Rodar `gradlew.bat :app:testDebugUnitTest` | Verde (ou anotar falhas) |
+| M2 | Build APK Pro `2.0.0` / vc 13 do **working tree atual** | APK gerado |
+| M3 | Instalar no SM-A145M (substituir build antigo) | App abre; versão 2.0.0 |
+| M4 | Permissões 🆗 (notificação, sobrepor, acessibilidade, bateria) | Selo aparece |
+| M5 | Conta + pular tutorial se já fez; preencher **Despesas** (R$/L e km/L > 0) | Cálculo não fica `—` |
+
+### Rua — checklist Bloco C (prioridade)
+
+**Ordem sugerida:** C8 (sistema/§44) → C1–C3 (ciclo oferta) → C4–C7 → C9 se der → C10 se falhar leitura.
+
+| # | Foco | Marcar |
+| --- | --- | --- |
+| C8a | Selo ↔ Atalhos: toque abre/fecha; **selo permanece**; **sem X** no card; card abre dir/esq/acima/abaixo (eixo da borda mais próxima) | |
+| C8b | Menu ordem: Histórico \| Carteira \| Despesas \| Semáforo \| Usuário \| Configurar \| Fechar | |
+| C8c | Overlay: só selo/atalhos/compacta sobre Uber/99; telas Menu = Activity | |
+| C8d | Recentes com Histórico aberto → selo → toque no selo **reabre Histórico** | |
+| C8e | Selo no **X** → monitoramento segue → **Abrir App** → selo volta | |
+| C8f | Histórico + Recentes + X → **Abrir App** → reabre Menu; sair → selo | |
+| C8g | **Desligar App** / Fechar → **tela de confirmação** (Cancelar/Fechar) | |
+| C1 | Oferta → compacta R$/Km · Dist. · Tempo · Nota + borda 6 dp | |
+| C2 | Recusa/expira → selo; sem histórico; notificação “Monitorando ofertas” | |
+| C3 | Aceite → 1 linha Histórico; Consumo/Gasto; Embarque/Destino; selo | |
+| C4 | Semáforo (sliders); borda coerente | |
+| C5 | Abastecimento → pergunta aplica R$/L e km/L | |
+| C6 | Dashboard Dia/Semana/Mês/Ano | |
+| C7 | Lixeira seletiva + confirmação Limpar | |
+| C9 | Free 🔒 (N/A se build só Pro) | |
+| C10 | Oferta não leu → **ENVIAR LOG** + guardar em `.tmp-diag/` | |
+
+### Tarde — fechar a sessão
+
+1. Preencher Resultado (OK / FALHA / N/A) na tabela C1–C10 deste doc.
+2. Se **C1–C3** ou **C8** falhar: anotar + trecho do log; **não** freeze.
+3. Se parser errar (promo como oferta, aceite fantasma): priorizar calibração depois; UI ok não basta.
+4. Se checklist OK: candidata a freeze Pro — **aguardar pedido de commit**.
+
+### Fora do escopo de amanhã
+
+Play Store, cobrança, gráficos, botão Aceitar, merge em `main`, push sem pedido.
+
+---
+
+## O que está no código (05/09/2026) — Atalhos congelados
+
+- **Atalhos (congelado):** card arredondado + ícones; sem botão X; selo abre/fecha e permanece aberto
+- **Posição Atalhos:** direita | esquerda | acima | abaixo conforme posição do selo (`AtalhosPosicao`)
+- Ordem/cópia fixas: **Histórico | Carteira | Despesas | Semáforo | Usuário | Configurar | Fechar**
+  - Histórico → Corridas aceitas → Histórico
+  - Carteira → Gestor financeiro → Dashboard
+  - Despesas → Lançar despesas → Custos/Despesas
+  - Semáforo → Calibrar faixas → Semáforo
+  - Usuário → Ajustar veiculo → Veículo
+  - Configurar → Configurar App → Configurações
+  - Fechar → Encerrar App → confirmação
+- Telas nativas (Activity Compose): Histórico, Carteira/Dashboard, Semáforo, Config (Despesas · Veículo · App), **Confirmação (Fechar / Limpar histórico)**
+- Compacta só com oferta: **R$/Km · Dist. · Tempo · Nota** + ícone plataforma · Parada(s); borda **6 dp**; ~4,5×1,7 cm; arrastável (posição gravada); toque não faz nada; some no aceite/expirar/recusar
+- **Overlay sobre outros apps:** só selo · atalhos · compacta (§44); resto = Activity (inclui confirmação)
+- **Carteira** (ex-Dashboard): Dia/Semana/Mês/Ano; atividade + Financeiro + Estimativa de gastos (combustível, óleo, pneus, seguro, IPVA)
+- Telas nativas sem rodapé: Menu **Opções** + itens; ← volta a Opções; X em Opções → selo; Cancelar/Salvar em Despesas/Usuário/Configurar/Semáforo
+- Histórico: plataformas, semana DOM–SÁB; resumo Faturamento · Distância · Tempo · **Corridas aceitas**; detalhes da corrida; lixeira seletiva
+- Despesas: combustível, óleo (+ alerta), pneus, IPVA R$, seguro, km/ano
+- Configurar (aba App): permissões, **tema**, Maps/Waze, enviar log, conta
+- Free: cadeados na calculadora / dashboard / Carteira  
 
 ## Blocos
 
@@ -66,7 +129,7 @@ Guarda zero, lucro completo, semáforo 3 faixas, testes (`CalculadoraCustosTest`
 
 ### Bloco B — Telas · feito no código
 
-Dashboard completo, tema, alerta óleo, confirmação abastecimento, card histórico.
+Atalhos congelados (§44), Dashboard/Carteira, tema, alerta óleo, confirmação abastecimento, card histórico.
 
 ### Bloco C — Rua · em andamento (SM-A145M)
 
@@ -86,14 +149,14 @@ Dashboard completo, tema, alerta óleo, confirmação abastecimento, card histó
 
 | # | Passo | Esperado | Resultado |
 | --- | --- | --- | --- |
-| C1 | Oferta chega | Compacta com $/Km · $/Lucro · $/Gasto · Nota; borda semáforo (3 faixas) | |
+| C1 | Oferta chega | Compacta R$/Km · Dist. · Tempo · Nota; borda 6 dp; arrastável | |
 | C2 | Recusa / expira | Volta ao selo; **não** entra no histórico; notificação = **"Monitorando ofertas"** | |
 | C3 | Aceite na plataforma | Uma linha no Histórico; card com Consumo (L) + Gasto; Embarque/Destino; interface → selo | |
-| C4 | Semáforo | Borda Ruim / Boa / Ótima coerente com R$/km e faixas | |
-| C5 | Abastecimento | Em Custos, preencher valor+litros (+km) → Salvar → **pergunta** se aplica R$/L e km/L | |
-| C6 | Dashboard | Overlay e/ou app: Diário/Semanal/Mensal; Faturamento/Gastos/Lucro; médias; rateios | |
+| C4 | Semáforo | Menu → Semáforo abre tela nativa; sliders Km/Hora/Nota; borda Ruim/Boa/Ótima coerente | |
+| C5 | Abastecimento | Em Despesas/Veículo, preencher valor+litros (+km) → Salvar → **pergunta** se aplica R$/L e km/L | |
+| C6 | Dashboard | Tela nativa: Dia/Semana/Mês/Ano; Receitas/Despesas/Saldo; médias; receitas por app | |
 | C7 | Lixeira | Sem seleção → *"Selecionar a(s) corrida(s)"*; com seleção → confirma apagar | |
-| C8 | Sistema | Voltar em degraus; Home → selo; Recentes → última tela | |
+| C8 | Sistema | Voltar; Home → selo; Recentes → última tela; X + Abrir App (§44 casos 1–2); Desligar → confirmação | |
 | C9 | Free 🔒 | Com plano Free: R$/KM, litros, gasto, lucro e dashboard ocultos | |
 | C10 | Oferta não leu | App → **ENVIAR LOG** e guardar texto real | |
 

@@ -17,7 +17,7 @@ Detalhe Free vs Pro: [`docs/REGRAS_NEGOCIO.md`](docs/REGRAS_NEGOCIO.md) §38 · 
 
 O motorista tem poucos segundos e os números estão espalhados na tela da plataforma. O Gestor junta **R$/KM + classificação por cor + custo da corrida** sem tapar o mapa.
 
-Fluxo de uso: **selo** → **barra compacta** (oferta) → **expandida** (distâncias e custos). Histórico, dashboard e configuração abrem pelo menu do overlay.
+Fluxo de uso: **selo** → **atalhos** (congelado §44) · **compacta** só na oferta · **barra de notificação** · **confirmação** (Fechar/Limpar). Overlay: **só selo, atalhos e compacta**. Atalhos: Histórico | Carteira | Despesas | Semáforo | Usuário | Configurar | Fechar — sem X no card; selo abre/fecha.
 
 ---
 

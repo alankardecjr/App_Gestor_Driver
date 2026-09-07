@@ -50,22 +50,21 @@ object OverlayPaineis {
     private var alturaMinimaConteudo: Int = 0
     private const val AMARELO = "#FFD54F"
 
-    private enum class AbaMenuFicheiro(val titulo: String) {
+        private enum class AbaMenuFicheiro(val titulo: String) {
         HISTORICO("Histórico"),
-        DASHBOARD("Dashboard"),
+        CARTEIRA("Carteira"),
         DESPESAS("Despesas"),
         SEMAFORO("Semáforo"),
-        VEICULO("Veiculo"),
+        USUARIO("Usuário"),
         CONFIGURAR("Configurar"),
     }
 
     private fun abaMenuAtiva(snapshot: OverlaySnapshot): AbaMenuFicheiro = when {
         snapshot.historicoVisivel -> AbaMenuFicheiro.HISTORICO
-        snapshot.dashboardVisivel -> AbaMenuFicheiro.DASHBOARD
+        snapshot.dashboardVisivel -> AbaMenuFicheiro.CARTEIRA
         snapshot.configuracoesVisivel -> when (snapshot.abaConfiguracao) {
-            1 -> AbaMenuFicheiro.DESPESAS
-            0 -> AbaMenuFicheiro.SEMAFORO
-            2 -> AbaMenuFicheiro.VEICULO
+            0 -> AbaMenuFicheiro.DESPESAS
+            1 -> AbaMenuFicheiro.USUARIO
             else -> AbaMenuFicheiro.CONFIGURAR
         }
         else -> AbaMenuFicheiro.HISTORICO
@@ -74,11 +73,11 @@ object OverlayPaineis {
     private fun emitirAbaMenu(aba: AbaMenuFicheiro) {
         when (aba) {
             AbaMenuFicheiro.HISTORICO -> OverlayBridge.emitir(OverlayAcao.AbrirHistorico)
-            AbaMenuFicheiro.DASHBOARD -> OverlayBridge.emitir(OverlayAcao.DashboardPro)
-            AbaMenuFicheiro.DESPESAS -> OverlayBridge.emitir(OverlayAcao.AbrirAtalhoConfig(1))
-            AbaMenuFicheiro.SEMAFORO -> OverlayBridge.emitir(OverlayAcao.AbrirAtalhoConfig(0))
-            AbaMenuFicheiro.VEICULO -> OverlayBridge.emitir(OverlayAcao.AbrirAtalhoConfig(2))
-            AbaMenuFicheiro.CONFIGURAR -> OverlayBridge.emitir(OverlayAcao.AbrirAtalhoConfig(3))
+            AbaMenuFicheiro.CARTEIRA -> OverlayBridge.emitir(OverlayAcao.DashboardPro)
+            AbaMenuFicheiro.DESPESAS -> OverlayBridge.emitir(OverlayAcao.AbrirAtalhoConfig(0))
+            AbaMenuFicheiro.SEMAFORO -> OverlayBridge.emitir(OverlayAcao.AbrirSemaforo)
+            AbaMenuFicheiro.USUARIO -> OverlayBridge.emitir(OverlayAcao.AbrirAtalhoConfig(1))
+            AbaMenuFicheiro.CONFIGURAR -> OverlayBridge.emitir(OverlayAcao.AbrirAtalhoConfig(2))
         }
     }
 
@@ -100,11 +99,11 @@ object OverlayPaineis {
                     addView(criarAbaFicheiro(context, aba))
                 }
             }
-        coluna.addView(linha(AbaMenuFicheiro.HISTORICO, AbaMenuFicheiro.DASHBOARD))
+        coluna.addView(linha(AbaMenuFicheiro.HISTORICO, AbaMenuFicheiro.CARTEIRA))
         coluna.addView(linha(
             AbaMenuFicheiro.DESPESAS,
             AbaMenuFicheiro.SEMAFORO,
-            AbaMenuFicheiro.VEICULO,
+            AbaMenuFicheiro.USUARIO,
             AbaMenuFicheiro.CONFIGURAR,
         ))
         return coluna
@@ -1178,9 +1177,8 @@ object OverlayPaineis {
     private fun atualizarConfigInterno(view: View, snapshot: OverlaySnapshot) {
         atualizarFaixaAbasFicheiro(view, snapshot)
         view.findViewWithTag<TextView>("config_titulo")?.text = when (snapshot.abaConfiguracao) {
-            1 -> "Despesas"
-            0 -> "Calibrar a classificação"
-            2 -> "Veiculo"
+            0 -> "Despesas"
+            1 -> "Veiculo"
             else -> "Configurar"
         }
         val scroll = view.findViewWithTag<ScrollView>("config_scroll") ?: return
@@ -1198,7 +1196,7 @@ object OverlayPaineis {
             rascunho = colherAba(view, abaAtual, rascunho ?: store.carregar())
         }
         if (conteudo.childCount > 0 && abaAtual == snapshot.abaConfiguracao) {
-            if (snapshot.abaConfiguracao == 3) {
+            if (snapshot.abaConfiguracao == 2) {
                 atualizarPermissoes(conteudo, snapshot, view.context)
             }
             return
@@ -1207,9 +1205,8 @@ object OverlayPaineis {
         val config = rascunho ?: store.carregar()
         val montou = runCatching {
             when (snapshot.abaConfiguracao) {
-                0 -> montarClassificacao(conteudo, config)
-                1 -> montarCustos(conteudo, config, snapshot.planoPro)
-                2 -> montarVeiculo(conteudo, config, snapshot.planoPro)
+                0 -> montarCustos(conteudo, config, snapshot.planoPro)
+                1 -> montarVeiculo(conteudo, config, snapshot.planoPro)
                 else -> montarApp(conteudo, config, snapshot, view.context)
             }
         }
@@ -2190,64 +2187,12 @@ object OverlayPaineis {
                 ctx,
                 "🚦",
                 "#FFF8E1",
-                "Calibrar a classificação",
+                "Semáforo de Valores",
                 "Cor da borda da compacta",
-                "Faixas de R$/km. A cor da borda da compacta segue esta escala. Arraste a barra ou use − e + de 0,01.",
+                "Arraste as marcas. Vermelho = ruim, amarelo = intermediária, verde = boa. Sem campos −/+.",
             ),
         )
         destino.addView(barrasSemaforo(ctx, config, destino))
-        data class Faixa(
-            val titulo: String,
-            val cor: String,
-            val minTexto: String,
-            val maxTexto: String,
-            val tagMin: String?,
-            val tagMax: String?,
-        )
-        val faixas = listOf(
-            Faixa("Ruim", ClassificacaoConstantes.CORES.getValue(Classificacao.RUIM), "Min", FaixasClassificacao.formatar(config.limiteRuimMax), null, "cfg_ruim_max"),
-            Faixa(
-                "Boa",
-                ClassificacaoConstantes.CORES.getValue(Classificacao.BOA),
-                FaixasClassificacao.formatar(config.limiteBoaMin),
-                FaixasClassificacao.formatar(config.limiteBoaMax),
-                "cfg_boa_min",
-                "cfg_boa_max",
-            ),
-            Faixa(
-                "Ótima",
-                ClassificacaoConstantes.CORES.getValue(Classificacao.EXCELENTE),
-                FaixasClassificacao.formatar(config.limiteOtimaMin),
-                "Max",
-                "cfg_otima_min",
-                null,
-            ),
-        )
-        faixas.forEach { faixa ->
-            destino.addView(rotuloFaixa(ctx, faixa.titulo, faixa.cor))
-            destino.addView(
-                linha(
-                    ctx,
-                    stepper(
-                        ctx,
-                        "Min",
-                        faixa.minTexto,
-                        faixa.tagMin ?: "cfg_${faixa.titulo}_min_fixo",
-                        faixa.tagMin != null,
-                        onPasso = { tag, delta -> aplicarPassoFaixa(destino, tag, delta) },
-                    ),
-                    stepper(
-                        ctx,
-                        "Max",
-                        faixa.maxTexto,
-                        faixa.tagMax ?: "cfg_${faixa.titulo}_max_fixo",
-                        faixa.tagMax != null,
-                        onPasso = { tag, delta -> aplicarPassoFaixa(destino, tag, delta) },
-                    ),
-                    compacto = true,
-                ),
-            )
-        }
     }
 
     private fun barrasSemaforo(

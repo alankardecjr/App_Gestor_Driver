@@ -9,8 +9,8 @@ Separar regras de negócio, persistência e integração com o sistema Android p
 | Camada | Onde | Papel |
 | --- | --- | --- |
 | Core / domínio | `core/` (Python) e `android-app/.../core/` (Kotlin) | Corrida, R$/KM, classificação, combustível + custos operacionais |
-| Apresentação | `presentation/`, `model/`, overlay | O que a tela mostra; Free oculta números; Pro libera tudo (`PlanoAcesso.BETA` = Pro no código) |
-| Estado | `AppViewModel`, `ConfiguracoesViewModel` | Oferta atual, histórico, overlay, configuração |
+| Apresentação | `ui/` (Compose nativo), `presentation/`, overlay | Overlay: selo, **atalhos** (congelado §44: Histórico \| Carteira \| Despesas \| Semáforo \| Usuário \| Configurar \| Fechar), compacta, notificação. Telas nativas: Histórico, Carteira/Dashboard, Semáforo, Config (Despesas/Veículo/App), **Confirmação (Fechar / Limpar)**. Free oculta números; Pro libera tudo (`PlanoAcesso.BETA` = Pro no código) |
+| Estado | `AppViewModel`, `ConfiguracoesViewModel` | Oferta atual, histórico, overlay, configuração, `semaforoVisivel` |
 | Dados | `data/` | Room (histórico aceito), DataStore (config do motorista) |
 | Sistema | `notification/`, `overlay/` | Listener, parser, overlay, foreground service |
 | Navegação | `navigation/` | Intent Maps / Waze |
@@ -31,7 +31,9 @@ Parser + classificador (oferta / aceite / ignorar)
         ↓
 CalculadoraCorrida (config persistida)
         ↓
-AppViewModel → overlay  |  Room só no aceite
+AppViewModel → overlay (selo/compacta/atalhos)  |  Activity Compose (Histórico/Semáforo/Carteira/Config)
+                                                      ↓
+                                              Room (só no aceite)
 ```
 
 ## Diretrizes

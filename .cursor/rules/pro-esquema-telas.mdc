@@ -1,0 +1,71 @@
+---
+description: Esquema Pro — overlay só selo/atalhos/compacta; Atalhos e Compacta oficiais
+alwaysApply: true
+---
+
+# Esquema de telas Pro (oficial 06/09/2026)
+
+## Overlay sobre outros apps
+
+Só **selo**, **atalhos** e **compacta** sobressaem outros apps. Resto = Activity.
+
+## Tela Atalhos — UI oficial (06/09/2026)
+
+- **Fluxo:** toque no **selo** → selo some → abre Atalhos. **X** ou toque **fora** do card → fecha Atalhos → selo volta.
+- Layout: card arredondado (tema claro/escuro), cabeçalho com **X neutro** (círculo cinza) + título **Atalhos** + subtítulo *Acesse rapidamente as principais funções*; itens em cards com ícone **branco** em quadrado colorido (verde · azul · laranja · slate · roxo · cinza-azul · vermelho), título, descrição e chevron `›`.
+- **Posição:** o card abre **à direita, esquerda, acima ou abaixo** da última posição do selo. Prefere o eixo da borda mais próxima; nesse eixo, o lado com mais espaço.
+
+| Título | Descrição | Destino |
+| --- | --- | --- |
+| Histórico | Ver corridas aceitas | Histórico |
+| Carteira | Saldo e movimentações | Dashboard |
+| Despesas | Controle de gastos do app | Custos/Despesas |
+| Semáforo | Regras de classificação | Semáforo |
+| Usuário | Seus dados e preferências | Veículo |
+| Configurar | Ajustes do aplicativo | Configurações |
+| Fechar | Encerrar o aplicativo | confirmação → encerra |
+
+`Histórico | Carteira | Despesas | Semáforo | Usuário | Configurar | Fechar`
+
+## Compacta — UI oficial (05/09/2026)
+
+- Só na oferta; some no aceite / expirar / recusar (não forçar reaparecimento).
+- Posição inicial: topo (não cobrir Recusar da 99); **arrastável**; grava última posição.
+- Borda **6 dp** na cor da classificação (ruim vermelho / boa amarelo / ótima verde).
+- Tamanho aprox. **4,5 cm × 1,7 cm**; fonte grossa.
+- Campos: **R$/Km** (grande, cinza escuro) · **Dist.** (1 casa) · **Tempo** · **Nota** + ícone plataforma · **Parada(s)**.
+- Toque na compacta / fora: **não faz nada**.
+
+## Superfícies oficiais
+
+1. Selo  
+2. Atalhos (acima)  
+3. Compacta (acima)  
+4. Barra de notificação  
+5. Telas nativas abertas pelos atalhos  
+6. **Confirmação** (Fechar/Desligar; Limpar) — Activity, nunca overlay
+
+## Telas nativas — Menu (sem rodapé)
+
+- **Opções** = tela principal do Menu (mesmo layout dos Atalhos). Itens abrem: Histórico | Carteira | Despesas | Semáforo | Usuário | Configurar | Fechar
+- **X** em Opções → volta ao **selo**
+- **←** nas demais telas → volta a **Opções**
+- Despesas / Usuário / Configurar / Semáforo: **Cancelar** (descarta) · **Salvar** (persiste) → Opções
+- **Sem rodapé** de abas
+
+## Abertura pelo ícone
+
+1. Tema: 1º uso = claro; demais = tema do usuário
+2. Perms faltando → Menu **Configurar** (destaca faltantes); navega livre; aviso sem monitoramento; sem cálculos/compacta. Se liberar → inicia monitoramento e **fica** em Configurar
+3. Perms ok → inicia monitoramento → Menu **Opções**. Barra de notificação igual (Monitorando / Abrir App / Desligar App)
+
+## Tela Histórico — UI oficial (05/09/2026)
+
+- Navegação: ← → Opções (sem rodapé)
+- Resumo do dia: Faturamento · Distância · Tempo online · **Corridas aceitas**
+- Setas: ±7 dias (semana)
+- Lupa: visível, sem função
+- Lixeira: segurar corrida → checkbox → lixeira → confirmação sobre a navegação
+- Toque na corrida → card **DETALHES DA CORRIDA** (altura compacta)
+
+Fonte: `docs/REGRAS_NEGOCIO.md` §44 + Compacta 3.2.

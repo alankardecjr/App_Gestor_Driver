@@ -19,12 +19,10 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -48,9 +46,6 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import br.com.gestordriver.core.AlertaOleo
-import br.com.gestordriver.core.Classificacao
-import br.com.gestordriver.core.ClassificacaoConstantes
-import br.com.gestordriver.core.FaixasClassificacao
 import br.com.gestordriver.core.TabelaIpvaPlaca
 import br.com.gestordriver.data.ContaVinculo
 import br.com.gestordriver.model.AppNavegacao
@@ -82,10 +77,11 @@ fun ConfiguracoesScreen(
     onVoltar: () -> Unit,
     abaInicial: Int = 0,
     destacarPermissoes: Boolean = false,
+    avisoSemMonitoramento: Boolean = false,
     plano: PlanoAcesso = PlanoAcesso.PRO,
 ) {
     val configuracao = viewModel.configuracao
-    var aba by remember { mutableIntStateOf(abaInicial) }
+    var aba by remember { mutableIntStateOf(abaInicial.coerceIn(0, 2)) }
     val rolagem = rememberScrollState()
     val foco = LocalFocusManager.current
     val teclado = LocalSoftwareKeyboardController.current
@@ -93,66 +89,46 @@ fun ConfiguracoesScreen(
     var dialogoEmail by remember { mutableStateOf(false) }
     var dialogoAbastecimento by remember { mutableStateOf(false) }
     LaunchedEffect(abaInicial) {
-        aba = abaInicial
+        aba = abaInicial.coerceIn(0, 2)
     }
     LaunchedEffect(aba) {
         rolagem.scrollTo(0)
         foco.clearFocus(force = true)
         teclado?.hide()
     }
-    val abas = listOf("Semáforo", "Custos", "Veículo", "App")
+    val titulos = listOf("Despesas", "Usuário", "Configurar")
     val paleta = LocalPaletaApp.current
+    val forma = FormaPainel
+
+    fun fecharDescartando() {
+        foco.clearFocus(force = true)
+        teclado?.hide()
+        viewModel.cancelar()
+        onVoltar()
+    }
+
+    fun fecharSalvando(aplicarAbastecimento: Boolean) {
+        foco.clearFocus(force = true)
+        teclado?.hide()
+        viewModel.salvar(aplicarAbastecimento = aplicarAbastecimento)
+        onVoltar()
+    }
 
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .deslizeHorizontalAbas(aba, abas.size) { aba = it }
             .background(paleta.fundo),
+        contentAlignment = Alignment.Center,
     ) {
         Column(
-            modifier = Modifier.fillMaxSize(),
+            modifier = Modifier
+                .fillMaxSize()
+                .background(paleta.fundoPainel, forma)
+                .border(2.dp, paleta.borda, forma),
         ) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(start = 8.dp, end = 16.dp, top = 8.dp, bottom = 8.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Text(
-                    text = "←",
-                    color = paleta.texto,
-                    fontSize = 22.sp,
-                    modifier = Modifier
-                        .clickable {
-                            viewModel.cancelar()
-                            onVoltar()
-                        }
-                        .padding(8.dp),
-                )
-                Text(
-                    text = "Configurações",
-                    color = paleta.texto,
-                    fontSize = FonteTitulo,
-                    fontWeight = FontWeight.Bold,
-                    modifier = Modifier.padding(start = 4.dp),
-                )
-            }
-
-            FaixaAbasComSetas(
-                titulos = abas,
-                selecionada = aba,
-                corAtiva = DestaqueSelecionado,
-                corInativa = paleta.textoSecundario,
-                onSelecionar = { aba = it },
-                mostrarIndicador = true,
-                tamanhoFonte = 11.sp,
-            )
-
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(1.dp)
-                    .background(paleta.borda),
+            CabecalhoTelaNativa(
+                titulo = titulos[aba],
+                onVoltar = { fecharDescartando() },
             )
 
             Column(
@@ -161,13 +137,25 @@ fun ConfiguracoesScreen(
                     .weight(1f, fill = true)
                     .barraRolagemAoToque(rolagem)
                     .verticalScroll(rolagem)
-                    .padding(start = 12.dp, end = 16.dp, top = 10.dp, bottom = 8.dp),
-                verticalArrangement = Arrangement.spacedBy(6.dp),
+                    .padding(start = 12.dp, end = 12.dp, top = 8.dp, bottom = 8.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
+                if (avisoSemMonitoramento && aba == 2) {
+                    Text(
+                        text = "Monitoramento desligado — libere as permissões para acompanhar as corridas. Sem monitoramento não há cálculos nem tela compacta.",
+                        color = Color(0xFFE53935),
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.Medium,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(Color(0xFFFDECEC), FormaCaixa)
+                            .border(1.dp, Color(0xFFE53935), FormaCaixa)
+                            .padding(10.dp),
+                    )
+                }
                 when (aba) {
-                    0 -> AbaClassificacao(viewModel)
-                    1 -> AbaCustos(viewModel, plano)
-                    2 -> AbaVeiculo(viewModel, plano)
+                    0 -> AbaCustos(viewModel, plano)
+                    1 -> AbaVeiculo(viewModel, plano)
                     else -> AbaApp(
                         viewModel = viewModel,
                         destacarPermissoes = destacarPermissoes,
@@ -177,56 +165,16 @@ fun ConfiguracoesScreen(
                 }
             }
 
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(1.dp)
-                    .background(paleta.borda),
+            BarraCancelarSalvar(
+                onCancelar = { fecharDescartando() },
+                onSalvar = {
+                    if (viewModel.temCalculoAbastecimento()) {
+                        dialogoAbastecimento = true
+                    } else {
+                        fecharSalvando(aplicarAbastecimento = false)
+                    }
+                },
             )
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 12.dp, vertical = 10.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                TextButton(
-                    onClick = {
-                        viewModel.cancelar()
-                        onVoltar()
-                    },
-                    modifier = Modifier
-                        .weight(1f)
-                        .background(DestaqueSelecionado.copy(alpha = 0.2f), RoundedCornerShape(8.dp)),
-                ) {
-                    Text(
-                        text = "Cancelar",
-                        color = paleta.textoSecundario,
-                        fontSize = 14.sp,
-                        fontWeight = FontWeight.SemiBold,
-                    )
-                }
-                TextButton(
-                    onClick = {
-                        if (viewModel.temCalculoAbastecimento()) {
-                            dialogoAbastecimento = true
-                        } else {
-                            viewModel.salvar(aplicarAbastecimento = false)
-                            onVoltar()
-                        }
-                    },
-                    modifier = Modifier
-                        .weight(1f)
-                        .background(DestaqueSelecionado.copy(alpha = 0.2f), RoundedCornerShape(8.dp)),
-                ) {
-                    Text(
-                        text = "SALVAR",
-                        color = DestaqueSelecionado,
-                        fontSize = 14.sp,
-                        fontWeight = FontWeight.SemiBold,
-                    )
-                }
-            }
         }
 
         if (dialogoGoogle) {
@@ -269,18 +217,16 @@ fun ConfiguracoesScreen(
                 )
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
                     TextButton(onClick = {
-                        viewModel.salvar(aplicarAbastecimento = false)
                         dialogoAbastecimento = false
-                        onVoltar()
+                        fecharSalvando(aplicarAbastecimento = false)
                     }) {
                         Text("Não", color = LocalPaletaApp.current.textoSecundario)
                     }
                     TextButton(onClick = {
-                        viewModel.salvar(aplicarAbastecimento = true)
                         dialogoAbastecimento = false
-                        onVoltar()
+                        fecharSalvando(aplicarAbastecimento = true)
                     }) {
-                        Text("Sim", color = DestaqueSelecionado, fontWeight = FontWeight.SemiBold)
+                        Text("Sim", color = VerdeAcaoNativa, fontWeight = FontWeight.SemiBold)
                     }
                 }
             }
@@ -499,51 +445,6 @@ private fun AbaCustos(viewModel: ConfiguracoesViewModel, plano: PlanoAcesso) {
                 onMarcar = { if (!travar) viewModel.atualizarSeguroRecorrencia(SeguroRecorrencia.ANUAL) },
             )
         }
-    }
-}
-
-@Composable
-private fun AbaClassificacao(viewModel: ConfiguracoesViewModel) {
-    val configuracao = viewModel.configuracao
-    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-    SubtituloSecao(
-        texto = "Calibrar a classificação",
-        subtitulo = "Cor da borda da compacta",
-        icone = "🚦",
-        fundoIcone = Color(0xFFFFF8E1),
-        ajuda = "Faixas de R$/km. A cor da borda da compacta segue esta escala. Arraste a barra ou use − e + de 0,01.",
-    )
-    BarrasSemaforo(viewModel)
-    FaixaClassificacao(
-        "Ruim",
-        ClassificacaoConstantes.CORES.getValue(Classificacao.RUIM),
-        configuracao.limiteRuimMin,
-        configuracao.limiteRuimMax,
-        "Min",
-        null,
-        viewModel::atualizarLimiteRuimMin,
-        viewModel::atualizarLimiteRuimMax,
-    )
-    FaixaClassificacao(
-        "Boa",
-        ClassificacaoConstantes.CORES.getValue(Classificacao.BOA),
-        configuracao.limiteBoaMin,
-        configuracao.limiteBoaMax,
-        null,
-        null,
-        viewModel::atualizarLimiteBoaMin,
-        viewModel::atualizarLimiteBoaMax,
-    )
-    FaixaClassificacao(
-        "Ótima",
-        ClassificacaoConstantes.CORES.getValue(Classificacao.EXCELENTE),
-        configuracao.limiteOtimaMin,
-        configuracao.limiteOtimaMax,
-        null,
-        "Max",
-        viewModel::atualizarLimiteOtimaMin,
-        viewModel::atualizarLimiteOtimaMax,
-    )
     }
 }
 
@@ -1034,102 +935,6 @@ private fun CampoNumericoCaixa(
 }
 
 @Composable
-private fun FaixaClassificacao(
-    titulo: String,
-    corHex: String,
-    min: Double,
-    max: Double,
-    minFixo: String?,
-    maxFixo: String?,
-    onMinChange: (Double) -> Unit,
-    onMaxChange: (Double) -> Unit,
-) {
-    Column(
-        verticalArrangement = Arrangement.spacedBy(1.dp),
-    ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            Text(text = titulo, color = LocalPaletaApp.current.texto, fontSize = FonteCampo, fontWeight = FontWeight.SemiBold)
-            Box(
-                modifier = Modifier
-                    .size(8.dp)
-                    .background(Color(android.graphics.Color.parseColor(corHex)), CircleShape),
-            )
-        }
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(10.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            CampoStepper(
-                label = "Min",
-                valorTexto = minFixo ?: FaixasClassificacao.formatar(min),
-                editavel = minFixo == null,
-                onMenos = { onMinChange(min - FaixasClassificacao.PASSO) },
-                onMais = { onMinChange(min + FaixasClassificacao.PASSO) },
-                modifier = Modifier.weight(1f),
-            )
-            CampoStepper(
-                label = "Max",
-                valorTexto = maxFixo ?: FaixasClassificacao.formatar(max),
-                editavel = maxFixo == null,
-                onMenos = { onMaxChange(max - FaixasClassificacao.PASSO) },
-                onMais = { onMaxChange(max + FaixasClassificacao.PASSO) },
-                modifier = Modifier.weight(1f),
-            )
-        }
-    }
-}
-
-@Composable
-private fun CampoStepper(
-    label: String,
-    valorTexto: String,
-    editavel: Boolean,
-    onMenos: () -> Unit,
-    onMais: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(1.dp)) {
-        Text(text = label, color = LocalPaletaApp.current.textoSecundario, fontSize = FonteCampo)
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .border(1.dp, LocalPaletaApp.current.borda, FormaCaixa)
-                .background(LocalPaletaApp.current.fundoCaixa, FormaCaixa)
-                .padding(horizontal = 6.dp, vertical = 4.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween,
-        ) {
-            BotaoPasso("−", editavel, onMenos)
-            Text(text = valorTexto, color = LocalPaletaApp.current.texto, fontSize = FonteValor, fontWeight = FontWeight.SemiBold)
-            BotaoPasso("+", editavel, onMais)
-        }
-    }
-}
-
-@Composable
-private fun BotaoPasso(texto: String, ativo: Boolean, onClick: () -> Unit) {
-    Box(
-        modifier = Modifier
-            .size(28.dp)
-            .border(1.dp, if (ativo) TextoAmareloConfig else LocalPaletaApp.current.borda, FormaCaixa)
-            .background(Color(0x22000000), FormaCaixa)
-            .then(if (ativo) Modifier.clickable(onClick = onClick) else Modifier),
-        contentAlignment = Alignment.Center,
-    ) {
-        Text(
-            text = texto,
-            color = if (ativo) TextoAmareloConfig else LocalPaletaApp.current.textoSecundario,
-            fontSize = 16.sp,
-            fontWeight = FontWeight.Bold,
-        )
-    }
-}
-
-@Composable
 private fun AlertaOleoUi(configuracao: ConfiguracaoUsuario) {
     val contexto = LocalContext.current
     val app = contexto.applicationContext as? br.com.gestordriver.GestorDriverApp
@@ -1174,35 +979,6 @@ private fun OpcaoMarca(texto: String, marcado: Boolean, onMarcar: () -> Unit) {
         )
         Spacer(modifier = Modifier.size(6.dp))
         Text(text = texto, color = LocalPaletaApp.current.texto, fontSize = FonteCampo)
-    }
-}
-
-@Composable
-private fun BarrasSemaforo(viewModel: ConfiguracoesViewModel) {
-    val config = viewModel.configuracao
-    BarraMarca("Ruim até", config.limiteRuimMax, Color(android.graphics.Color.parseColor(ClassificacaoConstantes.CORES.getValue(Classificacao.RUIM)))) { valor ->
-        viewModel.atualizarMarcasDeslizantes(valor, config.limiteBoaMax)
-    }
-    BarraMarca("Boa até", config.limiteBoaMax, Color(android.graphics.Color.parseColor(ClassificacaoConstantes.CORES.getValue(Classificacao.BOA)))) { valor ->
-        viewModel.atualizarMarcasDeslizantes(config.limiteRuimMax, valor)
-    }
-}
-
-@Composable
-private fun BarraMarca(titulo: String, valor: Double, cor: Color, onValor: (Double) -> Unit) {
-    Column(modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
-        Text(
-            text = "$titulo  ${FaixasClassificacao.formatar(valor)}",
-            color = cor,
-            fontSize = FonteCampo,
-            fontWeight = FontWeight.SemiBold,
-        )
-        Slider(
-            value = valor.toFloat().coerceIn(0f, 5f),
-            onValueChange = { onValor(it.toDouble()) },
-            valueRange = 0f..5f,
-            modifier = Modifier.fillMaxWidth().heightIn(min = AlturaToque),
-        )
     }
 }
 

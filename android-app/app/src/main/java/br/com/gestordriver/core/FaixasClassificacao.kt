@@ -51,8 +51,17 @@ object FaixasClassificacao {
         ruimMax: Double,
         boaMax: Double,
     ): ConfiguracaoUsuario {
-        var proxima = aplicar(atual, Campo.RUIM_MAX, ruimMax)
-        return aplicar(proxima, Campo.BOA_MAX, boaMax)
+        val ruim = arredondar(ruimMax).coerceIn(MIN_ABSOLUTO, MAX_ABSOLUTO)
+        val boa = arredondar(boaMax).coerceIn(MIN_ABSOLUTO, MAX_ABSOLUTO)
+        val deltaRuim = kotlin.math.abs(ruim - arredondar(atual.limiteRuimMax))
+        val deltaBoa = kotlin.math.abs(boa - arredondar(atual.limiteBoaMax))
+        // Uma marca por vez (como −/+): max de uma faixa puxa min da próxima em +PASSO
+        // (e o inverso em −PASSO). Só a marca que mais mudou é aplicada.
+        return when {
+            deltaRuim < PASSO / 2 && deltaBoa < PASSO / 2 -> atual
+            deltaRuim >= deltaBoa -> aplicar(atual, Campo.RUIM_MAX, ruim)
+            else -> aplicar(atual, Campo.BOA_MAX, boa)
+        }
     }
 
     fun aplicar(

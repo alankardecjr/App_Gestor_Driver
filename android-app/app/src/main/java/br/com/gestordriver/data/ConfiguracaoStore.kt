@@ -71,6 +71,10 @@ fun ConfiguracaoUsuario.paraPreferencias(): Map<String, String> = mapOf(
     "limiteBoaMax" to limiteBoaMax.toString(),
     "limiteOtimaMin" to limiteOtimaMin.toString(),
     "limiteOtimaMax" to limiteOtimaMax.toString(),
+    "limiteHoraRuimMax" to limiteHoraRuimMax.toString(),
+    "limiteHoraBoaMax" to limiteHoraBoaMax.toString(),
+    "limiteNotaRuimMax" to limiteNotaRuimMax.toString(),
+    "limiteNotaBoaMax" to limiteNotaBoaMax.toString(),
 )
 
 fun Map<String, String>.paraConfiguracaoUsuario(): ConfiguracaoUsuario {
@@ -132,6 +136,10 @@ fun Map<String, String>.paraConfiguracaoUsuario(): ConfiguracaoUsuario {
         limiteBoaMax = this["limiteBoaMax"]?.toDoubleOrNull() ?: padrao.limiteBoaMax,
         limiteOtimaMin = this["limiteOtimaMin"]?.toDoubleOrNull() ?: padrao.limiteOtimaMin,
         limiteOtimaMax = this["limiteOtimaMax"]?.toDoubleOrNull() ?: padrao.limiteOtimaMax,
+        limiteHoraRuimMax = this["limiteHoraRuimMax"]?.toDoubleOrNull() ?: padrao.limiteHoraRuimMax,
+        limiteHoraBoaMax = this["limiteHoraBoaMax"]?.toDoubleOrNull() ?: padrao.limiteHoraBoaMax,
+        limiteNotaRuimMax = this["limiteNotaRuimMax"]?.toDoubleOrNull() ?: padrao.limiteNotaRuimMax,
+        limiteNotaBoaMax = this["limiteNotaBoaMax"]?.toDoubleOrNull() ?: padrao.limiteNotaBoaMax,
     )
 }
 

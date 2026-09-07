@@ -131,8 +131,7 @@ class MainActivity : ComponentActivity() {
                                     Intent.FLAG_ACTIVITY_REORDER_TO_FRONT or
                                         Intent.FLAG_ACTIVITY_SINGLE_TOP or
                                         Intent.FLAG_ACTIVITY_NEW_TASK,
-                                )
-                                .putExtra(EXTRA_RECENTES_CONFIG, true),
+                                ),
                         )
                     }
                 }
@@ -159,18 +158,21 @@ class MainActivity : ComponentActivity() {
                 finish()
                 return@addCallback
             }
-            // Sem monitoramento: Voltar = padrão do celular (sair da activity).
             if (!appViewModel.state.monitorando) {
                 finish()
                 return@addCallback
             }
+            val emTelaNativa = appViewModel.state.historicoVisivel ||
+                appViewModel.state.configuracoesVisivel ||
+                appViewModel.state.dashboardVisivel ||
+                appViewModel.state.semaforoVisivel ||
+                appViewModel.state.confirmacaoFecharVisivel ||
+                appViewModel.state.confirmacaoLimparHistoricoVisivel
             val jaNoSelo = appViewModel.state.seloFlutuante &&
-                !appViewModel.state.historicoVisivel &&
-                !appViewModel.state.configuracoesVisivel &&
-                !appViewModel.state.dashboardVisivel &&
-                !appViewModel.state.confirmacaoFecharVisivel &&
-                !appViewModel.state.confirmacaoLimparHistoricoVisivel
+                !emTelaNativa &&
+                appViewModel.state.interfaceOculta
             appViewModel.voltarPelaBarra()
+            // Após fechar tela nativa ou já no selo/atalho: volta ao segundo plano com overlay.
             if (jaNoSelo || appViewModel.state.seloFlutuante || appViewModel.state.interfaceOculta) {
                 OverlayService.iniciar(this@MainActivity)
                 moveTaskToBack(true)
@@ -220,8 +222,13 @@ class MainActivity : ComponentActivity() {
                 appViewModel.restaurarTelaAposRecentes()
             }
         }
-        if (PermissoesMonitoramento.overlayConcedida(this)) {
+        if (PermissoesMonitoramento.overlayConcedida(this) &&
+            ::appViewModel.isInitialized &&
+            appViewModel.state.monitorando
+        ) {
             OverlayService.iniciar(this)
+        } else if (::appViewModel.isInitialized && !appViewModel.state.monitorando) {
+            OverlayService.parar(this)
         }
     }
 
@@ -322,7 +329,11 @@ class MainActivity : ComponentActivity() {
         if (viewModel.state.onboardingEtapa != OnboardingEtapa.NENHUMA) {
             return true
         }
-        OverlayService.iniciar(this)
+        if (viewModel.state.monitorando && PermissoesMonitoramento.overlayConcedida(this)) {
+            OverlayService.iniciar(this)
+        } else {
+            OverlayService.parar(this)
+        }
         return false
     }
 
