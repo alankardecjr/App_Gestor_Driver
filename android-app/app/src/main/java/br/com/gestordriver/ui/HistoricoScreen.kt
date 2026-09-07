@@ -1,8 +1,10 @@
 package br.com.gestordriver.ui
 
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -17,6 +19,8 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.Checkbox
+import androidx.compose.material3.CheckboxDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -55,11 +59,12 @@ fun HistoricoTela(
     onDia: (Long) -> Unit,
     onAvancarSemana: (Int) -> Unit,
     onAba: (String) -> Unit,
-    onSelecionar: (HistoricoItemPresentation) -> Unit,
+    onAbrirDetalhes: (HistoricoItemPresentation) -> Unit,
+    onMarcar: (HistoricoItemPresentation) -> Unit,
     onLimpar: () -> Unit,
 ) {
     val periodo = CalendarioPeriodo.SEMANA
-    val itens = state.historico
+    val itensSemana = state.historico
         .sortedByDescending { it.dataHoraRegistro ?: LocalDateTime.MIN }
         .filter { item ->
             val dia = item.dataHoraRegistro?.toLocalDate() ?: return@filter false
@@ -67,6 +72,9 @@ fun HistoricoTela(
                 item.pertenceAba(state.abaHistorico)
         }
     val selecionado = state.historicoDia
+    val itensDia = itensSemana.filter {
+        it.dataHoraRegistro?.toLocalDate() == selecionado
+    }
     val hoje = CalendarioApp.hoje()
     val marcados = state.historico.mapNotNull { it.dataHoraRegistro?.toLocalDate() }.toSet()
     val faixa = CalendarioApp.diasDaSemana(selecionado)
@@ -76,6 +84,11 @@ fun HistoricoTela(
     val abaSelecionada = AbasPlataforma.indexOfFirst {
         it.equals(state.abaHistorico, ignoreCase = true)
     }.coerceAtLeast(0)
+    val modoSelecao = state.historicoChavesSelecionadas.isNotEmpty()
+
+    val faturamento = itensDia.sumOf { it.valorTotal }
+    val distancia = itensDia.sumOf { it.kmTotal }
+    val minutos = itensDia.sumOf { it.tempoEstimado ?: 0 }
 
     Column(
         modifier = Modifier
@@ -84,47 +97,36 @@ fun HistoricoTela(
                 onAba(AbasPlataforma[novo])
             }
             .background(paleta.fundoPainel, forma)
-            .border(2.dp, paleta.borda, forma)
-            .padding(vertical = 8.dp),
+            .border(2.dp, paleta.borda, forma),
     ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(start = 8.dp, end = 12.dp, bottom = 4.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Text(
-                text = "⬅️",
-                fontSize = 18.sp,
-                modifier = Modifier
-                    .clickable(onClick = onVoltar)
-                    .padding(8.dp),
-            )
-            Text(
-                text = "HISTÓRICO",
-                color = paleta.texto,
-                fontSize = 16.sp,
-                fontWeight = FontWeight.Bold,
-                modifier = Modifier.weight(1f),
-            )
-            Text(
-                text = "🗑️",
-                fontSize = 16.sp,
-                modifier = Modifier
-                    .clickable {
-                        if (state.historicoChavesSelecionadas.isEmpty()) {
-                            android.widget.Toast.makeText(
-                                contexto,
-                                "Selecionar a(s) corrida(s)",
-                                android.widget.Toast.LENGTH_SHORT,
-                            ).show()
-                        } else {
-                            onLimpar()
+        CabecalhoTelaNativa(
+            titulo = "Histórico",
+            onVoltar = onVoltar,
+            trailing = {
+                Text(
+                    text = "🔍",
+                    fontSize = 16.sp,
+                    modifier = Modifier.padding(horizontal = 8.dp),
+                )
+                Text(
+                    text = "🗑️",
+                    fontSize = 16.sp,
+                    modifier = Modifier
+                        .clickable {
+                            if (state.historicoChavesSelecionadas.isEmpty()) {
+                                android.widget.Toast.makeText(
+                                    contexto,
+                                    "Selecionar a(s) corrida(s)",
+                                    android.widget.Toast.LENGTH_SHORT,
+                                ).show()
+                            } else {
+                                onLimpar()
+                            }
                         }
-                    }
-                    .padding(8.dp),
-            )
-        }
+                        .padding(horizontal = 8.dp),
+                )
+            },
+        )
 
         FaixaAbasComSetas(
             titulos = AbasPlataforma,
@@ -138,7 +140,9 @@ fun HistoricoTela(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 12.dp, vertical = 4.dp),
+                .padding(horizontal = 12.dp, vertical = 4.dp)
+                .border(1.dp, paleta.borda, forma)
+                .padding(vertical = 6.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             TituloComSetas(
@@ -147,14 +151,25 @@ fun HistoricoTela(
                 onDireita = { onAvancarSemana(1) },
                 corTitulo = paleta.texto,
             )
+            GradeDiasHistorico(
+                faixa = faixa,
+                selecionado = selecionado,
+                hoje = hoje,
+                marcados = marcados,
+                onDia = onDia,
+            )
         }
 
-        GradeDiasHistorico(
-            faixa = faixa,
-            selecionado = selecionado,
-            hoje = hoje,
-            marcados = marcados,
-            onDia = onDia,
+        ResumoDiaHistorico(
+            faturamento = PresentationBuilder.formatarCelulaHistoricoValor(faturamento)
+                .takeIf { itensDia.isNotEmpty() } ?: "—",
+            distancia = if (itensDia.isNotEmpty()) {
+                PresentationBuilder.formatarDistanciaHistorico(distancia)
+            } else {
+                "—"
+            },
+            tempo = if (itensDia.isNotEmpty()) PresentationBuilder.formatarTempoHm(minutos) else "—",
+            corridas = if (itensDia.isNotEmpty()) "${itensDia.size}" else "—",
         )
 
         val rolagem = rememberScrollState()
@@ -164,36 +179,70 @@ fun HistoricoTela(
                 .weight(1f, fill = true)
                 .barraRolagemAoToque(rolagem)
                 .verticalScroll(rolagem)
-                .padding(start = 8.dp, end = 12.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
+                .padding(start = 12.dp, end = 12.dp, bottom = 8.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            if (itens.isEmpty()) {
+            if (itensDia.isEmpty()) {
                 Text(
-                    text = CalendarioApp.textoVazio(periodo),
+                    text = "Nenhuma corrida neste dia",
                     color = paleta.textoSecundario,
                     fontSize = 12.sp,
                     modifier = Modifier.padding(horizontal = 4.dp, vertical = 8.dp),
                 )
             } else {
-                itens.forEach { item ->
+                itensDia.forEach { item ->
                     CartaoCorridaHistorico(
                         item = item,
                         selecionado = item.chaveHistorico() in state.historicoChavesSelecionadas,
-                        onSelecionar = { onSelecionar(item) },
+                        modoSelecao = modoSelecao,
+                        onAbrir = { onAbrirDetalhes(item) },
+                        onMarcar = { onMarcar(item) },
                     )
                 }
             }
         }
+    }
+}
 
+@Composable
+private fun ResumoDiaHistorico(
+    faturamento: String,
+    distancia: String,
+    tempo: String,
+    corridas: String,
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 12.dp, vertical = 10.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        MetricaResumo("💵", faturamento, "Faturamento", TextoVerde)
+        MetricaResumo("🛣️", distancia, "Distância", Color(0xFF1976D2))
+        MetricaResumo("⏱", tempo, "Tempo online", Color(0xFFEF6C00))
+        MetricaResumo("✅", corridas, "Corridas aceitas", Color(0xFF00897B))
+    }
+}
+
+@Composable
+private fun RowScope.MetricaResumo(icone: String, valor: String, rotulo: String, cor: Color) {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        modifier = Modifier
+            .weight(1f)
+            .padding(horizontal = 4.dp),
+        verticalArrangement = Arrangement.spacedBy(2.dp),
+    ) {
+        Text(text = icone, fontSize = 16.sp)
         Text(
-            text = "Apenas corridas aceitas entram no histórico",
-            color = paleta.textoSecundario,
-            fontSize = 11.sp,
-            textAlign = TextAlign.Center,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(bottom = 4.dp),
+            text = valor,
+            color = LocalPaletaApp.current.texto,
+            fontSize = 13.sp,
+            fontWeight = FontWeight.Bold,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
         )
+        Text(text = rotulo, color = cor, fontSize = 10.sp, maxLines = 1)
     }
 }
 
@@ -206,13 +255,19 @@ private fun GradeDiasHistorico(
     onDia: (Long) -> Unit,
 ) {
     val paleta = LocalPaletaApp.current
-    Column(modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)) {
-        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
+    Column(modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(bottom = 4.dp),
+            horizontalArrangement = Arrangement.SpaceEvenly,
+        ) {
             CalendarioApp.rotulosCabecalhoSemana().forEach { rotulo ->
                 Text(
                     text = rotulo,
                     color = paleta.textoSecundario,
-                    fontSize = 10.sp,
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.SemiBold,
                     textAlign = TextAlign.Center,
                     modifier = Modifier.weight(1f),
                 )
@@ -233,13 +288,14 @@ private fun GradeDiasHistorico(
                 Column(
                     modifier = Modifier
                         .weight(1f)
-                        .heightIn(min = 36.dp)
+                        .heightIn(min = 48.dp)
                         .clickable { onDia(dia.toEpochDay()) },
                     horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center,
                 ) {
                     Box(
                         modifier = Modifier
-                            .size(28.dp)
+                            .size(32.dp)
                             .then(
                                 if (ativo) {
                                     Modifier.background(paleta.texto, CircleShape)
@@ -252,15 +308,15 @@ private fun GradeDiasHistorico(
                         Text(
                             text = "${dia.dayOfMonth}",
                             color = cor,
-                            fontSize = 12.sp,
+                            fontSize = 13.sp,
                             fontWeight = if (ativo || temCorrida) FontWeight.SemiBold else FontWeight.Normal,
                         )
                     }
                     if (temCorrida && !ativo) {
                         Box(
                             modifier = Modifier
-                                .padding(top = 1.dp)
-                                .size(4.dp)
+                                .padding(top = 2.dp)
+                                .size(5.dp)
                                 .background(TextoVerde, CircleShape),
                         )
                     }
@@ -270,123 +326,115 @@ private fun GradeDiasHistorico(
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun CartaoCorridaHistorico(
     item: HistoricoItemPresentation,
     selecionado: Boolean,
-    onSelecionar: () -> Unit,
+    modoSelecao: Boolean,
+    onAbrir: () -> Unit,
+    onMarcar: () -> Unit,
 ) {
-    val contexto = LocalContext.current
     val paleta = LocalPaletaApp.current
     val forma = RoundedCornerShape(10.dp)
     val corClasse = parseCor(item.corClassificacao)
-    Column(
+    val lucro = PresentationBuilder.formatarLucroHistorico(item.valorTotal, item.custoCombustivel)
+    val gasto = PresentationBuilder.formatarGastoHistorico(item.custoCombustivel)
+    val consumo = PresentationBuilder.formatarLitrosHistorico(item.combustivelEstimado)
+    Row(
         modifier = Modifier
             .fillMaxWidth()
             .background(paleta.fundoCardHistorico, forma)
             .border(2.dp, corClasse, forma)
-            .clickable(onClick = onSelecionar)
-            .padding(10.dp),
-        verticalArrangement = Arrangement.spacedBy(6.dp),
-    ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween,
-        ) {
-            Text(
-                text = seloPlataforma(item.plataforma),
-                fontSize = 14.sp,
+            .combinedClickable(
+                onClick = {
+                    if (modoSelecao) onMarcar() else onAbrir()
+                },
+                onLongClick = onMarcar,
             )
+            .padding(horizontal = 12.dp, vertical = 10.dp),
+        verticalAlignment = Alignment.Top,
+    ) {
+        if (modoSelecao || selecionado) {
+            Checkbox(
+                checked = selecionado,
+                onCheckedChange = { onMarcar() },
+                colors = CheckboxDefaults.colors(
+                    checkedColor = TextoVerde,
+                    uncheckedColor = paleta.textoSecundario,
+                ),
+            )
+        }
+        Column(
+            modifier = Modifier.weight(1f),
+            verticalArrangement = Arrangement.spacedBy(6.dp),
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                Text(
+                    text = "${seloPlataforma(item.plataforma)} ${nomePlataforma(item.plataforma)}",
+                    color = paleta.texto,
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Bold,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f),
+                )
+                Text(
+                    text = formatarCabecalhoData(item.dataHoraRegistro, item.dataLista, item.horaLista),
+                    color = paleta.textoSecundario,
+                    fontSize = 11.sp,
+                    textAlign = TextAlign.End,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
             Text(
-                text = formatarCabecalhoData(item.dataHoraRegistro, item.dataLista, item.horaLista),
-                color = paleta.textoSecundario,
-                fontSize = 12.sp,
-                textAlign = TextAlign.End,
+                text = PresentationBuilder.formatarCelulaHistoricoValor(item.valorTotal),
+                color = paleta.texto,
+                fontSize = 22.sp,
+                fontWeight = FontWeight.Bold,
+                maxLines = 1,
+            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+            ) {
+                RotuloMetrica("R$/Km")
+                RotuloMetrica("Lucro")
+                RotuloMetrica("Consumo")
+                RotuloMetrica("Nota")
+            }
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+            ) {
+                CaixaMetrica(PresentationBuilder.formatarCelulaHistoricoValorPorKm(item.valorPorKm))
+                CaixaMetrica(lucro)
+                CaixaMetrica(consumo)
+                CaixaMetrica(PresentationBuilder.formatarCelulaHistoricoNota(item.notaPassageiro))
+            }
+            Text(
+                text = "🛣️ ${PresentationBuilder.formatarDistanciaHistorico(item.kmTotal)}  ·  " +
+                    "⏱️ ${PresentationBuilder.formatarTempoHm(item.tempoEstimado)}  ·  " +
+                    "⛽ Gasto $gasto",
+                color = TextoCinzaEmoji,
+                fontSize = 11.sp,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
-                modifier = Modifier
-                    .weight(1f)
-                    .padding(start = 12.dp),
             )
-        }
-
-        Row(modifier = Modifier.fillMaxWidth()) {
-            RotuloMetrica("Ganhos")
-            RotuloMetrica("R$/Km")
-            RotuloMetrica("R$/Lucro")
-            RotuloMetrica("R$/gasto")
-            RotuloMetrica("Nota")
-        }
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            ValorGanhos(PresentationBuilder.formatarCelulaHistoricoValor(item.valorTotal))
-            CaixaMetrica(
-                PresentationBuilder.formatarCelulaHistoricoValorPorKm(item.valorPorKm),
-            )
-            CaixaMetrica(
-                PresentationBuilder.formatarLucroHistorico(item.valorTotal, item.custoCombustivel),
-            )
-            CaixaMetrica(
-                PresentationBuilder.formatarGastoHistorico(item.custoCombustivel),
-            )
-            CaixaMetrica(
-                PresentationBuilder.formatarCelulaHistoricoNota(item.notaPassageiro),
-            )
-        }
-
-        Text(
-            text = "🛞 ${PresentationBuilder.formatarDistanciaHistorico(item.kmTotal)}  ·  " +
-                "🕐 ${PresentationBuilder.formatarTempoHm(item.tempoEstimado)}  ·  " +
-                "⛽ Consumo ${PresentationBuilder.formatarLitrosHistorico(item.combustivelEstimado)}",
-            color = TextoCinzaEmoji,
-            fontSize = 11.sp,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-        )
-
-        val temEmbarque = !item.enderecoEmbarque.isNullOrBlank()
-        val temDestino = !item.enderecoDestino.isNullOrBlank()
-        if (temEmbarque) {
-            LinhaRota("●", item.enderecoEmbarque.orEmpty())
-        }
-        if (temDestino) {
-            LinhaRota("■", item.enderecoDestino.orEmpty())
-        }
-        if (temEmbarque || temDestino) {
-            Row(modifier = Modifier.fillMaxWidth()) {
-                if (temEmbarque) {
-                    Text(
-                        text = "Embarque",
-                        color = TextoAmarelo,
-                        fontSize = 12.sp,
-                        textAlign = TextAlign.Center,
-                        modifier = Modifier
-                            .weight(1f)
-                            .clickable {
-                                abrirMapaDoHistorico(contexto, item.enderecoEmbarque, null)
-                            }
-                            .padding(vertical = 6.dp),
-                    )
-                }
-                if (temDestino) {
-                    Text(
-                        text = "Destino",
-                        color = TextoAmarelo,
-                        fontSize = 12.sp,
-                        textAlign = TextAlign.Center,
-                        modifier = Modifier
-                            .weight(1f)
-                            .clickable {
-                                abrirMapaDoHistorico(contexto, null, item.enderecoDestino)
-                            }
-                            .padding(vertical = 6.dp),
-                    )
-                }
+            if (!item.enderecoEmbarque.isNullOrBlank()) {
+                LinhaRota("●", item.enderecoEmbarque.orEmpty())
+            }
+            if (!item.enderecoDestino.isNullOrBlank()) {
+                LinhaRota("■", item.enderecoDestino.orEmpty())
             }
         }
+        Text(text = "›", color = paleta.textoSecundario, fontSize = 18.sp)
     }
 }
 
@@ -395,24 +443,11 @@ private fun RowScope.RotuloMetrica(texto: String) {
     Text(
         text = texto,
         color = LocalPaletaApp.current.textoSecundario,
-        fontSize = 9.sp,
+        fontSize = 10.sp,
+        fontWeight = FontWeight.SemiBold,
         textAlign = TextAlign.Center,
         maxLines = 1,
         modifier = Modifier.weight(1f),
-    )
-}
-
-@Composable
-private fun RowScope.ValorGanhos(valor: String) {
-    Text(
-        text = valor,
-        color = LocalPaletaApp.current.texto,
-        fontSize = 12.5.sp,
-        fontWeight = FontWeight.Bold,
-        textAlign = TextAlign.Center,
-        maxLines = 1,
-        overflow = TextOverflow.Ellipsis,
-        modifier = Modifier.weight(1.15f),
     )
 }
 
@@ -422,16 +457,15 @@ private fun RowScope.CaixaMetrica(valor: String) {
     Box(
         modifier = Modifier
             .weight(1f)
-            .padding(horizontal = 2.dp)
             .background(paleta.fundoMetrica, RoundedCornerShape(6.dp))
-            .padding(vertical = 4.dp, horizontal = 2.dp),
+            .padding(vertical = 8.dp, horizontal = 4.dp),
         contentAlignment = Alignment.Center,
     ) {
         Text(
             text = valor,
             color = TextoVerde,
-            fontSize = 11.sp,
-            fontWeight = FontWeight.SemiBold,
+            fontSize = 12.sp,
+            fontWeight = FontWeight.Bold,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
         )
@@ -440,8 +474,12 @@ private fun RowScope.CaixaMetrica(valor: String) {
 
 @Composable
 private fun LinhaRota(marca: String, texto: String) {
-    Row(verticalAlignment = Alignment.CenterVertically) {
-        Text(text = marca, color = TextoVerde, fontSize = 10.sp, modifier = Modifier.padding(end = 6.dp))
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(4.dp),
+        modifier = Modifier.padding(vertical = 2.dp),
+    ) {
+        Text(text = marca, color = TextoVerde, fontSize = 11.sp, fontWeight = FontWeight.Bold)
         Text(
             text = texto,
             color = LocalPaletaApp.current.texto,
@@ -461,6 +499,16 @@ private fun seloPlataforma(plataforma: String): String =
         else -> "⬜"
     }
 
+private fun nomePlataforma(plataforma: String): String =
+    when {
+        plataforma.contains("Uber", ignoreCase = true) -> "Uber"
+        plataforma.contains("99") -> "99"
+        plataforma.contains("inDrive", ignoreCase = true) ||
+            plataforma.contains("indrive", ignoreCase = true) -> "inDrive"
+        plataforma.isBlank() -> "Corrida"
+        else -> plataforma
+    }
+
 private fun formatarCabecalhoData(
     registro: LocalDateTime?,
     dataLista: String,
@@ -475,24 +523,6 @@ private fun formatarCabecalhoData(
     val data = registro.format(DateTimeFormatter.ofPattern("dd/MM/yy"))
     val hora = registro.format(DateTimeFormatter.ofPattern("HH:mm"))
     return "$diaSemana $data  $hora"
-}
-
-private fun abrirMapaDoHistorico(
-    contexto: android.content.Context,
-    embarque: String?,
-    destino: String?,
-) {
-    OverlayBridge.emitir(OverlayAcao.SairParaMapaHistorico)
-    val app = contexto.applicationContext as? GestorDriverApp ?: return
-    android.os.Handler(android.os.Looper.getMainLooper()).post {
-        NavegacaoLauncher.abrir(
-            context = contexto.applicationContext,
-            navegacao = app.configuracaoStore.carregar().navegacao,
-            embarque = embarque,
-            destino = destino,
-            corridaAceita = !destino.isNullOrBlank(),
-        )
-    }
 }
 
 private fun parseCor(valor: String): Color =

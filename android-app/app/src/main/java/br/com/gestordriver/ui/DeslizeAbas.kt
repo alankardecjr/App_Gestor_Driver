@@ -57,14 +57,14 @@ fun TituloComSetas(
         Text(
             text = "⬅️",
             color = Color.Unspecified,
-            fontSize = 14.sp,
+            fontSize = 12.sp,
             modifier = Modifier
                 .clickable(
                     interactionSource = toqueEsquerda,
                     indication = null,
                     onClick = onEsquerda,
                 )
-                .padding(horizontal = 4.dp, vertical = 2.dp),
+                .padding(horizontal = 4.dp, vertical = 1.dp),
         )
         Box(
             modifier = Modifier.weight(1f),
@@ -73,7 +73,7 @@ fun TituloComSetas(
             Text(
                 text = titulo,
                 color = corTitulo,
-                fontSize = 14.sp,
+                fontSize = 13.sp,
                 fontWeight = FontWeight.SemiBold,
                 textAlign = TextAlign.Center,
             )
@@ -81,7 +81,7 @@ fun TituloComSetas(
         Text(
             text = "➡️",
             color = Color.Unspecified,
-            fontSize = 14.sp,
+            fontSize = 12.sp,
             modifier = Modifier
                 .clickable(
                     interactionSource = toqueDireita,
@@ -135,8 +135,8 @@ fun FaixaAbasComSetas(
                         textAlign = TextAlign.Center,
                         maxLines = 1,
                         modifier = Modifier
-                            .heightIn(min = 48.dp)
-                            .padding(horizontal = 2.dp, vertical = 8.dp),
+                            .heightIn(min = 40.dp)
+                            .padding(horizontal = 2.dp, vertical = 5.dp),
                     )
                     if (mostrarIndicador) {
                         Box(
@@ -151,7 +151,7 @@ fun FaixaAbasComSetas(
         }
         Text(
             text = "➡️",
-            fontSize = 14.sp,
+            fontSize = 12.sp,
             modifier = Modifier
                 .clickable { onSelecionar((selecionada + 1).coerceAtMost(ultima)) }
                 .padding(horizontal = 4.dp, vertical = 2.dp),

@@ -49,6 +49,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import br.com.gestordriver.model.CampoApresentacao
 import br.com.gestordriver.model.ModoApresentacao
+import br.com.gestordriver.model.PlanoAcesso
 import br.com.gestordriver.presentation.PresentationBuilder
 import br.com.gestordriver.ui.theme.LocalPaletaApp
 import br.com.gestordriver.ui.theme.PaletaApp
@@ -77,6 +78,8 @@ fun AppScreen(
     val janelaCheia = state.historicoVisivel ||
         state.configuracoesVisivel ||
         state.dashboardVisivel ||
+        state.semaforoVisivel ||
+        state.opcoesVisivel ||
         state.recentesConfig ||
         state.confirmacaoFecharVisivel ||
         state.confirmacaoLimparHistoricoVisivel ||
@@ -103,33 +106,16 @@ fun AppScreen(
             .fillMaxSize()
             .windowInsetsPadding(WindowInsets.safeDrawing),
         color = if (state.interfaceOculta && state.monitorando) {
-            paleta.fundo
-        } else {
             Color.Transparent
+        } else {
+            paleta.fundo
         },
     ) {
-        if (state.interfaceOculta) {
-            if (state.monitorando &&
-                state.onboardingEtapa == br.com.gestordriver.model.OnboardingEtapa.NENHUMA
-            ) {
-                when {
-                    state.dashboardVisivel -> DashboardTela(
-                        state = state,
-                        configuracao = configuracoesViewModel.configuracao,
-                        onVoltar = viewModel::fecharDashboard,
-                        onDia = viewModel::selecionarDiaHistorico,
-                        onAvancar = viewModel::avancarPeriodoHistorico,
-                        onPeriodo = viewModel::selecionarPeriodoHistorico,
-                    )
-                    else -> ConfiguracoesScreen(
-                        viewModel = configuracoesViewModel,
-                        onVoltar = viewModel::voltarPelaBarra,
-                        abaInicial = state.abaConfiguracao,
-                        destacarPermissoes = state.destacarPermissoes,
-                        plano = state.plano,
-                    )
-                }
-            }
+        // Em monitoramento com overlay (selo/atalho/compacta): Activity fica vazia atrás.
+        if (state.interfaceOculta &&
+            state.monitorando &&
+            state.onboardingEtapa == br.com.gestordriver.model.OnboardingEtapa.NENHUMA
+        ) {
             return@Surface
         }
 
@@ -151,7 +137,7 @@ fun AppScreen(
                         onPularTutorial = viewModel::tutorialPular,
                     )
                 } else {
-                    ConteudoPrincipal(
+                    TelasNativasOuPrincipal(
                         viewModel = viewModel,
                         configuracoesViewModel = configuracoesViewModel,
                         state = state,
@@ -160,6 +146,122 @@ fun AppScreen(
             }
         }
     }
+    }
+}
+
+@Composable
+private fun TelasNativasOuPrincipal(
+    viewModel: AppViewModel,
+    configuracoesViewModel: ConfiguracoesViewModel,
+    state: AppState,
+) {
+    when {
+        state.confirmacaoFecharVisivel -> {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(24.dp),
+                contentAlignment = Alignment.Center,
+            ) {
+                ConfirmacaoFecharSection(
+                    titulo = "gestor driver",
+                    mensagem = "Deseja encerrar o aplicativo e parar o monitoramento de corridas?",
+                    textoConfirmar = "Fechar",
+                    onCancelar = viewModel::cancelarFecharApp,
+                    onConfirmar = viewModel::confirmarFecharApp,
+                )
+            }
+        }
+        state.historicoVisivel -> {
+            Box(modifier = Modifier.fillMaxSize()) {
+                HistoricoTela(
+                    state = state,
+                    onVoltar = viewModel::voltarParaAtalho,
+                    onDia = viewModel::selecionarDiaHistorico,
+                    onAvancarSemana = viewModel::avancarSemanaHistorico,
+                    onAba = viewModel::selecionarAbaHistorico,
+                    onAbrirDetalhes = viewModel::abrirDetalhesCorrida,
+                    onMarcar = viewModel::marcarItemHistorico,
+                    onLimpar = viewModel::solicitarLimparHistorico,
+                )
+                if (state.detalhesCorridaVisivel && state.historicoSelecionado != null) {
+                    Box(
+                        modifier = Modifier
+                            .matchParentSize()
+                            .background(Color.Black.copy(alpha = 0.45f))
+                            .clickable(onClick = viewModel::fecharDetalhesCorrida),
+                        contentAlignment = Alignment.BottomCenter,
+                    ) {
+                        Box(modifier = Modifier.clickable(enabled = false, onClick = {})) {
+                            DetalhesCorridaSheet(
+                                item = state.historicoSelecionado!!,
+                                configuracao = configuracoesViewModel.configuracao,
+                                onFechar = viewModel::fecharDetalhesCorrida,
+                                onExcluir = viewModel::excluirCorridaDosDetalhes,
+                            )
+                        }
+                    }
+                }
+                if (state.confirmacaoLimparHistoricoVisivel) {
+                    Box(
+                        modifier = Modifier
+                            .matchParentSize()
+                            .background(Color.Black.copy(alpha = 0.45f))
+                            .clickable(enabled = false, onClick = {})
+                            .padding(horizontal = 16.dp, vertical = 24.dp),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        ConfirmacaoFecharSection(
+                            titulo = "gestor driver",
+                            mensagem = "Deseja apagar a(s) corrida(s) selecionada(s)?",
+                            textoConfirmar = "Limpar",
+                            onCancelar = viewModel::cancelarLimparHistorico,
+                            onConfirmar = viewModel::confirmarLimparHistorico,
+                        )
+                    }
+                }
+            }
+        }
+        state.dashboardVisivel -> DashboardTela(
+            state = state,
+            configuracao = configuracoesViewModel.configuracao,
+            onVoltar = viewModel::voltarParaAtalho,
+            onDia = viewModel::selecionarDiaHistorico,
+            onAvancar = viewModel::avancarPeriodoCarteira,
+            onPeriodo = viewModel::selecionarPeriodoHistorico,
+        )
+        state.semaforoVisivel -> SemaforoTela(
+            viewModel = configuracoesViewModel,
+            onVoltar = viewModel::voltarParaAtalho,
+        )
+        state.configuracoesVisivel -> ConfiguracoesScreen(
+            viewModel = configuracoesViewModel,
+            onVoltar = viewModel::voltarParaAtalho,
+            abaInicial = state.abaConfiguracao,
+            destacarPermissoes = state.destacarPermissoes,
+            avisoSemMonitoramento = state.avisoSemMonitoramento,
+            plano = state.plano,
+        )
+        state.opcoesVisivel -> OpcoesTela(
+            planoPro = state.plano == PlanoAcesso.PRO,
+            onFecharParaSelo = {
+                if (viewModel.state.monitorando) {
+                    viewModel.fecharAtalhosParaSelo()
+                }
+            },
+            onHistorico = viewModel::abrirHistoricoPeloOverlay,
+            onCarteira = viewModel::abrirDashboard,
+            onDespesas = { viewModel.abrirAtalhoConfig(0) },
+            onSemaforo = viewModel::abrirSemaforo,
+            onUsuario = { viewModel.abrirAtalhoConfig(1) },
+            onConfigurar = { viewModel.abrirAtalhoConfig(2) },
+            onFecharApp = viewModel::solicitarFecharApp,
+        )
+        else -> ConteudoPrincipal(
+            viewModel = viewModel,
+            configuracoesViewModel = configuracoesViewModel,
+            state = state,
+        )
     }
 }
 
@@ -263,7 +365,8 @@ private fun ConteudoPrincipal(
                     ) {
 
                         DetalhesCorrida(
-                            campos = state.corrida.camposDetalhes,
+                            compactos = state.corrida.camposCompactos,
+                            detalhes = state.corrida.camposDetalhes,
                         )
 
                         ControlesInterface(
@@ -277,84 +380,7 @@ private fun ConteudoPrincipal(
                     }
                 }
             }
-
-            // =========================================================
-            // HISTÓRICO
-            //
-            // SOMENTE NA TELA EXPANDIDA
-            // =========================================================
-
-            AnimatedVisibility(
-                visible = state.confirmacaoFecharVisivel &&
-                    state.corrida.modo == ModoApresentacao.DETALHES,
-                enter = slideInVertically(animationSpec = tween(220)) { -it },
-                exit = slideOutVertically(animationSpec = tween(180)) { -it },
-            ) {
-                ConfirmacaoFecharSection(
-                    titulo = "gestor driver",
-                    mensagem = "Deseja encerrar o aplicativo e parar o monitoramento de corridas?",
-                    textoConfirmar = "Fechar",
-                    onCancelar = viewModel::cancelarFecharApp,
-                    onConfirmar = viewModel::confirmarFecharApp,
-                )
             }
-
-            AnimatedVisibility(
-                visible = state.historicoVisivel &&
-                    state.corrida.modo == ModoApresentacao.DETALHES,
-                enter = slideInVertically(animationSpec = tween(220)) { -it },
-                exit = slideOutVertically(animationSpec = tween(180)) { -it },
-            ) {
-                Box(modifier = Modifier.fillMaxWidth()) {
-                    HistoricoTela(
-                        state = state,
-                        onVoltar = viewModel::alternarHistorico,
-                        onDia = viewModel::selecionarDiaHistorico,
-                        onAvancarSemana = viewModel::avancarSemanaHistorico,
-                        onAba = viewModel::selecionarAbaHistorico,
-                        onSelecionar = viewModel::marcarItemHistorico,
-                        onLimpar = viewModel::solicitarLimparHistorico,
-                    )
-                    if (state.confirmacaoLimparHistoricoVisivel) {
-                        Box(
-                            modifier = Modifier
-                                .matchParentSize()
-                                .background(Color.Black.copy(alpha = 0.45f))
-                                .clickable(enabled = false, onClick = {})
-                                .padding(horizontal = 16.dp, vertical = 24.dp),
-                            contentAlignment = Alignment.Center,
-                        ) {
-                            ConfirmacaoFecharSection(
-                                titulo = "gestor driver",
-                                mensagem = "Limpar histórico",
-                                textoConfirmar = "Limpar",
-                                onCancelar = viewModel::cancelarLimparHistorico,
-                                onConfirmar = viewModel::confirmarLimparHistorico,
-                            )
-                        }
-                    }
-                }
-            }
-            }
-        }
-        if (state.configuracoesVisivel) {
-            ConfiguracoesScreen(
-                viewModel = configuracoesViewModel,
-                onVoltar = viewModel::fecharConfiguracoes,
-                abaInicial = state.abaConfiguracao,
-                destacarPermissoes = state.destacarPermissoes,
-                plano = state.plano,
-            )
-        }
-        if (state.dashboardVisivel) {
-            DashboardTela(
-                state = state,
-                configuracao = configuracoesViewModel.configuracao,
-                onVoltar = viewModel::fecharDashboard,
-                onDia = viewModel::selecionarDiaHistorico,
-                onAvancar = viewModel::avancarPeriodoHistorico,
-                onPeriodo = viewModel::selecionarPeriodoHistorico,
-            )
         }
         }
 }
@@ -657,121 +683,127 @@ private fun CabecalhoSimples(
 }
 
 // =====================================================================
-// DETALHES DA CORRIDA
+// DETALHES DA CORRIDA (mesmo layout do card do histórico)
 // =====================================================================
 
 @Composable
 private fun DetalhesCorrida(
-    campos: List<CampoApresentacao>,
+    compactos: List<CampoApresentacao>,
+    detalhes: List<CampoApresentacao>,
 ) {
-    val mapa = campos.associateBy { it.id }
-    val distancias = listOfNotNull(
-        mapa["km_ate_passageiro"],
-        mapa["km_viagem"],
-        mapa["km_total_detalhe"],
-        mapa["endereco_embarque"],
-        mapa["endereco_destino"],
-    )
-    val custos = listOfNotNull(
-        mapa["combustivel_estimado"],
-        mapa["custo_combustivel"],
-        mapa["lucro_estimado"],
-    )
+    val mapaC = compactos.associateBy { it.id }
+    val mapaD = detalhes.associateBy { it.id }
+    val valor = mapaC["valor_total"]?.valor ?: "—"
+    val porKm = mapaC["valor_por_km"]?.valor?.removePrefix("R$")?.trim() ?: "—"
+    val lucro = mapaD["lucro_estimado"]?.valor?.removePrefix("R$")?.trim() ?: "—"
+    val consumo = mapaD["combustivel_estimado"]?.valor ?: "—"
+    val gasto = mapaD["custo_combustivel"]?.valor ?: "—"
+    val nota = mapaC["nota_passageiro"]?.valor ?: "—"
+    val km = mapaC["km_total"]?.valor ?: mapaD["km_total_detalhe"]?.valor ?: "—"
+    val tempo = mapaC["tempo_estimado"]?.valor ?: "—"
+    val atePassageiro = mapaD["km_ate_passageiro"]?.valor
+    val ateDestino = mapaD["km_viagem"]?.valor
+    val embarque = mapaD["endereco_embarque"]?.valor?.takeIf { it.isNotBlank() && it != "—" }
+    val destino = mapaD["endereco_destino"]?.valor?.takeIf { it.isNotBlank() && it != "—" }
 
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(top = 8.dp),
+            .padding(top = 6.dp),
         verticalArrangement = Arrangement.spacedBy(6.dp),
     ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(10.dp),
-        ) {
-            ColunaDetalhes(
-                modifier = Modifier.weight(1f),
-                titulo = "DISTÂNCIAS",
-                icone = "🛞",
-                corTitulo = TextoAzul,
-                campos = distancias,
-            )
-            ColunaDetalhes(
-                modifier = Modifier.weight(1f),
-                titulo = "CUSTOS (ESTIMADO)",
-                icone = "💰",
-                corTitulo = TextoVerde,
-                campos = custos,
-            )
-        }
-        campos.filter { campo ->
-            campo.id !in setOf(
-                "km_ate_passageiro",
-                "km_viagem",
-                "km_total_detalhe",
-                "endereco_embarque",
-                "endereco_destino",
-                "combustivel_estimado",
-                "custo_combustivel",
-                "lucro_estimado",
-            )
-        }.forEach { campo ->
-            LinhaDetalhe(campo)
-        }
-    }
-}
-
-@Composable
-private fun ColunaDetalhes(
-    modifier: Modifier,
-    titulo: String,
-    icone: String,
-    corTitulo: Color,
-    campos: List<CampoApresentacao>,
-) {
-    Column(
-        modifier = modifier,
-        verticalArrangement = Arrangement.spacedBy(4.dp),
-    ) {
         Text(
-            text = "$icone $titulo",
-            color = corTitulo,
-            fontSize = 12.sp,
-            fontWeight = FontWeight.SemiBold,
+            text = valor,
+            color = LocalPaletaApp.current.texto,
+            fontSize = 22.sp,
+            fontWeight = FontWeight.Bold,
             maxLines = 1,
         )
-        campos.forEach { campo ->
-            LinhaDetalhe(campo)
+        Row(modifier = Modifier.fillMaxWidth()) {
+            listOf("$/Km", "Lucro", "Consumo", "Nota").forEach { rotulo ->
+                Text(
+                    text = rotulo,
+                    color = LocalPaletaApp.current.textoSecundario,
+                    fontSize = 10.sp,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.weight(1f),
+                    maxLines = 1,
+                )
+            }
         }
-    }
-}
-
-// =====================================================================
-// LINHA DOS DETALHES
-// =====================================================================
-
-@Composable
-private fun LinhaDetalhe(
-    campo: CampoApresentacao,
-) {
-
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(4.dp),
+        ) {
+            listOf(porKm, lucro, consumo, nota).forEach { v ->
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .background(
+                            LocalPaletaApp.current.fundoMetrica,
+                            RoundedCornerShape(6.dp),
+                        )
+                        .padding(vertical = 6.dp, horizontal = 2.dp),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Text(
+                        text = v,
+                        color = TextoVerde,
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
+            }
+        }
         Text(
-            text = campo.titulo,
-            color = LocalPaletaApp.current.textoDetalhes,
-            style = MaterialTheme.typography.bodySmall,
+            text = "$km  ·  $tempo  ·  Gasto $gasto",
+            color = LocalPaletaApp.current.textoSecundario,
+            fontSize = 12.sp,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
         )
-
-        Text(
-            text = campo.valor,
-            color = LocalPaletaApp.current.texto,
-            style = MaterialTheme.typography.bodySmall,
-            fontWeight = FontWeight.SemiBold,
-        )
+        if (!atePassageiro.isNullOrBlank() && atePassageiro != "—") {
+            Text(
+                text = "Até o passageiro: $atePassageiro",
+                color = LocalPaletaApp.current.textoSecundario,
+                fontSize = 11.sp,
+                maxLines = 1,
+            )
+        }
+        if (!ateDestino.isNullOrBlank() && ateDestino != "—") {
+            Text(
+                text = "Até o destino: $ateDestino",
+                color = LocalPaletaApp.current.textoSecundario,
+                fontSize = 11.sp,
+                maxLines = 1,
+            )
+        }
+        if (embarque != null) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text("●", color = TextoVerde, fontSize = 10.sp, modifier = Modifier.padding(end = 6.dp))
+                Text(
+                    text = embarque,
+                    color = LocalPaletaApp.current.texto,
+                    fontSize = 11.sp,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
+        }
+        if (destino != null) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text("■", color = TextoVerde, fontSize = 10.sp, modifier = Modifier.padding(end = 6.dp))
+                Text(
+                    text = destino,
+                    color = LocalPaletaApp.current.texto,
+                    fontSize = 11.sp,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
+        }
     }
 }
 
