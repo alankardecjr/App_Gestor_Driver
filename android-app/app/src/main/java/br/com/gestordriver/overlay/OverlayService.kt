@@ -73,6 +73,7 @@ class OverlayService : Service() {
     private var confirmacaoAberto = false
     private val camadaHandler = Handler(Looper.getMainLooper())
     private val prefsCompacta by lazy { getSharedPreferences(PREFS_COMPACTA, MODE_PRIVATE) }
+    private var ocultarCompactaRunnable: Runnable? = null
 
     override fun onBind(intent: Intent?): IBinder? = null
 
@@ -143,6 +144,8 @@ class OverlayService : Service() {
         dashboardView = null
         confirmacaoView = null
         lixeiraView = null
+        ocultarCompactaRunnable?.let(camadaHandler::removeCallbacks)
+        ocultarCompactaRunnable = null
         seloParams = null
         compactaParams = null
         expandidaParams = null
@@ -176,12 +179,13 @@ class OverlayService : Service() {
         garantirSelo(snapshot)
         seloView?.visibility = if (snapshot.seloVisivel) View.VISIBLE else View.INVISIBLE
         if (snapshot.compactaVisivel) {
+            ocultarCompactaRunnable?.let(camadaHandler::removeCallbacks)
+            ocultarCompactaRunnable = null
             garantirCompacta(snapshot)
             compactaView?.visibility = View.VISIBLE
             compactaView?.elevation = 48f
         } else {
-            compactaView?.visibility = View.INVISIBLE
-            desligarToqueForaCompacta()
+            agendarOcultacaoCompacta(snapshot)
         }
         if (snapshot.expandidaVisivel) {
             garantirExpandida(snapshot)
@@ -334,6 +338,22 @@ class OverlayService : Service() {
         val params = compactaParams ?: return
         aplicarFlagsToqueFora(params, ativo = false)
         runCatching { windowManager.updateViewLayout(view, params) }
+    }
+
+    private fun agendarOcultacaoCompacta(snapshot: OverlaySnapshot) {
+        val view = compactaView ?: return
+        if (view.visibility != View.VISIBLE || ocultarCompactaRunnable != null) {
+            view.visibility = if (snapshot.compactaVisivel) View.VISIBLE else view.visibility
+            return
+        }
+        val atraso = if (snapshot.corridaAceita) 4_000L else 2_000L
+        val runnable = Runnable {
+            view.visibility = View.INVISIBLE
+            desligarToqueForaCompacta()
+            ocultarCompactaRunnable = null
+        }
+        ocultarCompactaRunnable = runnable
+        camadaHandler.postDelayed(runnable, atraso)
     }
 
     private fun garantirExpandida(snapshot: OverlaySnapshot) {
@@ -538,7 +558,7 @@ class OverlayService : Service() {
     }
 
     private fun montarMenuAtalho(card: LinearLayout, snapshot: OverlaySnapshot) {
-        // UI Atalhos oficial — tema claro/escuro; ícones coloridos; X vermelho.
+        // O menu fecha pelo toque no selo ou fora dele; nao precisa de um X adicional.
         val ui = AtalhosUi.de(OverlayTema.de(this).escuro)
         card.addView(cabecalhoAtalhos(ui))
         val itens = listOf(
@@ -617,7 +637,6 @@ class OverlayService : Service() {
     private fun cabecalhoAtalhos(ui: AtalhosUi.Tema): LinearLayout {
         return LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
-            addView(botaoFecharAtalhos(ui))
             addView(
                 TextView(this@OverlayService).apply {
                     text = "Atalhos"
@@ -633,35 +652,6 @@ class OverlayService : Service() {
                     setTextColor(ui.subtitulo)
                     textSize = 13f
                     setPadding(0, 0, 0, 0)
-                },
-            )
-        }
-    }
-
-    private fun botaoFecharAtalhos(ui: AtalhosUi.Tema): FrameLayout {
-        val tamanho = dp(34)
-        return FrameLayout(this).apply {
-            layoutParams = LinearLayout.LayoutParams(tamanho, tamanho)
-            background = GradientDrawable().apply {
-                shape = GradientDrawable.OVAL
-                setColor(ui.botaoXFundo)
-            }
-            isClickable = true
-            isFocusable = true
-            contentDescription = "Fechar atalhos"
-            setOnClickListener {
-                OverlayBridge.emitir(OverlayAcao.FecharAtalhos)
-            }
-            addView(
-                ImageView(this@OverlayService).apply {
-                    setImageResource(R.drawable.ic_fechar_x)
-                    scaleType = ImageView.ScaleType.CENTER_INSIDE
-                    setPadding(dp(9), dp(9), dp(9), dp(9))
-                    ImageViewCompat.setImageTintList(this, ColorStateList.valueOf(ui.botaoX))
-                    layoutParams = FrameLayout.LayoutParams(
-                        FrameLayout.LayoutParams.MATCH_PARENT,
-                        FrameLayout.LayoutParams.MATCH_PARENT,
-                    )
                 },
             )
         }
@@ -940,11 +930,77 @@ class OverlayService : Service() {
         val cinzaMedio = Color.parseColor(COR_CINZA_MEDIO)
         val layout = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
-            setPadding(dp(10), dp(6), dp(10), dp(6))
+            setPadding(dp(8), dp(5), dp(8), dp(5))
             background = fundoPainelCompacta(ClassificacaoConstantes.COR_BORDA_NEUTRA)
             gravity = Gravity.CENTER
         }
         layout.setOnTouchListener(CompactaTouchListener())
+
+        val contexto = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            tag = "contexto"
+            gravity = Gravity.CENTER_VERTICAL
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+            )
+        }
+        contexto.addView(
+            TextView(this).apply {
+                tag = "ctx_icone"
+                text = "—"
+                textSize = 11f
+                typeface = android.graphics.Typeface.DEFAULT_BOLD
+                gravity = Gravity.CENTER
+                setPadding(dp(5), dp(1), dp(5), dp(1))
+                setTextColor(Color.WHITE)
+                background = GradientDrawable().apply {
+                    shape = GradientDrawable.RECTANGLE
+                    cornerRadius = dp(5).toFloat()
+                    setColor(Color.parseColor("#616161"))
+                }
+                minWidth = dp(24)
+            },
+        )
+        contexto.addView(
+            TextView(this).apply {
+                tag = "ctx_nome"
+                text = "App de corrida"
+                textSize = 10f
+                setTextColor(cinzaMedio)
+                setPadding(dp(5), 0, 0, 0)
+                gravity = Gravity.CENTER_VERTICAL
+            },
+        )
+        contexto.addView(
+            TextView(this).apply {
+                tag = "ctx_paradas"
+                text = ""
+                textSize = 10f
+                typeface = android.graphics.Typeface.DEFAULT_BOLD
+                setTextColor(cinzaMedio)
+                setPadding(dp(8), 0, 0, 0)
+                gravity = Gravity.CENTER_VERTICAL
+                layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+            },
+        )
+        contexto.addView(
+            TextView(this).apply {
+                text = "X"
+                textSize = 14f
+                typeface = android.graphics.Typeface.DEFAULT_BOLD
+                setTextColor(cinzaEscuro)
+                gravity = Gravity.CENTER
+                contentDescription = "Fechar tela compacta"
+                isClickable = true
+                isFocusable = true
+                minWidth = dp(48)
+                minHeight = dp(48)
+                setPadding(dp(8), dp(2), dp(3), dp(2))
+                setOnClickListener { OverlayBridge.emitir(OverlayAcao.RecolherParaSelo) }
+            },
+        )
+        layout.addView(contexto)
 
         val metricas = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
@@ -994,45 +1050,6 @@ class OverlayService : Service() {
         )
         layout.addView(metricas)
 
-        val contexto = LinearLayout(this).apply {
-            orientation = LinearLayout.HORIZONTAL
-            tag = "contexto"
-            gravity = Gravity.CENTER
-            setPadding(0, dp(4), 0, 0)
-            layoutParams = LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT,
-                LinearLayout.LayoutParams.WRAP_CONTENT,
-            )
-        }
-        contexto.addView(
-            TextView(this).apply {
-                tag = "ctx_icone"
-                text = "—"
-                textSize = 13f
-                typeface = android.graphics.Typeface.DEFAULT_BOLD
-                gravity = Gravity.CENTER
-                setPadding(dp(6), dp(2), dp(6), dp(2))
-                setTextColor(Color.WHITE)
-                background = GradientDrawable().apply {
-                    shape = GradientDrawable.RECTANGLE
-                    cornerRadius = dp(6).toFloat()
-                    setColor(Color.parseColor("#424242"))
-                }
-                minWidth = dp(28)
-            },
-        )
-        contexto.addView(
-            TextView(this).apply {
-                tag = "ctx_paradas"
-                text = "Parada(s)"
-                textSize = 11f
-                typeface = android.graphics.Typeface.DEFAULT_BOLD
-                setTextColor(cinzaMedio)
-                setPadding(dp(10), 0, 0, 0)
-                gravity = Gravity.CENTER_VERTICAL
-            },
-        )
-        layout.addView(contexto)
         return layout
     }
 
@@ -1092,9 +1109,17 @@ class OverlayService : Service() {
         icone.setTextColor(if (sigla == "99") Color.BLACK else Color.WHITE)
         (icone.background as? GradientDrawable)?.setColor(corIcone)
 
+        val nome = when (sigla) {
+            "99" -> "99"
+            "in" -> "inDrive"
+            "U" -> "Uber"
+            else -> "App de corrida"
+        }
+        layout.findViewWithTag<TextView>("ctx_nome").text = nome
+
         val paradas = snapshot.quantidadeParadas
         val paradasView = layout.findViewWithTag<TextView>("ctx_paradas")
-        paradasView.text = if (paradas > 0) "$paradas Parada(s)" else "Parada(s)"
+        paradasView.text = if (paradas > 0) "$paradas Parada(s)" else ""
         paradasView.setTextColor(
             Color.parseColor(if (paradas > 0) COR_CINZA_ESCURO else COR_CINZA_MEDIO),
         )

@@ -56,6 +56,7 @@ private fun Int.toComposeColor(): Color =
 fun OpcoesTela(
     planoPro: Boolean,
     onFecharParaSelo: () -> Unit,
+    onLocalizacao: () -> Unit,
     onHistorico: () -> Unit,
     onCarteira: () -> Unit,
     onDespesas: () -> Unit,
@@ -69,6 +70,7 @@ fun OpcoesTela(
     val formaItem = RoundedCornerShape(16.dp)
     val formaIcone = RoundedCornerShape(12.dp)
     val itens = listOf(
+        ItemOpcao("Localização", "Abrir mapa na posição atual", R.mipmap.ic_launcher_round, ui.historico, onLocalizacao),
         ItemOpcao("Histórico", "Ver corridas aceitas", R.drawable.ic_menu_historico, ui.historico, onHistorico),
         ItemOpcao("Carteira", "Saldo e movimentações", R.drawable.ic_menu_carteira, ui.carteira, onCarteira),
         ItemOpcao("Despesas", "Controle de gastos do app", R.drawable.ic_menu_despesas, ui.despesas, onDespesas),
@@ -86,16 +88,15 @@ fun OpcoesTela(
     ) {
         Box(
             modifier = Modifier
-                .size(34.dp)
-                .background(ui.botaoXFundo.toComposeColor(), CircleShape)
+                .size(42.dp)
                 .clickable(onClick = onFecharParaSelo),
             contentAlignment = Alignment.Center,
         ) {
             Icon(
-                painter = painterResource(R.drawable.ic_fechar_x),
-                contentDescription = "Fechar opções",
-                tint = ui.botaoX.toComposeColor(),
-                modifier = Modifier.size(16.dp),
+                painter = painterResource(R.mipmap.ic_launcher_round),
+                contentDescription = "Voltar para o selo",
+                tint = Color.Unspecified,
+                modifier = Modifier.size(42.dp),
             )
         }
         Spacer(modifier = Modifier.height(12.dp))

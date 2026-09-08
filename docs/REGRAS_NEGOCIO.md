@@ -223,9 +223,9 @@ R$/Km   Dist.   Tempo   Nota
 
 Borda **6 dp** na cor da classificação (ruim vermelho / boa amarelo / ótima verde). Sem oferta não aparece.
 
-A compacta **não** tem botões Fechar / Config / Ocultar / Histórico.
+A compacta tem somente o botão `X` para fechar a própria compacta e retornar ao selo. Não tem botões Config / Ocultar / Histórico.
 
-**Toque na compacta:** não faz nada (não abre menu, não some).  
+**Toque no corpo ou fora da compacta:** não faz nada (não abre menu, não some). Somente o `X` fecha a compacta.
 **Toque fora:** não some.  
 **Fluxo:** nova oferta → compacta; expirou / recusou / aceitou → some junto com a oferta (não forçar reaparecimento sobre a plataforma).
 

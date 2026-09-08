@@ -20,7 +20,7 @@ object TutorialConteudo {
         ),
         TutorialPasso(
             titulo = "Compacta",
-            texto = "Card no topo só na oferta: R$/Km, Dist., Tempo e Nota. Arrastável (guarda posição). Borda na cor da classificação. Toque não faz nada; some com a oferta.",
+            texto = "Card no topo só na oferta: R$/Km, Dist., Tempo e Nota. Arrastável (guarda posição). Borda na cor da classificação. Toque no corpo ou fora não faz nada; X fecha a compacta e retorna ao selo.",
         ),
         TutorialPasso(
             titulo = "Menu / Atalhos",

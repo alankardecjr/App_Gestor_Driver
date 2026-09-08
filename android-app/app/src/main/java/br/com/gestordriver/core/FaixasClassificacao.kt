@@ -29,10 +29,10 @@ object FaixasClassificacao {
         if (campo == Campo.RUIM_MIN) "MIN" else formatar(valor)
 
     fun rotuloMax(campo: Campo, valor: Double): String =
-        if (campo == Campo.OTIMA_MAX) "MAX" else formatar(valor)
+        formatar(valor)
 
     fun campoEditavel(campo: Campo): Boolean =
-        campo != Campo.RUIM_MIN && campo != Campo.OTIMA_MAX
+        campo != Campo.RUIM_MIN
 
     fun valorDe(atual: ConfiguracaoUsuario, campo: Campo): Double =
         when (campo) {
@@ -76,6 +76,7 @@ object FaixasClassificacao {
         var boaMin = atual.limiteBoaMin
         var boaMax = atual.limiteBoaMax
         var otimaMin = atual.limiteOtimaMin
+        var otimaMax = atual.limiteOtimaMax
         val v = arredondar(valor).coerceIn(MIN_ABSOLUTO, MAX_ABSOLUTO)
         val campoEfetivo = when (campo) {
             Campo.REGULAR_MAX -> Campo.BOA_MAX
@@ -88,6 +89,7 @@ object FaixasClassificacao {
             Campo.BOA_MIN -> boaMin = v
             Campo.BOA_MAX -> boaMax = v
             Campo.OTIMA_MIN -> otimaMin = v
+            Campo.OTIMA_MAX -> otimaMax = v
             else -> return atual
         }
 
@@ -120,6 +122,9 @@ object FaixasClassificacao {
                     ruimMax = anterior(boaMin)
                 }
             }
+            Campo.OTIMA_MAX -> {
+                otimaMax = otimaMax.coerceAtLeast(otimaMin)
+            }
             else -> Unit
         }
 
@@ -129,6 +134,7 @@ object FaixasClassificacao {
             boaMin = boaMin,
             boaMax = boaMax,
             otimaMin = otimaMin,
+            otimaMax = otimaMax,
         )
     }
 
@@ -137,6 +143,7 @@ object FaixasClassificacao {
         var boaMin = arredondar(atual.limiteBoaMin)
         var boaMax = arredondar(atual.limiteBoaMax)
         var otimaMin = arredondar(atual.limiteOtimaMin)
+        var otimaMax = arredondar(atual.limiteOtimaMax.coerceIn(MIN_ABSOLUTO, MAX_ABSOLUTO))
         if (boaMin < seguinte(ruimMax)) {
             boaMin = seguinte(ruimMax)
         }
@@ -148,6 +155,9 @@ object FaixasClassificacao {
         }
         if (otimaMin > MAX_ABSOLUTO) {
             otimaMin = MAX_ABSOLUTO
+        }
+        if (otimaMax < otimaMin) {
+            otimaMax = otimaMin
         }
         if (boaMax > anterior(otimaMin) && otimaMin > MIN_ABSOLUTO) {
             boaMax = anterior(otimaMin)
@@ -164,6 +174,7 @@ object FaixasClassificacao {
             boaMin = boaMin,
             boaMax = boaMax,
             otimaMin = otimaMin,
+            otimaMax = otimaMax,
         )
     }
 
@@ -173,6 +184,7 @@ object FaixasClassificacao {
         boaMin: Double,
         boaMax: Double,
         otimaMin: Double,
+        otimaMax: Double,
     ): ConfiguracaoUsuario {
         val ruim = arredondar(ruimMax.coerceAtLeast(MIN_ABSOLUTO))
         val boaIni = arredondar(boaMin)
@@ -186,7 +198,7 @@ object FaixasClassificacao {
             limiteBoaMin = boaIni,
             limiteBoaMax = boaFim,
             limiteOtimaMin = otima,
-            limiteOtimaMax = MAX_ABSOLUTO,
+            limiteOtimaMax = arredondar(otimaMax.coerceIn(otima, MAX_ABSOLUTO)),
         )
     }
 

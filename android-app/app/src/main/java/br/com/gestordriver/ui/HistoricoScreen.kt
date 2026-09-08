@@ -102,6 +102,7 @@ fun HistoricoTela(
         CabecalhoTelaNativa(
             titulo = "Histórico",
             onVoltar = onVoltar,
+            onSelo = onVoltar,
             trailing = {
                 Text(
                     text = "🔍",

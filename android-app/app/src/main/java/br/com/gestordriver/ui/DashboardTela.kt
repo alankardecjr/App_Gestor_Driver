@@ -113,6 +113,7 @@ fun DashboardTela(
         CabecalhoTelaNativa(
             titulo = "Carteira",
             onVoltar = onVoltar,
+            onSelo = onVoltar,
         )
 
         FaixaAbasComSetas(

@@ -155,6 +155,7 @@ private fun TelasNativasOuPrincipal(
     configuracoesViewModel: ConfiguracoesViewModel,
     state: AppState,
 ) {
+    val activity = LocalContext.current as? br.com.gestordriver.MainActivity
     when {
         state.confirmacaoFecharVisivel -> {
             Box(
@@ -248,6 +249,9 @@ private fun TelasNativasOuPrincipal(
                 if (viewModel.state.monitorando) {
                     viewModel.fecharAtalhosParaSelo()
                 }
+            },
+            onLocalizacao = {
+                activity?.abrirLocalizacaoAtual()
             },
             onHistorico = viewModel::abrirHistoricoPeloOverlay,
             onCarteira = viewModel::abrirDashboard,

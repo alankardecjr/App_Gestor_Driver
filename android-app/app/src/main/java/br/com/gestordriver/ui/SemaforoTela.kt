@@ -19,7 +19,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.RangeSlider
+import androidx.compose.material3.Slider
 import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -53,9 +53,6 @@ fun SemaforoTela(
     val corRuim = Color(android.graphics.Color.parseColor(ClassificacaoConstantes.CORES.getValue(Classificacao.RUIM)))
     val corBoa = Color(android.graphics.Color.parseColor(ClassificacaoConstantes.CORES.getValue(Classificacao.BOA)))
     val corOtima = Color(android.graphics.Color.parseColor(ClassificacaoConstantes.CORES.getValue(Classificacao.EXCELENTE)))
-    var ajudaKm by remember { mutableStateOf(false) }
-    var ajudaHora by remember { mutableStateOf(false) }
-    var ajudaNota by remember { mutableStateOf(false) }
 
     fun fecharDescartando() {
         viewModel.cancelar()
@@ -76,6 +73,7 @@ fun SemaforoTela(
         CabecalhoTelaNativa(
             titulo = "Semáforo",
             onVoltar = { fecharDescartando() },
+            onSelo = { fecharDescartando() },
         )
 
         Column(
@@ -93,62 +91,39 @@ fun SemaforoTela(
                 fontSize = 13.sp,
             )
             Text(
-                text = "Defina suas metas para classificar as corridas por cor:",
+                text = "Classifique as corridas somente pelo R$/km:",
                 color = paleta.textoSecundario,
                 fontSize = 13.sp,
             )
             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                LegendaSemaforoLinha(corRuim, "Vermelho para corridas ruins")
-                LegendaSemaforoLinha(corBoa, "Amarelo para corridas intermediárias")
-                LegendaSemaforoLinha(corOtima, "Verde para corridas boas")
+                LegendaSemaforoLinha(corRuim, "Ruim: vermelho")
+                LegendaSemaforoLinha(corBoa, "Boa: amarelo")
+                LegendaSemaforoLinha(corOtima, "Ótima: verde")
             }
 
-            CartaoSemaforo(
-                icone = "$",
-                titulo = "Ganhos por Km",
-                ajudaAberta = ajudaKm,
-                onAjuda = { ajudaKm = !ajudaKm },
-                textoAjuda = "Arraste as marcas. Abaixo de R$ ${FaixasClassificacao.formatar(configuracao.limiteRuimMax)}/km = ruim; " +
-                    "de R$ ${FaixasClassificacao.formatar(configuracao.limiteBoaMin)} a ${FaixasClassificacao.formatar(configuracao.limiteBoaMax)}/km = intermediária; " +
-                    "a partir de R$ ${FaixasClassificacao.formatar(configuracao.limiteOtimaMin)}/km = ótima. " +
-                    "Max de uma faixa define o min da próxima em +R$ 0,01 (como −/+).",
-                baixo = configuracao.limiteRuimMax.toFloat(),
-                alto = configuracao.limiteBoaMax.toFloat(),
-                faixa = 0f..5f,
-                formatar = { "R$ ${FaixasClassificacao.formatar(it.toDouble())} /km" },
-                corBaixo = corRuim,
-                corAlto = corOtima,
-                onMudar = { a, b -> viewModel.atualizarMarcasDeslizantes(a.toDouble(), b.toDouble()) },
+            FaixaClassificacaoSlider(
+                titulo = "Ruim",
+                descricao = "De R$ 0,00 até o limite escolhido",
+                minimo = configuracao.limiteRuimMin,
+                maximo = configuracao.limiteRuimMax,
+                cor = corRuim,
+                onMudarMaximo = { viewModel.atualizarLimiteRuimMax(it.toDouble()) },
             )
-            CartaoSemaforo(
-                icone = "$",
-                titulo = "Ganhos por Hora",
-                ajudaAberta = ajudaHora,
-                onAjuda = { ajudaHora = !ajudaHora },
-                textoAjuda = "Meta de faturamento por hora. Vermelho até R$ ${"%.0f".format(configuracao.limiteHoraRuimMax)}/Hr; " +
-                    "verde a partir de R$ ${"%.0f".format(configuracao.limiteHoraBoaMax)}/Hr.",
-                baixo = configuracao.limiteHoraRuimMax.toFloat(),
-                alto = configuracao.limiteHoraBoaMax.toFloat(),
-                faixa = 0f..120f,
-                formatar = { "R$ ${"%.0f".format(it)} /Hr" },
-                corBaixo = corRuim,
-                corAlto = corOtima,
-                onMudar = { a, b -> viewModel.atualizarMarcasHora(a.toDouble(), b.toDouble()) },
+            FaixaClassificacaoSlider(
+                titulo = "Boa",
+                descricao = "Começa automaticamente em R$ ${FaixasClassificacao.formatar(configuracao.limiteBoaMin)}",
+                minimo = configuracao.limiteBoaMin,
+                maximo = configuracao.limiteBoaMax,
+                cor = corBoa,
+                onMudarMaximo = { viewModel.atualizarLimiteBoaMax(it.toDouble()) },
             )
-            CartaoSemaforo(
-                icone = "★",
-                titulo = "Nota do passageiro",
-                ajudaAberta = ajudaNota,
-                onAjuda = { ajudaNota = !ajudaNota },
-                textoAjuda = "Nota mínima desejada. Vermelho até ${FaixasClassificacao.formatar(configuracao.limiteNotaRuimMax)}; " +
-                    "verde a partir de ${FaixasClassificacao.formatar(configuracao.limiteNotaBoaMax)}.",
-                baixo = configuracao.limiteNotaRuimMax.toFloat(),
-                alto = configuracao.limiteNotaBoaMax.toFloat(),
-                faixa = 0f..5f,
-                formatar = { FaixasClassificacao.formatar(it.toDouble()) },
-                corBaixo = corRuim,
-                corAlto = corOtima,
-                onMudar = { a, b -> viewModel.atualizarMarcasNota(a.toDouble(), b.toDouble()) },
+            FaixaClassificacaoSlider(
+                titulo = "Ótima",
+                descricao = "Começa automaticamente em R$ ${FaixasClassificacao.formatar(configuracao.limiteOtimaMin)}",
+                minimo = configuracao.limiteOtimaMin,
+                maximo = configuracao.limiteOtimaMax,
+                cor = corOtima,
+                onMudarMaximo = { viewModel.atualizarLimiteOtimaMax(it.toDouble()) },
             )
         }
 
@@ -171,22 +146,19 @@ private fun LegendaSemaforoLinha(cor: Color, texto: String) {
 }
 
 @Composable
-private fun CartaoSemaforo(
-    icone: String,
+private fun FaixaClassificacaoSlider(
     titulo: String,
-    ajudaAberta: Boolean,
-    onAjuda: () -> Unit,
-    textoAjuda: String,
-    baixo: Float,
-    alto: Float,
-    faixa: ClosedFloatingPointRange<Float>,
-    formatar: (Float) -> String,
-    corBaixo: Color,
-    corAlto: Color,
-    onMudar: (Float, Float) -> Unit,
+    descricao: String,
+    minimo: Double,
+    maximo: Double,
+    cor: Color,
+    onMudarMaximo: (Float) -> Unit,
 ) {
     val paleta = LocalPaletaApp.current
     val forma = RoundedCornerShape(12.dp)
+    val limiteMaximo = FaixasClassificacao.MAX_ABSOLUTO.toFloat()
+    val minimoSeguro = minimo.toFloat().coerceIn(0f, limiteMaximo)
+    val maximoSeguro = maximo.toFloat().coerceIn(minimoSeguro, limiteMaximo)
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -199,14 +171,7 @@ private fun CartaoSemaforo(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Box(
-                modifier = Modifier
-                    .size(28.dp)
-                    .background(Color(0xFFFFE0B2), RoundedCornerShape(8.dp)),
-                contentAlignment = Alignment.Center,
-            ) {
-                Text(text = icone, color = Color(0xFFE65100), fontWeight = FontWeight.Bold, fontSize = 14.sp)
-            }
+            Box(modifier = Modifier.size(12.dp).background(cor, CircleShape))
             Text(
                 text = titulo,
                 color = paleta.texto,
@@ -214,133 +179,30 @@ private fun CartaoSemaforo(
                 fontWeight = FontWeight.Bold,
                 modifier = Modifier.weight(1f).padding(horizontal = 8.dp),
             )
-            Text(
-                text = "? AJUDA",
-                color = paleta.fundoPainel,
-                fontSize = 11.sp,
-                fontWeight = FontWeight.SemiBold,
-                modifier = Modifier
-                    .background(paleta.texto, RoundedCornerShape(12.dp))
-                    .clickable(onClick = onAjuda)
-                    .padding(horizontal = 10.dp, vertical = 4.dp),
-            )
         }
-        if (ajudaAberta) {
-            Text(text = textoAjuda, color = paleta.textoSecundario, fontSize = FonteAjuda)
-        }
-        SemaforoDualSlider(
-            baixo = baixo,
-            alto = alto,
-            faixa = faixa,
-            formatar = formatar,
-            corBaixo = corBaixo,
-            corAlto = corAlto,
-            onMudar = onMudar,
+        Text(text = descricao, color = paleta.textoSecundario, fontSize = FonteAjuda)
+        Text(
+            text = "R$ ${FaixasClassificacao.formatar(maximoSeguro.toDouble())} /km",
+            color = cor,
+            fontSize = 14.sp,
+            fontWeight = FontWeight.Bold,
         )
-    }
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun SemaforoDualSlider(
-    baixo: Float,
-    alto: Float,
-    faixa: ClosedFloatingPointRange<Float>,
-    formatar: (Float) -> String,
-    corBaixo: Color,
-    corAlto: Color,
-    onMudar: (Float, Float) -> Unit,
-) {
-    val corMeio = Color(android.graphics.Color.parseColor(ClassificacaoConstantes.CORES.getValue(Classificacao.BOA)))
-    // Mesmo vão mínimo dos campos −/+: 0,01 entre marcas (max → min da próxima).
-    val minGap = FaixasClassificacao.PASSO.toFloat()
-    fun snap(valor: Float): Float =
-        (kotlin.math.round(valor * 100f) / 100f).coerceIn(faixa.start, faixa.endInclusive)
-    val baixoSeguro = snap(baixo).coerceIn(faixa.start, faixa.endInclusive - minGap)
-    val altoSeguro = snap(alto).coerceIn(baixoSeguro + minGap, faixa.endInclusive)
-    val span = (faixa.endInclusive - faixa.start).coerceAtLeast(0.01f)
-    val pesoRuim = ((baixoSeguro - faixa.start) / span).coerceIn(0.02f, 0.96f)
-    val pesoMeio = ((altoSeguro - baixoSeguro) / span).coerceIn(0.02f, 0.96f)
-    val pesoBom = ((faixa.endInclusive - altoSeguro) / span).coerceIn(0.02f, 0.96f)
-    val fracaoBaixo = ((baixoSeguro - faixa.start) / span).coerceIn(0f, 1f)
-    val fracaoAlto = ((altoSeguro - faixa.start) / span).coerceIn(0f, 1f)
-
-    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-        Box(modifier = Modifier.fillMaxWidth().heightIn(min = 28.dp)) {
-            Text(
-                text = formatar(altoSeguro),
-                color = Color.White,
-                fontSize = 12.sp,
-                fontWeight = FontWeight.Bold,
-                modifier = Modifier
-                    .align(Alignment.CenterStart)
-                    .fillMaxWidth(fracaoAlto.coerceAtLeast(0.08f))
-                    .wrapContentWidth(Alignment.End)
-                    .background(corAlto, RoundedCornerShape(8.dp))
-                    .padding(horizontal = 8.dp, vertical = 4.dp),
-            )
-        }
-        Box(modifier = Modifier.fillMaxWidth()) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .align(Alignment.Center)
-                    .height(10.dp)
-                    .padding(horizontal = 10.dp),
-            ) {
-                Box(
-                    modifier = Modifier
-                        .weight(pesoRuim)
-                        .fillMaxSize()
-                        .background(corBaixo, RoundedCornerShape(topStart = 5.dp, bottomStart = 5.dp)),
-                )
-                Box(modifier = Modifier.weight(pesoMeio).fillMaxSize().background(corMeio))
-                Box(
-                    modifier = Modifier
-                        .weight(pesoBom)
-                        .fillMaxSize()
-                        .background(corAlto, RoundedCornerShape(topEnd = 5.dp, bottomEnd = 5.dp)),
-                )
-            }
-            RangeSlider(
-                value = baixoSeguro..altoSeguro,
-                onValueChange = { range ->
-                    val novoBaixo = snap(range.start).coerceIn(faixa.start, faixa.endInclusive - minGap)
-                    val novoAlto = snap(range.endInclusive).coerceIn(novoBaixo + minGap, faixa.endInclusive)
-                    onMudar(novoBaixo, novoAlto)
-                },
-                valueRange = faixa,
-                colors = SliderDefaults.colors(
-                    thumbColor = Color.White,
-                    activeTrackColor = Color.Transparent,
-                    inactiveTrackColor = Color.Transparent,
-                    activeTickColor = Color.Transparent,
-                    inactiveTickColor = Color.Transparent,
-                ),
-                modifier = Modifier.fillMaxWidth().heightIn(min = AlturaToque),
-            )
-        }
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-        ) {
-            Text("Ruim", color = corBaixo, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
-            Text("Boa", color = corMeio, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
-            Text("Ótima", color = corAlto, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
-        }
-        Box(modifier = Modifier.fillMaxWidth().heightIn(min = 28.dp)) {
-            Text(
-                text = formatar(baixoSeguro),
-                color = Color.White,
-                fontSize = 12.sp,
-                fontWeight = FontWeight.Bold,
-                modifier = Modifier
-                    .align(Alignment.CenterStart)
-                    .fillMaxWidth(fracaoBaixo.coerceAtLeast(0.08f))
-                    .wrapContentWidth(Alignment.End)
-                    .background(corBaixo, RoundedCornerShape(8.dp))
-                    .padding(horizontal = 8.dp, vertical = 4.dp),
-            )
-        }
+        Slider(
+            value = maximoSeguro,
+            onValueChange = onMudarMaximo,
+            valueRange = minimoSeguro..limiteMaximo,
+            steps = 9899,
+            colors = SliderDefaults.colors(
+                thumbColor = cor,
+                activeTrackColor = cor,
+                inactiveTrackColor = cor.copy(alpha = 0.22f),
+            ),
+            modifier = Modifier.fillMaxWidth().heightIn(min = AlturaToque),
+        )
+        Text(
+            text = "Máximo ajustável pelo seletor",
+            color = paleta.textoSecundario,
+            fontSize = 11.sp,
+        )
     }
 }

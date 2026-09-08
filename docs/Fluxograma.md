@@ -27,7 +27,7 @@ O aplicativo:
 6. monitora notificações;
 7. na oferta, mostra a **compacta** no topo (R$/Km · Dist. · Tempo · Nota); arrastável; toque nela ou fora **não** a esconde;
 8. overlay sobre outros apps = **só** selo · atalhos · compacta (§44);
-9. Histórico, Semáforo, Carteira e Config abrem como **telas nativas** (Activity Compose), exclusivas; ← volta aos Atalhos;
+9. Histórico, Semáforo, Carteira, Despesas, Usuário e Config abrem como **telas nativas** (Activity Compose), todas com o mesmo cabeçalho: ← volta às Opções e selo fecha a tela e retorna ao selo;
 10. aceite/expirar/recusar → compacta some; selo permanece no monitoramento;
 11. Ocultar e expiração (sem item de histórico selecionado) retornam ao selo na última posição;
 12. Fechar encerra o app após confirmação.
@@ -136,6 +136,14 @@ Nova oferta substitui a corrida atual. Sem oferta = selo. Histórico só muda no
           ├── Usuário → aba Veículo            (Ajustar veiculo)
           ├── Configurar → aba Configurações   (Configurar App)
           └── Fechar → **tela de confirmação** (§44 #6) / encerra  (Encerrar App)
+
+## 4.1 Fechamentos locais e cabeçalho comum
+
+- Todas as abas nativas usam o mesmo cabeçalho visual, com título, seta de retorno e botão com o ícone do selo.
+- A seta retorna à aba Opções/Atalhos; o botão selo fecha a tela nativa e retorna ao selo flutuante.
+- O card **Detalhes da corrida** usa `X` no cabeçalho. Esse `X` fecha somente o card e devolve o usuário ao Histórico; não encerra o monitoramento.
+- A tela compacta usa `X` no cabeçalho superior. Esse `X` fecha somente a compacta e devolve ao selo; não recusa, não aceita, não apaga a oferta e não encerra o monitoramento.
+- Toque na área da compacta ou fora dela permanece inerte; somente o `X` executa o fechamento explícito da compacta.
 
 #5. Fluxo de encerramento
 

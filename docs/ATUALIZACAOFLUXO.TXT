@@ -1,0 +1,418 @@
+================================================================================
+1. FLUXOGRAMA PRINCIPAL
+================================================================================
+
+      USUÁRIO INICIA APP (ICONE) 
+                 |
+                 V
+      ABRIR TELA MENU ABA OPÇÕES
+         1º uso → tema claro
+         2º uso → tema do usuário (claro / escuro / celular)
+		 |
+                 V
+        VERIFICAR PERMISSÕES
+            /          \
+          OK         FALTANDO
+           |             |
+	   |	DESTACAR BOTÃO CONFIGURAR APP
+           |             |
+	   |    USUÁRIO ABRE ABA CONFIGURAR APP
+           |             |
+           |    DESTACAR CAMPOS QUE PRECISAM CONCEDER PERMISSÕES      
+           |             /		 	 \
+           |    USUÁRIO CONCEDE PERMISSÕES   USUÁRIO NÃO CONCEDE PERMISSÕES      
+           |             |				    |
+           +------+------+		         NÃO INICIAR MONITORAMENTO
+		  |					    |
+		  |					    V
+                  |				    TELA MENU ABA OPÇÕES
+               	  V				    (USUARIO NAVEGA APP)                  					
+         INICIAR MONITORAMENTO				    |
+                  |					    V   
+                  V				  USUARIO CLICA NO BOTÃO(SELO)
+          TELA MENU ABA OPÇÕES				    |	
+	  (USUARIO NAVEGA APP)                              V
+                  |				     ◉ SELO FLUTUANTE
+                  V                                         |
+	USUARIO CLICA NO BOTÃO(SELO)                           V
+                  |				       TOQUE NO SELO 
+                  V				(SEGUIR FLUXO = TELA ATALHOS > ESCOLHE ABA > ABRI TELA MENU NA ABA SELECIONADA ...)
+           ◉ SELO FLUTUANTE				
+	     / (overlay)  \
+            /              \
+     TOQUE NO SELO       NOTIFICAÇÃO DE OFERTA
+           |                       |
+           V                       V
+   ABRIR TELA ATALHOS        TELA COMPACTA
+       (overlay)                (overlay)
+	   |			   |	
+	   V			   |
+ USUARIO CLICA NUMA OPÇÃO          |	
+           |                       |
+	   V                       V
+    ABRIR TELA MENU     NOTIFICAÇÃO EXPIRA/RECUSA/ACEITA
+   (NA ABA ESCOLHIDA)		   |
+           |			   |
+           V			   V
+    USUARIO NAVEGA APP	   TELA COMPACTA FECHA			
+           |			   |
+           V			   V
+  BOTÃO SETA TITULO ABA	    ◉ SELO FLUTUANTE
+           |
+           v
+ RETORNAR PARA ABA OPÇÕES
+           |
+ 	   V
+ USUARIO CLICA NO BOTÃO(SELO)
+           |
+ 	   V
+   ◉ SELO FLUTUANTE
+
+
+================================================================================
+2. COMPORTAMENTO
+================================================================================
+
+2.1 Comportamento
+- Com o app monitorando ofertas  > se nova oferta for recebida > abrir tela compacta sobressaindo outros app (inclusive o gestor drive)
+- O Gestor não tem botão Aceitar / Recusar.
+- Histórico só grava quando o aceite foi identificado na Uber, 99 ou inDrive.
+- Classificação da corrida = Calculo em cima do R$/km → cor da borda (Ruim = vermelha, Boa = Amarela, Ótima  = Verde).
+- **Cálculos de custos corrida = Valor do combustível(combustível atual) em cima do consumo de combustível por corrida + valor proporcional (óleo, pneus (dianteiro + traseiro)
+- **Cálculos de custos totais (exibir na carteira) = Valor do combustível(combustível atual) em cima do consumo de combustível do período + valor proporcional (óleo, pneus (dianteiro + traseiro), seguro (custo mensal) + IPVA (custo anual)
+
+** Analise coerência de regra
+
+2.2 Sem oferta
+    Selo flutuante + notificação (barra de notificações do celular): "Monitorando ofertas" + botões (Abrir App) + (Desligar App)
+    Compacta escondida. 
+
+2.3 Oferta chega
+    Compacta aparece (3 linhas, borda da classificação)
+    Notificação passa a mostrar o resumo da oferta
+    Motorista decide na Uber/99/inDrive (Aceitar/Recusar da PLATAFORMA)
+
+2.4 Expirou\recuso corrida
+    Compacta some → volta ao selo
+    Notificação: LIMPA os dados da oferta e volta para "Monitorando ofertas"
+    (expirou = limpa; recusou = mesma regra, oferta acabou)
+
+2.5 Aceitou corrida (detectado pelo Gestor)
+    Compacta some → volta ao selo
+    Gestor grava no histórico 
+    Notificação: resumo da corrida aceita até a próxima oferta
+
+
+================================================================================
+3. FLUXOGRAMA BARRA DE NOTIFICAÇÕES 
+================================================================================
+
+   	      MONITORAMENTO ATIVO
+   	              |
+  	              V
+ 	EXIBIR BARRA DE NOTIFICAÇÕES (ANDROID / APP)
+ 	              |
+ 	              V
+      RODAPE BOTÕES (ABRIR APP) + (DESLIGAR APP)
+ 	              |
+ 	              V
+	    "MONITORANDO OFERTAS" 
+ 	              |
+ 	              V
+	NOTIFICAÇÃO SEMPRE VISIVEL ENQUANTO O APP ESTIVER MONITORANDO O CELULAR > (ANDROID / APP)
+		1 - CASO TODAS AS TELAS > SELO > NOTIFICAÇÃO, FOREM FECHADAS = ENCERRAR MONITORAMENTO E DESLIGAR O APP
+		2 - CASO USUARIO FECHE A TELA MENU EM (APP RECENTES) E OU FECHE SELO = APP CONTINUA MONITORANDO CELULAR  
+		3 - AO CLICAR EM (ABRIR APP) = ABRIR TELA MENU ABA (OPÇÕES)
+		4 - AO CLICAR EM (FECHAR APP) =	CONFIRMAR > SE SIM > ENCERRAR MONITORAMENTO E DESLIGAR O APP
+ 	              |
+ 	              V
+	  NOVA NOTIFICAÇÃO DE OFERTA
+		      |
+                      V
+    NOTIFICAÇÃO PASSA A MOSTRAR O RESUMO DA OFERTA
+    MOTORISTA DECIDE NA UBER/99/INDRIVE (ACEITAR/RECUSAR DA PLATAFORMA)
+	   |				|         
+	   V		   		V                 
+     OFERTA EXPIRA		     ACEITOU CORRIDA (DETECTADO PELO GESTOR)
+	   |				   1 - GESTOR GRAVA NO HISTÓRICO 
+	   V			           2 - PERMANECE O RESUMO DA CORRIDA ACEITA ATÉ A PRÓXIMA OFERTA			
+LIMPA OS DADOS DA OFERTA E VOLTA		
+   PARA "MONITORANDO OFERTAS"	
+    (RECUSOU = MESMA REGRA)
+
+
+================================================================================
+4. FLUXOGRAMA SELO
+================================================================================
+
+4.1 COMPORTAMENTO
+
+           MONITORAMENTO ATIVO
+		   |
+		   V
+            ◉ SELO FLUTUANTE				
+	     / (overlay)  \
+            /              \
+     TOQUE NO SELO       NOTIFICAÇÃO DE OFERTA RECEBIDA
+           |                       |
+           V 			   |
+      FECHAR SELO                  |
+           |                       |
+           V 			   V
+   ABRIR TELA ATALHOS        TELA COMPACTA
+       (overlay)                (overlay)
+	   |			   |	
+	   V			   |
+ USUARIO CLICA NUMA OPÇÃO          |	
+           |                       |
+	   V                       V
+    ABRIR TELA MENU     NOTIFICAÇÃO EXPIRA/RECUSA/ACEITA
+   (NA ABA ESCOLHIDA)		   |
+           |			   |
+           V			   V
+    USUARIO NAVEGA APP	   TELA COMPACTA FECHA			
+           |			   |
+           V			   V
+  BOTÃO SETA TITULO ABA	    ◉ SELO FLUTUANTE
+           |
+           v
+ RETORNAR PARA ABA OPÇÕES
+           |
+ 	   V
+ USUARIO CLICA NO BOTÃO(SELO)
+           |
+ 	   V
+   ◉ SELO FLUTUANTE
+
+
+
+4.2 FECHAR SELO
+
+	  MONITORAMENTO ATIVO
+		   |
+		   V
+            ◉ SELO FLUTUANTE				
+	       (overlay)  
+		   |
+		   V
+ SE USUARIO ARRASTAR O SELO ATE A PARTE INFERIOR DO CELULAR
+		   |
+		   V
+	EXIBIR CIRCULO COM (X) > TAMANHO MAIS APROPRIADO
+		   |
+		   V
+ SE USUARIO SOLTAR O SELO DENTRO DO CIRCULO COM (X)
+		   |
+		   V
+	      FECHAR SELO
+		   |
+		   V
+	  MONITORAMENTO CONTINUA
+
+
+4.3 ABRIR SELO
+	
+    CRIAR NAS TELAS > ATALHO E MENU (EM TODAS AS ABAS) = BOTÃO (SELO(UTILIZAR A IMAGEM DO APP)) > ELE SUBSTITUIRA O BOTÃO (X) > TERA A FUNÇÃO DE RETRAIR AS         TELA PARA SELO 
+    CASO O USUARIO TENHA FECHADO O SELO > AO CLICAR NESSE BOTÃO = AS TELAS SÃO FECHADAS E SELO REAPARECE NA ULTIMA POSIÇÃO 	
+
+
+================================================================================
+5. FLUXOGRAMA TELA ATALHO
+================================================================================
+
+5.1 COMPORTAMENTO
+
+     TOQUE NO SELO 
+	   |                                
+           V 			   
+      FECHAR SELO                  
+           |                       
+           V 			   
+   ABRIR TELA ATALHOS       
+       (overlay)               
+	   |			   
+	   V			   
+ USUARIO CLICA NUMA OPÇÃO          	
+           |                       
+	   V                       
+    ABRIR TELA MENU (ABA SELECIONADA)       		   
+           |			   
+           V			   
+    USUARIO NAVEGA APP	  		
+           |			   
+           V			   
+ BOTÃO DE SETA NO TITULO ABA	    
+           |
+           v
+ RETORNAR PARA ABA OPÇÕES
+           |
+ 	   V
+ USUARIO CLICA NO BOTÃO(SELO)
+   OU FORA DA TELA ATALHOS
+           |
+ 	   V
+   FECHAR TELA ATALHOS
+           |
+ 	   V
+   ◉ SELO FLUTUANTE
+
+
+
+
+5.2 ORDEM DOS BOTÕES
+    *LOCALIZAÇÃO | HISTÓRICO | CARTEIRA | DESPESAS | SEMÁFORO | USUÁRIO  | CONFIGURAR | FECHAR
+    FECHAR = TELA CANCELAR (DENTRO DA TELA ATALHOS(AJUSTAR LAYOUT) / FECHAR (ENCERRA MONITORAMENTO)
+
+	*ADICIONAR O BOTÃO (LOCALIZAÇÃO) > AO SER CLICADO = ABRIR O MAPA(PRE SELECIONADO) > LOCALIZAÇÃO ATUAL
+	*ADICIONAR O BOTÃO (SELO(ICONE DO APP COM A MESMA FUNÇÃO DE (X) = FECHAR TELA ATUAL > RETORNAR PARA SELO
+        *MANTER LAYOUT IGUAL (PALETA DE CORES, TITULOS, DESCRIÇÕES, CAMPOS GETS, ALINHAMENTO ...)
+
+
+		 TITULO(BOTÃO)	DESCRIÇÃO(FONTE MENOR)
+
+    (SELO)  	┌─────────────┐
+		|		 * |  → BOTÃO (SELO) 	   → ABRIR ABA MAPA	
+		| LOCALIZAÇÃO	   |  → LOCALIZAÇÃO ATUAL  → ABRIR ABA MAPA	
+                │ HISTÓRICO   	 |	 → CORRIDAS ACEITAS   → ABRIR ABA HISTÓRICO
+                │ CARTEIRA   		 │	 → GESTOR FINANCEIRO  → ABRIR ABA DASHBOARD
+                │ DESPESAS   		 │	 → LANÇAR DESPESAS    → ABRIR ABA CUSTOS
+                │ SEMÁFORO   		 │	 → CALIBRAR FAIXAS    → ABRIR ABA SEMÁFORO
+                │ USUÁRIO    		 │  → AJUSTAR VEICULO    → ABRIR ABA VEICULO
+                │ CONFIGURAR 		 │	 → CONFIGURAR APP     → ABRIR ABA CONFIGURAÇÕES
+                │ FECHAR      	 │	 → ENCERRAR APP       → FECHAR APP APÓS CONFIRMAÇÃO
+                └─────────────┘
+
+
+================================================================================
+6. FLUXOGRAMA TELA COMPACTA (OVERLAY NO MAPA, SÓ NA OFERTA)
+================================================================================
+
+POSIÇÃO INICIAL > TOPO DA TELA, NÃO COBRIR RECUSAR DA 99, NÃO FORÇAR REAPARECIMENTO
+BORDA ARREDONDADAS: 6 DP NA COR DA CLASSIFICAÇÃO (RUIM = VERMELHO / BOA = AMARELO / ÓTIMA = VERDE).
+TELA ARRASTÁVEL > GRAVAR ULTIMA POSIÇÃO QUE O USUÁRIO DEIXOU E REABRIR NO MESMO LUGAR
+FONTE GROSA (MELHOR VISUALIZAÇÃO), TAMANHO APROXIMADO 4,5 CM COMPRIMENTO, 1,7 CM ALTURA (VERIFICAR SE ESTA BOM)
+
+CAMPOS:
+	*COR TEMA CLARO (PRETO); COR TEMA ESCURO (BRANCO)
+
+TÍTULOS
+	*R$/KM   DIST.  TEMPO   NOTA = TAMANHO MEDIO  
+
+VALORES
+	*1 > R$/KM = TAMANHO GRANDE, MAIOR VISUALIZAÇÃO
+	*2 > DIST. = TAMANHO MEDIO, EXIBIR 1 CASA DECIMAL DEPOIS DA VIRGULA
+	*3 > TEMPO. = TAMANHO MEDIO, EXIBIR 1 CASA DECIMAL DEPOIS DA VIRGULA (SE TIVER)
+	*4 > NOTA = TAMANHO MÉDIO
+
+INFORMAÇÃO
+	(**) ÍCONE E NOME DO APP REMETENTE  = TAMANHO PEQUENO, COR PADRÃO DO ÍCONE
+	(PARADA(S)) = TAMANHO PEQUENO,  (SE HOUVER PARADAS INFORMADA PELO APP)
+
+
+┌─────────────────────┐
+│ (**)   2 PARADA(S)     (X) │
+┌─────────────────────┐
+│R$/KM   DIST.  TEMPO   NOTA │
+│2,38 │ 18,1KM │ 45MIN │ 4,9│
+└─────────────────────┘
+
+TOQUE NO CORPO OU FORA DA COMPACTA: NÃO FAZ NADA (NÃO ABRE MENU, NÃO SOME).
+TOQUE NO (X): FECHA SOMENTE A TELA COMPACTA E RETORNA AO SELO.
+TOQUE FORA: NÃO SOME.
+TOQUE (X): TELA FECHA.
+FLUXO = NOVA OFERTA > EXIBIR TELA COMPACTA > OFERTA (EXPIROU/RECUSOU/ACEITOU) > FECHAR TELA COMPACTA 
+COR DA BORDA = COR DA CLASSIFICAÇÃO
+
+USAR CORES COM CONTRASTE DE ACORDO COM O TEMA ESCOLHIDO
+
+
+================================================================================
+7. FLUXOGRAMA TELA MENU
+================================================================================
+
+7.1 A TELA MENU SERA A TELA PRINCIPAL DO APP > DEVE SE COMPORTAR CONFORME AS CONFIGURAÇÕES DO ANDROID > AJUSTAR COMPORTAMENTO PADRÃO PARA OS BOTÕES DO CELULAR (APP RECENTES, HOME, VOLTAR)
+
+7.2 A TELA MENU CONTERA TODAS AS ABAS PARA QUE O USUARIO NAVEGUE NO APP
+	*NÃO DEVE SOBRESSAIR OUTROS APP
+	*SUBSTITUIR BOTÃO (X) POR BOTÃO SELO (USAR ICONE DO SELO COMO IMAGEM) = FECHAR TELA MENU E RETORNAR PARA SELO
+	*BOTÃO DESELO DEVE APARECER EM TODAS AS ABAS
+	*BOTÃO (SETA) DEVE RETORNAR PARA ABA OPÇÕES > SE ESTIVER EM OPÇÕES = RETORNAR PARA SELO
+	*ADICIONAR ANTES DO TITULO DE TODAS AS ABAS > ICONE IGUAL AO DA TELA ATALHOS
+	*APOS O USUARIO REALIZAR EDIÇÃO DE DADOS = APP DEVE DESTACAR BOTÃO SALVAR (ação para orientar o usuário) 
+
+
+7.3 LAYOUT DA TELA MENU
+
+	*USAR MESMO LAYOUT DA TELA ATALHOS
+	*ABRIR A TELA NA ABA OPÇÕES (isso evita dos dados do usuário ficarem expostos)
+
+
+	  	┌─────────────┐
+		|		 * |  → BOTÃO (SELO) 	   → ABRIR ABA MAPA	
+		| LOCALIZAÇÃO	   |  → LOCALIZAÇÃO ATUAL  → ABRIR ABA MAPA	
+                │ HISTÓRICO   	 |	 → CORRIDAS ACEITAS   → ABRIR ABA HISTÓRICO
+                │ CARTEIRA   		 │	 → GESTOR FINANCEIRO  → ABRIR ABA DASHBOARD
+                │ DESPESAS   		 │	 → LANÇAR DESPESAS    → ABRIR ABA CUSTOS
+                │ SEMÁFORO   		 │	 → CALIBRAR FAIXAS    → ABRIR ABA SEMÁFORO
+                │ USUÁRIO    		 │  → AJUSTAR VEICULO    → ABRIR ABA VEICULO
+                │ CONFIGURAR 		 │	 → CONFIGURAR APP     → ABRIR ABA CONFIGURAÇÕES
+                │ FECHAR      	 │	 → ENCERRAR APP       → FECHAR APP APÓS CONFIRMAÇÃO
+                └─────────────┘
+
+
+
+================================================================================
+8. FLUXOGRAMA TELA MENU
+================================================================================
+
+8.1 A TELA MENU SERA A TELA PRINCIPAL DO APP > DEVE SE COMPORTAR CONFORME AS CONFIGURAÇÕES DO ANDROID > AJUSTAR COMPORTAMENTO PADRÃO PARA OS BOTÕES DO CELULAR (APP RECENTES, HOME, VOLTAR)
+
+8.2 A TELA MENU CONTERA TODAS AS ABAS PARA QUE O USUARIO NAVEGUE NO APP
+	*NÃO DEVE SOBRESSAIR OUTROS APP
+	*SUBSTITUIR BOTÃO (X) POR BOTÃO SELO (USAR ICONE DO SELO COMO IMAGEM) = FECHAR TELA MENU E RETORNAR PARA SELO
+	*BOTÃO DESELO DEVE APARECER EM TODAS AS ABAS
+	*BOTÃO (SETA) DEVE RETORNAR PARA ABA OPÇÕES > SE ESTIVER EM OPÇÕES = RETORNAR PARA SELO
+	*ADICIONAR ANTES DO TITULO DE TODAS AS ABAS > ICONE IGUAL AO DA TELA ATALHOS
+	*APOS O USUARIO REALIZAR EDIÇÃO DE DADOS = APP DEVE DESTACAR BOTÃO SALVAR (ação para orientar o usuário) 
+
+
+8.3 LAYOUT DA TELA MENU
+
+	*USAR MESMO LAYOUT DA TELA ATALHOS
+	*ABRIR A TELA NA ABA OPÇÕES (isso evita dos dados do usuário ficarem expostos)
+
+
+	  	┌─────────────┐
+		|		 * |  → BOTÃO (SELO) 	   → ABRIR ABA MAPA	
+		| LOCALIZAÇÃO	   |  → LOCALIZAÇÃO ATUAL  → ABRIR ABA MAPA	
+                │ HISTÓRICO   	 |	 → CORRIDAS ACEITAS   → ABRIR ABA HISTÓRICO
+                │ CARTEIRA   		 │	 → GESTOR FINANCEIRO  → ABRIR ABA DASHBOARD
+                │ DESPESAS   		 │	 → LANÇAR DESPESAS    → ABRIR ABA CUSTOS
+                │ SEMÁFORO   		 │	 → CALIBRAR FAIXAS    → ABRIR ABA SEMÁFORO
+                │ USUÁRIO    		 │  → AJUSTAR VEICULO    → ABRIR ABA VEICULO
+                │ CONFIGURAR 		 │	 → CONFIGURAR APP     → ABRIR ABA CONFIGURAÇÕES
+                │ FECHAR      	 │	 → ENCERRAR APP       → FECHAR APP APÓS CONFIRMAÇÃO
+                └─────────────┘
+
+
+================================================================================
+9. FLUXOGRAMA TELA CONFIRMAÇÃO
+================================================================================
+
+
+	*A TELA CONFIRMAÇÃO APARECERAR PARA CONFIRMAR AÇÕES (EXCLUIR DADOS, SAIR APP)
+	*AJUSTAR A TELA PARA APARECER COMO JANELA FILHA (POSICIONAR DE FORMA ADEQUADA)
+
+┌───────────────────────────────┐
+│  			 GESTOR DRIVER               │
+│  DESEJA ENCERRAR O APLICATIVO E PARAR   │
+│  O MONITORAMENTO DE CORRIDAS?           │
+│                                         │
+│     CANCELAR              FECHAR        │
+└───────────────────────────────┘
+
+LIMPAR HISTÓRICO: MESMA CAIXA, TEXTOS "LIMPAR HISTÓRICO" / "LIMPAR".
+
+
+
+

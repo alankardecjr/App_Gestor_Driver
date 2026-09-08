@@ -11,6 +11,8 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
+import androidx.compose.material3.Icon
+import androidx.compose.ui.res.painterResource
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -29,6 +31,7 @@ val VerdeAcaoEscuro = Color(0xFF1B5E20)
 fun CabecalhoTelaNativa(
     titulo: String,
     onVoltar: () -> Unit,
+    onSelo: (() -> Unit)? = null,
     trailing: (@Composable RowScope.() -> Unit)? = null,
 ) {
     val paleta = LocalPaletaApp.current
@@ -55,6 +58,16 @@ fun CabecalhoTelaNativa(
         )
         if (trailing != null) {
             trailing()
+        }
+        if (onSelo != null) {
+            Icon(
+                painter = painterResource(br.com.gestordriver.R.mipmap.ic_launcher_round),
+                contentDescription = "Voltar para o selo",
+                tint = Color.Unspecified,
+                modifier = Modifier
+                    .clickable(onClick = onSelo)
+                    .padding(horizontal = 8.dp, vertical = 5.dp),
+            )
         }
     }
 }

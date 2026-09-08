@@ -60,8 +60,8 @@ import br.com.gestordriver.navigation.NavegacaoLauncher
 import br.com.gestordriver.permission.PermissoesMonitoramento
 import br.com.gestordriver.ui.theme.LocalPaletaApp
 
-private val TextoAmareloConfig = Color(0xFFFFD54F)
-private val DestaqueSelecionado = Color(0xFF7CB342)
+private val TextoAmareloConfig = Color(0xFFB7832F)
+private val DestaqueSelecionado = Color(0xFF3B776B)
 private val FormaPainel = RoundedCornerShape(10.dp)
 private val FormaCaixa = RoundedCornerShape(6.dp)
 
@@ -129,6 +129,7 @@ fun ConfiguracoesScreen(
             CabecalhoTelaNativa(
                 titulo = titulos[aba],
                 onVoltar = { fecharDescartando() },
+                onSelo = { fecharDescartando() },
             )
 
             Column(
@@ -143,13 +144,13 @@ fun ConfiguracoesScreen(
                 if (avisoSemMonitoramento && aba == 2) {
                     Text(
                         text = "Monitoramento desligado — libere as permissões para acompanhar as corridas. Sem monitoramento não há cálculos nem tela compacta.",
-                        color = Color(0xFFE53935),
+                        color = Color(0xFFB85C4A),
                         fontSize = 13.sp,
                         fontWeight = FontWeight.Medium,
                         modifier = Modifier
                             .fillMaxWidth()
-                            .background(Color(0xFFFDECEC), FormaCaixa)
-                            .border(1.dp, Color(0xFFE53935), FormaCaixa)
+                            .background(Color(0xFFF6E9E7), FormaCaixa)
+                            .border(1.dp, Color(0xFFB85C4A), FormaCaixa)
                             .padding(10.dp),
                     )
                 }
@@ -242,7 +243,7 @@ private fun AbaVeiculo(viewModel: ConfiguracoesViewModel, plano: PlanoAcesso) {
         texto = "Descrição do veículo",
         subtitulo = "Marca, modelo e placa",
         icone = "🚗",
-        fundoIcone = Color(0xFFE3F2FD),
+        fundoIcone = Color(0xFFE5F0F2),
         ajuda = "Final da placa (0–9) define o mês de vencimento do IPVA. O valor do IPVA entra no custo do Dashboard.",
     )
     Row(
@@ -272,7 +273,7 @@ private fun AbaVeiculo(viewModel: ConfiguracoesViewModel, plano: PlanoAcesso) {
     LinhaCampos {
         CampoCaixa("Final da placa", configuracao.finalPlaca, viewModel::atualizarFinalPlaca, Modifier.weight(1f))
         CampoNumericoCaixa(
-            label = if (travar) "🔒 IPVA R$" else "IPVA R$",
+            label = "IPVA R$",
             valor = configuracao.ipvaValor,
             onValorChange = viewModel::atualizarIpvaValor,
             modifier = Modifier.weight(1f),
@@ -288,7 +289,7 @@ private fun AbaVeiculo(viewModel: ConfiguracoesViewModel, plano: PlanoAcesso) {
         texto = "Consumo",
         subtitulo = "Km/L ou km/kWh",
         icone = "⛽",
-        fundoIcone = Color(0xFFEDE7F6),
+        fundoIcone = Color(0xFFE8F0EF),
         ajuda = "Gasolina/etanol em km/L. Energia em km/kWh. Entra no gasto estimado da oferta.",
     )
     LinhaCampos {
@@ -324,7 +325,7 @@ private fun AbaCustos(viewModel: ConfiguracoesViewModel, plano: PlanoAcesso) {
         texto = "Despesas do veiculo",
         subtitulo = "Preço e tipo de energia",
         icone = "⛽",
-        fundoIcone = Color(0xFFEDE7F6),
+        fundoIcone = Color(0xFFE8F0EF),
         ajuda = "Preço do litro ou do kWh. Com o consumo, o app calcula gasto e lucro da oferta.",
     )
     LinhaCampos {
@@ -541,7 +542,7 @@ private fun AbaApp(
         ).forEach { (plataforma, titulo) ->
             val ok = br.com.gestordriver.notification.PlataformasMotorista.instalada(contexto, plataforma)
             Text(
-                text = if (ok) "$titulo 🆗" else "$titulo ❎",
+                text = titulo,
                 color = if (ok) DestaqueSelecionado else TextoAmareloConfig,
                 fontSize = FonteCampo,
             )
@@ -608,13 +609,13 @@ private fun AbaApp(
         val googleOk = configuracao.contaTipo == TipoContaVinculada.GOOGLE
         val emailOk = configuracao.contaTipo == TipoContaVinculada.EMAIL
         Text(
-            text = if (googleOk) "Conta google 🆗" else "Conta google",
+            text = "Conta Google",
             color = TextoAmareloConfig,
             fontSize = FonteCampo,
             modifier = Modifier.clickable(onClick = onGoogle).padding(8.dp),
         )
         Text(
-            text = if (emailOk) "Conta email 🆗" else "Conta email",
+            text = "Conta e-mail",
             color = TextoAmareloConfig,
             fontSize = FonteCampo,
             modifier = Modifier.clickable(onClick = onEmail).padding(8.dp),
@@ -744,7 +745,7 @@ private fun SubtituloSecao(
     texto: String,
     ajuda: String? = null,
     icone: String? = null,
-    fundoIcone: Color = Color(0xFFE8EEF2),
+    fundoIcone: Color = Color.Transparent,
     subtitulo: String? = null,
 ) {
     val contexto = LocalContext.current
@@ -755,17 +756,15 @@ private fun SubtituloSecao(
             .padding(top = 6.dp, bottom = 4.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        if (icone != null) {
-            Box(
-                modifier = Modifier
-                    .padding(end = 8.dp)
-                    .size(28.dp)
-                    .background(fundoIcone, RoundedCornerShape(7.dp)),
-                contentAlignment = Alignment.Center,
-            ) {
-                Text(text = icone, fontSize = 13.sp)
-            }
-        }
+        Box(
+            modifier = Modifier
+                .padding(end = 8.dp)
+                .size(width = 4.dp, height = 32.dp)
+                .background(
+                    if (icone == null) paleta.borda else DestaqueSelecionado,
+                    RoundedCornerShape(2.dp),
+                ),
+        )
         Column(modifier = Modifier.weight(1f)) {
             Text(
                 text = texto,
@@ -785,8 +784,8 @@ private fun SubtituloSecao(
         }
         if (ajuda != null) {
             Text(
-                text = "AJUDA",
-                color = TextoAmareloConfig,
+                text = "Detalhes",
+                color = paleta.textoSecundario,
                 fontSize = 11.sp,
                 fontWeight = FontWeight.SemiBold,
                 modifier = Modifier
@@ -807,13 +806,13 @@ private fun TituloPro(texto: String) {
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Text(
-            text = "🔒 $texto",
+            text = texto,
             color = LocalPaletaApp.current.textoSecundario,
             fontSize = FonteCampo,
             fontWeight = FontWeight.Medium,
             modifier = Modifier.weight(1f),
         )
-        Text(text = "versão pro", color = TextoAmareloConfig, fontSize = 10.sp)
+        Text(text = "PRO", color = TextoAmareloConfig, fontSize = 10.sp, fontWeight = FontWeight.Bold)
     }
 }
 
@@ -846,7 +845,7 @@ private fun CampoCaixa(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Text(
-                    "🔒 $label",
+                    label,
                     color = LocalPaletaApp.current.textoSecundario,
                     fontSize = FonteCampo,
                     maxLines = 1,
@@ -854,7 +853,7 @@ private fun CampoCaixa(
                     modifier = Modifier.weight(1f),
                 )
                 Text(
-                    text = "versão pro",
+                    text = "PRO",
                     color = TextoAmareloConfig,
                     fontSize = 9.sp,
                     maxLines = 1,
@@ -873,10 +872,10 @@ private fun CampoCaixa(
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .heightIn(min = 32.dp)
+                .heightIn(min = 44.dp)
                 .border(1.dp, LocalPaletaApp.current.borda, FormaCaixa)
                 .background(LocalPaletaApp.current.fundoCaixa, FormaCaixa)
-                .padding(horizontal = 8.dp, vertical = 6.dp),
+                .padding(horizontal = 10.dp, vertical = 8.dp),
             contentAlignment = Alignment.CenterStart,
         ) {
             BasicTextField(
@@ -902,14 +901,14 @@ private fun CampoNumericoCaixa(
 ) {
     var texto by remember(valor) { mutableStateOf(DecimalInput.formatar(valor)) }
     Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(3.dp)) {
-        Text(text = label, color = LocalPaletaApp.current.textoSecundario, fontSize = FonteCampo)
+        Text(text = label, color = LocalPaletaApp.current.textoSecundario, fontSize = 12.sp)
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .heightIn(min = 32.dp)
+                .heightIn(min = 44.dp)
                 .border(1.dp, LocalPaletaApp.current.borda, FormaCaixa)
                 .background(LocalPaletaApp.current.fundoCaixa, FormaCaixa)
-                .padding(horizontal = 8.dp, vertical = 6.dp),
+                .padding(horizontal = 10.dp, vertical = 8.dp),
             contentAlignment = Alignment.CenterStart,
         ) {
             BasicTextField(
@@ -956,7 +955,7 @@ private fun AlertaOleoUi(configuracao: ConfiguracaoUsuario) {
     }
     Text(
         text = texto,
-        color = Color(0xFFE53935),
+        color = Color(0xFFB85C4A),
         fontSize = 11.sp,
         fontWeight = FontWeight.SemiBold,
     )
@@ -998,10 +997,10 @@ private fun StatusToque(
             .padding(vertical = 6.dp),
     ) {
         Text(
-            text = if (ok) "$titulo  🆗" else "$titulo  ❎",
+            text = titulo,
             color = when {
                 ok -> DestaqueSelecionado
-                destacar -> Color(0xFFFFCDD2)
+                destacar -> Color(0xFFB85C4A)
                 else -> TextoAmareloConfig
             },
             fontSize = FonteCampo,

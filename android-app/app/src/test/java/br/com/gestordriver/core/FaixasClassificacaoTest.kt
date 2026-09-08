@@ -40,12 +40,13 @@ class FaixasClassificacaoTest {
     }
 
     @Test
-    fun ruim_min_e_otima_max_nao_mudam() {
+    fun ruim_min_nao_muda_e_otima_max_pode_ser_editada() {
         val padrao = ConfiguracaoUsuario.padrao()
         val min = FaixasClassificacao.aplicar(padrao, FaixasClassificacao.Campo.RUIM_MIN, 5.0)
         val max = FaixasClassificacao.aplicar(padrao, FaixasClassificacao.Campo.OTIMA_MAX, 5.0)
         assertEquals(padrao, min)
-        assertEquals(padrao, max)
+        assertEquals(5.0, max.limiteOtimaMax, 0.0)
+        assertEquals(max.limiteOtimaMin, max.limiteBoaMax + FaixasClassificacao.PASSO, 0.0001)
     }
 
     @Test

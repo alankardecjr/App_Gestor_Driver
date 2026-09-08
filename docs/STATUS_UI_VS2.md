@@ -15,7 +15,7 @@ Este documento descreve as telas que o APK da branch `vs-2.0` cria a partir do c
 ### Atalhos / Opções
 
 - Painel em tela cheia, com tema claro ou escuro.
-- Botão `X` no topo para voltar ao selo.
+- Botão com ícone do selo no topo para voltar ao selo. O `X` não é usado para fechar o menu de Opções.
 - Título `Atalhos` e subtítulo de acesso rápido.
 - Lista vertical de itens com ícone, título, subtítulo e seta.
 - A implementação está em `OpcoesTela.kt`; o overlay equivalente está em `AtalhosUi.kt` e `OverlayService.kt`.
@@ -33,6 +33,7 @@ Este documento descreve as telas que o APK da branch `vs-2.0` cria a partir do c
 
 - Abre como painel inferior sobre o Histórico, com fundo escurecido atrás.
 - Cabeçalho `DETALHES DA CORRIDA` e botão `X`.
+- O `X` fecha somente o card de detalhes e retorna ao Histórico.
 - Plataforma, data/hora, status `ACEITA`, nota e classificação.
 - Embarque, destino e área reservada para mapa.
 - Valor, R$/km, distância, tempo, combustível, custo, lucro e lucro/km.
@@ -41,6 +42,7 @@ Este documento descreve as telas que o APK da branch `vs-2.0` cria a partir do c
 ### Carteira
 
 - Cabeçalho `Carteira` e voltar.
+- O cabeçalho segue o padrão comum das abas: seta para Opções e botão selo para retornar ao selo.
 - Abas `Semana`, `Mês` e `Ano`.
 - Setas para avançar ou voltar o período.
 - Seleção de dia/período.

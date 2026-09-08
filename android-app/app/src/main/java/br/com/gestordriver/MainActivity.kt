@@ -361,6 +361,11 @@ class MainActivity : ComponentActivity() {
         requestPermissions(faltando.toTypedArray(), 7103)
     }
 
+    fun abrirLocalizacaoAtual() {
+        val intent = Intent(Intent.ACTION_VIEW, Uri.parse("geo:0,0"))
+        startActivity(Intent.createChooser(intent, "Abrir mapa"))
+    }
+
     fun abrirConfiguracaoOverlay() {
         startActivity(
             Intent(

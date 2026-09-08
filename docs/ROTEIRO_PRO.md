@@ -21,7 +21,7 @@ Revisão: **05/09/2026** — **tela Atalhos congelada** (§44). **Próximo:** ro
 | D2 | Lucro = valor − **todos** os gastos: combustível (selecionado), óleo, pneu, IPVA e seguro. | Aprovado · no código |
 | D3 | Abastecimento: ao Salvar, **perguntar** se aplica R$/L e km/L do combustível atual. | Aprovado · no código |
 | D4 | Dashboard: Diário / Semanal / Mensal — faturamento, gastos, lucro líquido, médias (km/hora/corrida) e rateio por item. Sem gráficos. | Aprovado · no código (Compose + overlay) |
-| D5 | Compacta: `R$/Km Dist. Tempo Nota` + ícone plataforma · Parada(s); borda 6 dp; arrastável; toque não faz nada | Aprovado · no código |
+| D5 | Compacta: `R$/Km Dist. Tempo Nota` + ícone plataforma · Parada(s); borda 6 dp; arrastável; toque no corpo não faz nada; `X` fecha somente a compacta e retorna ao selo | Aprovado · no código |
 | D6 | Overlay = Compose; tema Escuro / Claro / Celular (aba App). | Aprovado · no código |
 | D7 | Semáforo **3** faixas: Ruim / Boa / Ótima. | Aprovado · no código |
 | D8 | Consumo ou preço 0 → `—` + aviso em Custos. | Aprovado · no código |
@@ -40,6 +40,8 @@ Revisão: **05/09/2026** — **tela Atalhos congelada** (§44). **Próximo:** ro
 | D21 | Card histórico: linha com **Consumo (L)** e **Gasto (R$)**; botões Embarque / Destino no card. | Aprovado · no código |
 | D22 | Alerta óleo: aviso **500 km** antes do vencimento; texto vermelho. | Aprovado · no código |
 | D23 | Notificação: expirou/recusou → limpa e volta a **"Monitorando ofertas"**. | Aprovado |
+| D24 | Todas as abas nativas usam o mesmo cabeçalho, com seta para Opções e botão selo para retornar ao selo. | Aprovado · no código |
+| D25 | Card Detalhes da corrida usa `X` para fechar somente o card e voltar ao Histórico. | Aprovado · no código |
 
 **Fórmula do gasto da oferta / corrida:**
 
@@ -69,7 +71,7 @@ Objetivo do dia: **instalar o build atual** (working tree com §44) no SM-A145M 
 
 | # | Foco | Marcar |
 | --- | --- | --- |
-| C8a | Selo ↔ Atalhos: toque abre/fecha; **selo permanece**; **sem X** no card; card abre dir/esq/acima/abaixo (eixo da borda mais próxima) | |
+| C8a | Selo ↔ Atalhos: toque abre/fecha; **selo permanece**; sem X no card de Atalhos; card abre dir/esq/acima/abaixo (eixo da borda mais próxima) | |
 | C8b | Menu ordem: Histórico \| Carteira \| Despesas \| Semáforo \| Usuário \| Configurar \| Fechar | |
 | C8c | Overlay: só selo/atalhos/compacta sobre Uber/99; telas Menu = Activity | |
 | C8d | Recentes com Histórico aberto → selo → toque no selo **reabre Histórico** | |
@@ -112,7 +114,7 @@ Play Store, cobrança, gráficos, botão Aceitar, merge em `main`, push sem pedi
   - Configurar → Configurar App → Configurações
   - Fechar → Encerrar App → confirmação
 - Telas nativas (Activity Compose): Histórico, Carteira/Dashboard, Semáforo, Config (Despesas · Veículo · App), **Confirmação (Fechar / Limpar histórico)**
-- Compacta só com oferta: **R$/Km · Dist. · Tempo · Nota** + ícone plataforma · Parada(s); borda **6 dp**; ~4,5×1,7 cm; arrastável (posição gravada); toque não faz nada; some no aceite/expirar/recusar
+- Compacta só com oferta: **R$/Km · Dist. · Tempo · Nota** + ícone plataforma · Parada(s); borda **6 dp**; ~4,5×1,7 cm; arrastável (posição gravada); toque no corpo ou fora não faz nada; `X` fecha somente a compacta; some no aceite/expirar/recusar
 - **Overlay sobre outros apps:** só selo · atalhos · compacta (§44); resto = Activity (inclui confirmação)
 - **Carteira** (ex-Dashboard): Dia/Semana/Mês/Ano; atividade + Financeiro + Estimativa de gastos (combustível, óleo, pneus, seguro, IPVA)
 - Telas nativas sem rodapé: Menu **Opções** + itens; ← volta a Opções; X em Opções → selo; Cancelar/Salvar em Despesas/Usuário/Configurar/Semáforo
