@@ -183,6 +183,10 @@ object CalendarioApp {
             .take(3)
             .trimEnd('.')
 
+    /** Anos próximos à referência (para seletor Ano da Carteira). */
+    fun anosVisiveis(dia: LocalDate, raio: Int = 2): List<Int> =
+        ((dia.year - raio)..(dia.year + raio)).toList()
+
     private fun mesCurto(dia: LocalDate): String =
         dia.month.getDisplayName(TextStyle.SHORT, localePtBr)
             .replaceFirstChar { it.titlecase(localePtBr) }

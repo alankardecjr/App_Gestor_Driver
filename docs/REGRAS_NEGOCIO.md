@@ -8,7 +8,7 @@ FLUXOGRAMA_REGRAS_NEGOCIO.
 >
 > **Versão em foco: Pro (fechamento na branch `vs-2.0`, 2.0.0 / versionCode 13).** Produto: **Free** (demo, calculadora oculta) e **Pro** (paga, tudo liberado). Não misturar com o Beta congelado em `main` (1.1.10). Ver seção 38.
 >
-> **Roteiro de fechamento:** `docs/ROTEIRO_PRO.md`. UI Beta congelada em 02/09/2026 (seção 43) permanece como referência histórica; a linha ativa de desenvolvimento é a Pro.
+> **Roteiro de fechamento:** `docs/ROTEIRO_PRO.md`. UI Beta congelada em 02/09/2026 (seção 43); esquema Pro congelado em 05/09/2026 (seção 44).
 
 ---
 
@@ -204,17 +204,30 @@ CRIAR CORRIDA ATUAL
     ↓
 EXIBIR TELA COMPACTA
 
-A tela compacta é **somente o cabeçalho** (sem distâncias nem custos). Fica no topo, sobre o mapa.
+A tela compacta fica no **topo** sobre o mapa (só na oferta). Tamanho aprox. **4,5 cm × 1,7 cm**, fonte grossa, **arrastável** (grava a última posição).
 
-Cabeçalho oficial:
+Layout oficial (Pro 2.0):
 
-R$/KM | VALOR | DIST. | TEMPO | NOTA | ℹ️ ⬇️
+```
+R$/Km   Dist.   Tempo   Nota
+ 2,38  18,1 Km  45 Min   4,9
+      (**)   Parada(s)
+```
 
-Exemplo: 💵 2,38 | 💰 38,00 | 🛞 16,0 KM | 🕐 28 min | ⭐ 4,9 | ⬇️
+- **R$/Km** — título e valor grandes, cinza escuro
+- **Dist.** — 1 casa decimal (ex.: `18,1 Km`)
+- **Tempo** — em minutos (ex.: `45 Min`; 1 decimal se houver)
+- **Nota** — nota do passageiro
+- **(**)** — ícone/sigla do app remetente (U / 99 / in)
+- **Parada(s)** — cinza médio se zero; cinza escuro se houver paradas
 
-A compacta **não** tem botões Fechar / Config / Ocultar / Histórico. `⬇️` (ou toque **na própria barra**) abre a expandida. Sem oferta, os valores são `—` e a borda é neutra.
+Borda **6 dp** na cor da classificação (ruim vermelho / boa amarelo / ótima verde). Sem oferta não aparece.
 
-**Toque fora da compacta → selo:** enquanto a barra compacta estiver visível — por oferta recém-detectada ou por retração a partir da expandida — um toque em qualquer região da tela que **não** pertença às janelas do Gestor Driver recolhe a interface **imediatamente** para o selo flutuante. O toque segue para o aplicativo da plataforma (Uber, 99 ou inDrive), liberando controles cobertos pela barra, em especial o recusar da 99. A oferta permanece em monitoramento. Toque **sobre** a compacta continua expandindo o painel.
+A compacta tem somente o botão `X` para fechar a própria compacta e retornar ao selo. Não tem botões Config / Ocultar / Histórico.
+
+**Toque no corpo ou fora da compacta:** não faz nada (não abre menu, não some). Somente o `X` fecha a compacta.
+**Toque fora:** não some.  
+**Fluxo:** nova oferta → compacta; expirou / recusou / aceitou → some junto com a oferta (não forçar reaparecimento sobre a plataforma).
 
 **Oferta expirada → selo na hora:** se a leitura da tela voltar ao mapa/home da plataforma (`Você está online/conectado/offline`, sem o par `N min (X km)` do card e sem `Aceitar`), a compacta some **na primeira leitura**. Não espera várias capturas. O botão **Aceitar** da oferta **não** grava histórico. Histórico só com assinatura de aceite real (ex.: `Aceitei por engano`, `local de partida`, ponto de encontro). Card Uber típico: valor `R$`, taxa `/km` ignorada, bônus `+R$` ignorado, nota `4,99 (165)`, embarque `5 min (1.2 km)` e destino `5 minutos (1.3 km)` — o destino muitas vezes só no OCR; nós da acessibilidade sozinhos não bastam.
 
@@ -295,9 +308,9 @@ O histórico contém exclusivamente:
 
 CORRIDAS ACEITAS
 
-Abre como **painel overlay abaixo da expandida** (não tela cheia). Título **⬅️ HISTÓRICO** (seta volta aos atalhos). Abas **Todos | Uber | 99 | inDrive**. Navegação **só por semana** (DOM–SÁB): mês/ano no cabeçalho, setas saltam 7 dias, grade com dias da semana. Ao abrir: **domingo da semana atual** + aba **Todos**. Sem cards de faturamento/distância/gasto/lucro e sem seletor Dia/Semana/Mês (isso fica no Dashboard).
+Abre como **tela nativa** (Activity Compose), no mesmo chrome de painel do Dashboard/Config (borda 2 dp, seta ← volta ao menu atalho). Abas **Todos | Uber | 99 | inDrive**. Navegação **só por semana** (DOM–SÁB): mês/ano no cabeçalho, setas saltam 7 dias, grade com dias da semana. Ao abrir: **domingo da semana atual** + aba **Todos**. Sem cards de faturamento/distância/gasto/lucro e sem seletor Dia/Semana/Mês (isso fica no Dashboard).
 
-Card da corrida (borda **2 dp** na cor da classificação): selo da plataforma + dia/data/hora; linha Ganhos (negrito) · R$/Km · R$/Lucro · R$/gasto · Nota; linha 🛞 km · 🕐 tempo · ⛽ Consumo L; endereços ●/■ se houver; botões Embarque / Destino. Lucro/gasto incluem todos os custos da corrida.
+Card da corrida (borda **2 dp** na cor da classificação): selo da plataforma + dia/data/hora; valor herói; linha $/Km · Lucro · Consumo · Nota; linha km · tempo · Gasto; endereços ●/■ se houver; botões Embarque / Destino. Lucro/gasto incluem todos os custos da corrida.
 
 Rodapé / lixeira: sem seleção → **"Selecionar a(s) corrida(s)"**; com seleção → confirma apagar.
 
@@ -487,50 +500,47 @@ O monitoramento continua ativo.
 
 23. Configurações
 
-A configuração abre como **painel overlay abaixo da expandida** (mesmo recorte e **mesma altura** do histórico: título **⬅️ CONFIGURAÇÃO ➡️**, bordas arredondadas, **borda cinza fina de 2 dp**, fundo semitransparente, mesmo recuo lateral). A janela fica **compacta** de propósito: **Combustível atual** e o restante que não couber usam a **barra de rolagem**. Não ampliar Config/Histórico só para evitar rolar. Troca de aba por **deslize horizontal**, **setas** ou **clique no rótulo** (VEÍCULO / CUSTOS / CALIBRAR / APP). As quatro abas usam a **mesma altura vertical**. A barra aparece no toque e some depois, junto da borda da janela.
+A configuração abre como **tela nativa** (Activity Compose), mesmo painel do Histórico/Dashboard (borda 2 dp, seta ← volta ao menu atalho). Conteúdo que não couber rola. Troca de aba por **deslize horizontal**, **setas** ou **clique no rótulo** (**Despesas · Veículo · App**). As três abas usam a mesma altura vertical.
 
-- **VEÍCULO** — descrição (marca, modelo, versão, ano, **final da placa**), consumo km/L gasolina e etanol. Pro: vencimento do IPVA e **calcular abastecimento**.
-- **CUSTOS** — preços **R$ / L Gasolina** e **R$ / L Etanol**, **combustível atual** (marca exclusiva Gasolina/Etanol). Pro (estruturado, bloqueado): troca de óleo (Valor R$, km, data) e pneus dianteiro/traseiro (Valor R$, rodagem, data).
-- **CALIBRAR** — título interno **Calibrar classificações**. Faixas R$/km encadeadas. Botões **−** e **+** mudam o valor daquele campo em 0,01. Ruim MIN e Ótima MAX são rótulos fixos. Ao **SALVAR**, se min/max vizinhos se cruzarem, o app **normaliza** a cadeia automaticamente.
-- **APP** — título interno **Configurar aplicativo**, depois permissões (🆗/❎), apps de motorista instalados (🆗/❎), Maps ou Waze, **conectar conta** (Google ou e-mail). Campo de e-mail com título **E-mail**.
+- **Despesas** — preços **R$ / L Gasolina** e **R$ / L Etanol**, **combustível atual** (marca exclusiva Gasolina/Etanol). Pro: troca de óleo, pneus, IPVA R$, seguro, km/ano.
+- **Veículo** — descrição (marca, modelo, versão, ano, **final da placa**), consumo km/L gasolina e etanol. Pro: vencimento do IPVA e **calcular abastecimento**.
+- **App** — permissões (🆗/❎), apps de motorista instalados, tema Escuro/Claro/Celular, Maps ou Waze, **conectar conta**, **ENVIAR LOG**.
 
-Permissão **obrigatória** para monitorar: notificações, sobrepor e acessibilidade (leitura do card). Bateria (ignorar otimização) evita o overlay sumir. Localização é opcional e **não** trava o monitoramento. Permissão faltando: abrir a aba APP e destacar o que falta. **ENVIAR LOG** compartilha `notificacoes_diagnostico.txt` (não entra no backup da nuvem).
+O **Semáforo** **não** é aba de Config: abre pela entrada **Semáforo** do Menu (§44), como tela nativa própria (sliders Km / Hora / Nota). Ver §40.
 
-Custo da corrida usa **combustível atual + km/L desse combustível + preço do litro na aba CUSTOS**. Não misturar gasolina e etanol na mesma conta.
+Permissão **obrigatória** para monitorar: notificações, sobrepor e acessibilidade (leitura do card). Bateria (ignorar otimização) evita o overlay sumir. Localização é opcional e **não** trava o monitoramento. Permissão faltando: abrir Configurar → App e destacar o que falta. **ENVIAR LOG** compartilha `notificacoes_diagnostico.txt` (não entra no backup da nuvem).
 
-**Aba VEÍCULO (layout)**
+Custo da corrida usa **combustível atual + km/L desse combustível + preço do litro na aba Despesas**. Não misturar gasolina e etanol na mesma conta.
+
+**Aba Veículo (layout)**
 
 - **DESCRIÇÃO DO VEÍCULO:** MARCA | MODELO; VERSÃO | ANO; FINAL DA PLACA | 🔒 IPVA … versão pro (Pro: data de vencimento do documento/IPVA).
-- **CONSUMO KM/L:** GASOLINA | ETANOL (editável na Beta; o motorista pode digitar).
+- **CONSUMO KM/L:** GASOLINA | ETANOL (editável; o motorista pode digitar).
 - **🔒 CALCULAR ABASTECIMENTO** … versão pro: VALOR R$ | QUANT. LITROS; KM INICIAL | KM FINAL. Campos Pro ficam bloqueados; o cadeado vai só no título.
-  - R$/L = valor pago ÷ litros → grava o **preço do litro do combustível atual** na aba CUSTOS.
+  - R$/L = valor pago ÷ litros → grava o **preço do litro do combustível atual** na aba Despesas.
   - km/L = (km final − km inicial) ÷ litros → grava o **consumo do combustível atual**.
   - Só calcula com litros > 0 e km final > km inicial. Não altera o outro combustível.
 
-**Aba CUSTOS (layout)** — VALOR DO COMBUSTÍVEL: R$ / L GASOLINA | R$ / L ETANOL. **COMBUSTÍVEL ATUAL:** marca exclusiva GASOLINA / ETANOL (define qual combustível entra no estimado). Troca de óleo e pneus: VALOR R$. Os demais campos Pro da aba não mudam.
+**Aba Despesas (layout)** — VALOR DO COMBUSTÍVEL: R$ / L GASOLINA | R$ / L ETANOL. **COMBUSTÍVEL ATUAL:** marca exclusiva GASOLINA / ETANOL (define qual combustível entra no estimado). Troca de óleo e pneus: VALOR R$. Os demais campos Pro da aba não mudam.
 
 Campos Pro: emoji 🔒 no **início do título** e o aviso **versão pro** no final. O valor do campo não leva cadeado.
 
-**CANCELAR** descarta o rascunho e **fecha** Config. **SALVAR** persiste a edição (e corrige faixas de classificação) e **fecha** Config. Fechar pelo botão **⤴️ Config** também descarta, igual ao Cancelar.
-
-Botão na expandida: **⚙️ Config** abre o painel; com o painel aberto vira **⤴️ Config** e fecha.
+**CANCELAR** descarta o rascunho e **fecha** Config. **SALVAR** persiste a edição e **fecha** Config. A seta ← também descarta, igual ao Cancelar.
 
 **Conta (Free/Pro):** a vinculação guarda só a identidade do motorista (e-mail Google escolhido no seletor do aparelho, ou e-mail digitado). Persiste na hora, independente de SALVAR/CANCELAR do restante da config. Não há sync de nuvem nesta etapa — o vínculo deixa o app pronto para limitar/identificar Free e Pro.
 
 Fluxo:
 
- EXPANDIDA
+ ATALHOS (§44 — congelado)
  ↓
-⚙️ Config
+Histórico / Carteira / Despesas / Semáforo / Usuário / Configurar / Fechar
  ↓
-painel CONFIGURAÇÃO (abaixo)
+tela nativa correspondente (Fechar → confirmação)
 
 
-24. Histórico e configuração
+24. Histórico, Semáforo, Carteira e configuração
 
-Histórico e configuração são **painéis overlay distintos**, abaixo da expandida. Não abrem ao mesmo tempo.
-
-Com histórico aberto, o botão vira **⤴️ Histórico** (recolhe o painel).
+Histórico, Carteira (Dashboard), Despesas, Semáforo, Usuário (Veículo) e Configurar são **telas nativas exclusivas** (uma de cada vez), abertas pelos Atalhos. A seta ← ou Voltar do sistema fecha a tela e volta aos **Atalhos** no selo.
 
 HISTÓRICO ABERTO
       ↓
@@ -785,7 +795,8 @@ As seguintes regras são consideradas fundamentais:
 O selo flutuante é a janela principal.
 O monitoramento ocorre em segundo plano enquanto estiver ativo.
 A tela compacta aparece para apresentar uma nova corrida.
-Com a compacta visível, toque fora das janelas do Gestor Driver volta ao selo na hora.
+Toque na compacta ou fora **não** a esconde; ela some só com o fim da oferta (expirou / recusou / aceitou).
+Posição inicial no topo (não cobrir Recusar da 99); arrastável com posição gravada.
 O usuário aceita a corrida na Uber, 99 ou inDrive.
 O Gestor Driver identifica o aceite.
 Somente corridas aceitas entram no histórico.
@@ -863,7 +874,7 @@ Cor da borda		Significado
 
 Regra visual
 
-A cor da borda externa (**mais espessa, 5 dp**) da tela compacta/expandida da corrida atual deve assumir a cor correspondente à classificação:
+A cor da borda externa (**6 dp**) da tela compacta da corrida atual deve assumir a cor correspondente à classificação:
 
 Regra importante
 
@@ -887,7 +898,7 @@ Assim, a classificação é a fonte da verdade e a cor é apenas sua representa�
 
 Também vale para a interface compacta
 
-A mesma classificação deve controlar a borda da janela compacta/expandida:
+A mesma classificação deve controlar a borda da janela compacta:
 
 Nova corrida
      ↓
@@ -927,7 +938,7 @@ No histórico, as corridas já aceitas são exibidas **em listas** (Uber | 99 | 
 
 A **janela** dos painéis Histórico e Configuração usa borda **cinza fina (2 dp)**, não a borda grossa da classificação.
 
-A borda neutra **não** se aplica ao painel compacta/expandida quando uma corrida do histórico está selecionada: esse painel continua com a borda colorida da classificação (5 dp).
+A borda neutra **não** se aplica à compacta quando há oferta classificada: a borda colorida da classificação (**6 dp**).
 
 Regra visual definitiva
 
@@ -950,7 +961,7 @@ Regra visual definitiva
 
 Em resumo:
 
-Painel compacta/expandida (oferta atual ou corrida do histórico selecionada) = borda colorida e destacada (5 dp).
+Compacta (oferta atual) = borda colorida (**6 dp**) na classificação.
 Janelas Histórico e Configuração = borda cinza fina (2 dp), fundo semitransparente.
 Itens das listas do Histórico = borda fina na cor da classificação.
 
@@ -976,11 +987,19 @@ O motor calcula sempre. No Free a UI esconde os números da calculadora e do das
 
 **Óleo:** aviso em vermelho a partir de **500 km** antes do vencimento da troca (intervalo informado); após o vencimento o aviso fica de “vencida”.
 
-**Dashboard (Pro):** abas Diário / Semanal / Mensal; setas de período; cards Faturamento / Gastos / Lucro líquido; ganho e custo por km e por hora; custo e lucro médio por corrida; estimativas rateadas (combustível, óleo, pneus, seguro, IPVA). Só corridas **aceitas**. Sem gráficos nesta entrega.
+**Dashboard (Pro):** tela nativa; abas Dia / Semana / Mês / Ano; Receitas / Despesas / Saldo; médias (viagens/horas/km); receitas por plataforma; estimativas rateadas. Só corridas **aceitas**. Sem gráficos nesta entrega.
 
-**Histórico:** abas Todos/Uber/99/inDrive; semana DOM–SÁB com setas; sem resumo faturamento/dia-mês. Card: Ganhos · R$/Km · R$/Lucro · R$/gasto · Nota; Consumo (L); Embarque/Destino. Lixeira só selecionadas.
+**Histórico:** tela nativa; abas Todos/Uber/99/inDrive; semana DOM–SÁB com setas. Card: valor herói · $/Km · Lucro · Consumo · Nota; km · tempo · Gasto; Embarque/Destino. Lixeira só selecionadas.
 
-**Menu overlay:** Histórico · Semáforo · Custos · Veículo · Dashboard · Configurações · Fechar.
+**Atalhos (overlay, UI oficial 06/09/2026 §44):** card claro/escuro com cabeçalho (**X** + título + subtítulo) e itens em cards; fluxo **selo → Atalhos (selo some)**; **X** ou toque fora → selo. Ordem/cópia fixas:
+`Histórico | Carteira | Despesas | Semáforo | Usuário | Configurar | Fechar`
+(descrições: Ver corridas aceitas · Saldo e movimentações · Controle de gastos do app · Regras de classificação · Seus dados e preferências · Ajustes do aplicativo · Encerrar o aplicativo).
+
+**Menu (UI oficial 06/09/2026):** sem rodapé. **Opções** = tela principal (mesmo layout dos Atalhos); itens abrem as demais telas; **X** em Opções → selo; **←** nas demais → Opções.
+
+**Histórico (UI oficial 06/09/2026):** ← volta a Opções; resumo do dia com **Corridas aceitas** (não consumo); setas ±7 dias; lupa sem função; lixeira com seleção (segurar) + confirmação sobre a navegação; toque abre DETALHES DA CORRIDA (altura compacta).
+
+**Compacta (UI oficial 05/09/2026):** R$/Km · Dist. · Tempo · Nota + ícone · Parada(s); borda **6 dp**; ~4,5×1,7 cm; arrastável (posição gravada); toque não faz nada; some com a oferta.
 
 **Notificação:** sem oferta = “Monitorando ofertas”; com oferta = resumo; expirou/recusou = limpa e volta a monitorar; aceite = mantém resumo até a próxima oferta.
 
@@ -991,11 +1010,11 @@ Gasto de combustível = litros × **preço do litro** desse combustível.
 Gasto total da oferta = combustível + óleo + pneus + IPVA + seguro (ver §38).  
 Lucro estimado = valor da corrida − gasto total.
 
-Gasolina: litro mais caro, mais km/L. Etanol: litro mais barato, menos km/L. Os dois entram na conta via combustível marcado + preços da aba **CUSTOS**. Snapshot no momento da oferta; mudar preço depois não recalcula histórico.
+Gasolina: litro mais caro, mais km/L. Etanol: litro mais barato, menos km/L. Os dois entram na conta via combustível marcado + preços da aba **Despesas**. Snapshot no momento da oferta; mudar preço depois não recalcula histórico.
 
 40. Faixas padrão de classificação (R$/km) — Pro 2.0
 
-Três faixas visíveis (Ruim / Boa / Ótima). Sem sobreposição, passo 0,01. Na aba **CALIBRAR** (Semáforo), deslizantes “Ruim até” e “Boa até”.
+Três faixas visíveis (Ruim / Boa / Ótima). Sem sobreposição, passo 0,01. Na tela **Semáforo** (menu → **Semáforo**), três barras com deslizante duplo: **Ganhos por Km**, **Ganhos por Hora**, **Nota do passageiro**. Sem campos −/+; só arrastar as marcas. **Encadeamento:** o max de uma faixa define o min da próxima em **+0,01** (e o inverso em **−0,01**), igual aos antigos botões −/+.
 
 | Faixa | MIN | MAX | Borda |
 | --- | --- | --- | --- |
@@ -1003,7 +1022,7 @@ Três faixas visíveis (Ruim / Boa / Ótima). Sem sobreposição, passo 0,01. Na
 | Boa | 1,60 | 1,99 | amarela |
 | Ótima | 2,00 | MAX | verde |
 
-O motorista altera as faixas na aba **Semáforo**. CANCELAR descarta o rascunho; SALVAR persiste.
+CANCELAR descarta o rascunho; SALVAR persiste. A seta ← volta ao menu atalho.
 
 41. Pacotes monitorados
 
@@ -1036,7 +1055,7 @@ A partir de **02/09/2026** a **UI oficial da Beta** (`1.1.10` em `main`) ficou *
 Telas oficiais congeladas na Beta:
 
 - selo flutuante
-- compacta (💵 R$/KM, 💰 VALOR, 🛞 DIST., 🕐 TEMPO, ⭐ NOTA)
+- compacta (R$/Km · Dist. · Tempo · Nota + ícone plataforma · Parada(s); borda 6 dp; arrastável)
 - expandida (cabeçalho, DISTÂNCIAS, CUSTOS (ESTIMADO), 📴 Fechar · ⚙️ Config · ❎ Ocultar · 📜 Histórico)
 - histórico (⬅️ HISTÓRICO ➡️, abas Uber / 99 / inDrive, deslize / setas / clique no rótulo, cabeçalho Data | Hora | R$/Km | Valor | Dist. | Tempo | Nota, linhas com borda fina da classificação, 🗑️ Limpar histórico; mesma altura da Configuração)
 - configuração (⬅️ CONFIGURAÇÃO ➡️, abas VEÍCULO / CUSTOS / CALIBRAR / APP; rótulos oficiais da seção 23; CANCELAR / SALVAR; mesma altura do Histórico; conteúdo extra rola)
@@ -1045,4 +1064,148 @@ Telas oficiais congeladas na Beta:
 Na Beta, campos Pro ficavam visíveis e bloqueados (🔒). No Pro 2.0 esses campos e o dashboard estão liberados (Free continua com 🔒).
 
 Permitido na Beta em `main` **sem mudar a UI:** calibrar parser e aceite, correção de crash/bug, persistência e monitoramento.
+
+44. Congelamento do esquema Pro (UI oficial — 05/09/2026)
+
+A partir de **05/09/2026** o esquema de telas da Pro em `vs-2.0` fica **congelado**. Não alterar ordem, nomes ou superfícies sem pedido explícito.
+
+**Tela Atalhos — UI oficial 06/09/2026**
+
+Layout oficial: card arredondado (tema claro/escuro), cabeçalho com botão **X** neutro (círculo cinza), título **Atalhos** e subtítulo *Acesse rapidamente as principais funções*; itens em cards com ícone **branco** sobre quadrado colorido (Histórico verde · Carteira azul · Despesas laranja · Semáforo slate · Usuário roxo · Configurar cinza-azul · Fechar vermelho), título + descrição + chevron `›`.
+
+**Fluxo:** toque no **selo** esconde o selo e abre os Atalhos. **X** ou toque **fora** do card fecha os Atalhos e devolve o selo.
+
+**Posição do card:** abre **à direita, à esquerda, acima ou abaixo** da última posição do selo. Prefere o eixo da borda mais próxima do selo; nesse eixo escolhe o lado com mais espaço.
+
+Ordem, títulos e descrições **fixos** (não alterar sem pedido explícito):
+
+| Título | Descrição | Destino |
+| --- | --- | --- |
+| Histórico | Ver corridas aceitas | aba Histórico |
+| Carteira | Saldo e movimentações | aba Dashboard (Free 🔒) |
+| Despesas | Controle de gastos do app | aba Custos/Despesas |
+| Semáforo | Regras de classificação | aba Semáforo |
+| Usuário | Seus dados e preferências | aba Veículo |
+| Configurar | Ajustes do aplicativo | aba Configurações/App |
+| Fechar | Encerrar o aplicativo | confirmação → encerra |
+
+`Histórico | Carteira | Despesas | Semáforo | Usuário | Configurar | Fechar`
+
+Permitido **sem** mudar a tela Atalhos: calibrar parser/aceite, crash/bug, persistência, Bloco C de rua.
+
+**Seis superfícies oficiais:**
+
+| # | Superfície | Papel |
+| --- | --- | --- |
+| 1 | **Selo** | Casa do app; toque abre/fecha Atalhos |
+| 2 | **Atalhos** | Card overlay (UI 06/09; selo some enquanto aberto) |
+| 3 | **Compacta** | Só com oferta: R$/Km · Dist. · Tempo · Nota; borda 6 dp; arrastável; toque não faz nada |
+| 4 | **Barra de notificação** | Status Android: Monitorando / resumo / Abrir App / Desligar App |
+| 5 | **Menu** | = conteúdo dos Atalhos |
+| 6 | **Confirmação** | Tela nativa (Activity): Fechar/Desligar App; Limpar histórico |
+
+**Declaração das telas do app (congelada):**
+
+| Tela | Tipo | Como abre |
+| --- | --- | --- |
+| Selo | Overlay | Monitoramento ativo |
+| **Atalhos** | Overlay | Toque no selo — card com X; selo some |
+| Compacta | Overlay | Oferta ativa |
+| Barra de notificação | Sistema | Foreground service |
+| Histórico | Activity | Atalhos → Histórico |
+| Carteira (Dashboard) | Activity | Atalhos → Carteira |
+| Despesas | Activity | Atalhos → Despesas |
+| Semáforo | Activity | Atalhos → Semáforo |
+| Usuário (Veículo) | Activity | Atalhos → Usuário |
+| Configurar | Activity (App) | Atalhos → Configurar |
+| **Confirmação (Fechar)** | Activity | Atalhos → Fechar **ou** notificação → Desligar App |
+| **Confirmação (Limpar histórico)** | Activity (sobre Histórico) | Lixeira com corridas selecionadas |
+
+A confirmação de **abastecimento** (aplicar R$/L e km/L) permanece como diálogo dentro de Config/Veículo — não é superfície overlay.
+
+**Fluxo oficial — selo ↔ atalhos:**
+
+```text
+selo
+  ↓ toque
+atalhos   ← o selo some
+  ↓ X ou toque fora do card
+selo      ← atalhos fecham; selo volta
+```
+
+Com Atalhos abertos o **selo some**. Só volta quando o motorista fecha os Atalhos (X / fora), ou quando o fluxo devolve ao selo (Home, etc.). O selo também some quando sobe Compacta, quando o motorista esconde o selo (arrastar ao X), ou quando uma tela nativa do Menu toma a Activity.
+
+**Fluxo congelado — Recentes / sair da tela do Menu:**
+
+```text
+tela nativa (ex.: Histórico)
+  ↓ Recentes (ou sai do app sem Home)
+guarda última tela + volta ao selo
+  ↓ toque no selo
+reabre a mesma tela (ex.: Histórico)
+```
+
+Se o usuário estava no **Histórico** (ou Carteira / Despesas / Semáforo / Usuário / Configurar) e usou **Recentes** (ou fechou a Activity do Gestor sem Home), o app guarda essa tela, mostra o **selo** e, no **próximo toque no selo**, reabre **essa mesma tela** (não só os Atalhos vazios).
+
+**Home** (e RecolherParaSelo) **descarta** a tela guardada e fica só no selo. **Voltar** em degraus: tela nativa → Atalhos → selo.
+
+**Fluxo congelado — selo no X + barra de notificação:**
+
+**Caso 1 — só escondeu o selo**
+
+```text
+selo → arrasta ao X
+monitoramento continua (selo invisível)
+  ↓ Abrir App (notificação)
+selo reaparece (mesma posição)
+```
+
+**Caso 2 — escondeu o selo e fechou a tela do Menu (Recentes)**
+
+```text
+tela Menu (ex.: Histórico) → Recentes e/ou selo no X
+monitoramento continua
+  ↓ Abrir App (notificação)
+reabre a tela Menu (selo fica ativo de novo)
+  ↓ sair da tela Menu (Voltar / fluxo normal)
+selo volta a aparecer (Atalhos/selo como de costume)
+```
+
+Nessas condições, **Desligar App** (barra de notificação) ou **Fechar** (Menu) abre a **tela de confirmação** — não encerra o monitoramento sem confirmar.
+
+**Regra congelada — o que sobressai outros apps (`SYSTEM_ALERT_WINDOW`):**
+
+Somente estas **três** janelas flutuantes podem ficar por cima da Uber / 99 / inDrive (ou de qualquer outro app):
+
+1. **Selo**
+2. **Atalhos** (congelado §44)
+3. **Compacta**
+
+Histórico, Carteira, Despesas, Semáforo, Usuário, Configurar, confirmações e qualquer destino dos Atalhos abrem **somente** como Activity nativa (Compose) — **não** como overlay sobre a plataforma. A barra de notificação é a notificação do sistema Android, não janela flutuante de conteúdo.
+
+**Proibido:** reativar painéis overlay de Histórico / Config / Dashboard / Semáforo / confirmação; expandida antiga cobrindo o mapa; qualquer nova janela `TYPE_APPLICATION_OVERLAY` além de selo, atalhos e compacta.
+
+**Atalhos (UI oficial 06/09/2026):**
+
+`Histórico | Carteira | Despesas | Semáforo | Usuário | Configurar | Fechar`
+
+Card arredondado (claro/escuro) com cabeçalho **X** + título + subtítulo. Fluxo: **selo → Atalhos** (selo some); **X** ou toque fora → selo. Posição: **direita | esquerda | acima | abaixo** conforme a última posição do selo. Cada item abre a aba destino.
+
+| Entrada | Descrição | Destino |
+| --- | --- | --- |
+| Histórico | Ver corridas aceitas | Tela nativa Histórico |
+| Carteira | Saldo e movimentações | Tela Dashboard (Pro; Free 🔒) |
+| Despesas | Controle de gastos do app | Aba Custos/Despesas |
+| Semáforo | Regras de classificação | Tela nativa Semáforo |
+| Usuário | Seus dados e preferências | Aba Veículo |
+| Configurar | Ajustes do aplicativo | Aba Configurações/App |
+| Fechar | Encerrar o aplicativo | **Tela de confirmação** → encerra monitoramento |
+
+**Tela de confirmação (Fechar):** título gestor driver; mensagem de encerrar monitoramento; **Cancelar** / **Fechar**. Origem: Menu → Fechar ou barra → **Desligar App**. Sempre Activity nativa (§44 superfície 6).
+
+**Tela de confirmação (Limpar histórico):** mesma caixa; **Cancelar** / **Limpar**. Só com corridas selecionadas.
+
+**Fora do esquema:** expandida permanente cobrindo o mapa; painéis overlay de Histórico/Config/Dashboard/Semáforo/confirmação; outros itens de menu; botão Aceitar no Gestor; qualquer overlay além de selo · atalhos · compacta.
+
+Permitido **sem** mudar o esquema: calibrar parser/aceite, crash/bug, persistência, Bloco C de rua.
 

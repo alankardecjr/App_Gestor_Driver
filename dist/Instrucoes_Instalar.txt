@@ -1,0 +1,78 @@
+Gestor Driver — como instalar (qualquer Android)
+
+Este arquivo é um aplicativo Android. Não instala no iPhone.
+
+** Não abra pelo WhatsApp. **
+O preview do WhatsApp só mostra o arquivo; ele não instala o app.
+Baixe, salve no celular e instale pelo app Arquivos (ou Meus arquivos / Files).
+
+
+COMO INSTALAR
+-------------
+
+1. Toque no arquivo no WhatsApp (ou no e-mail) e espere baixar (ícone de seta).
+   Quando pedir, escolha Salvar / Salvar no dispositivo.
+   Se veio um ZIP, extraia primeiro e use o arquivo .apk de dentro.
+
+2. Em alguns celulares a segurança impede instalar app de fora da loja.
+   Se o seu tiver “Auto Blocker”, “Bloquear instalações” ou “Play Protect” muito
+   restrito, desligue só para instalar e ligue de novo depois.
+   Caminho comum no Samsung:
+   Configurações → Segurança e privacidade → Auto Blocker → desligar.
+
+3. Abra o app Arquivos (também pode aparecer como Meus arquivos, Files ou Gerenciador).
+   Entre em Downloads. Se não estiver lá, veja Documentos ou a pasta do WhatsApp.
+
+4. Toque em GestorDriver.apk → Instalar.
+   Confirme se o nome do app na tela de instalação é Gestor Driver.
+
+5. Se o celular perguntar “permitir apps desta origem” / “fontes desconhecidas”:
+   permita para o app ARQUIVOS (o gerenciador de arquivos), não só para o WhatsApp.
+   Em outros aparelhos o caminho é:
+   Configurações → Apps → Acesso especial → Instalar apps desconhecidos → Arquivos → permitir.
+
+6. Se aparecer tela vermelha, “bloqueado para sua segurança” ou Play Protect:
+   Mais detalhes → Instalar mesmo assim.
+   (Ou: Play Store → sua foto → Play Protect → engrenagem → desligue
+   “Verificar apps com o Play Protect”, instale, ligue de novo.)
+
+7. Abra o Gestor Driver na lista de aplicativos do celular.
+   Não precisa abrir de novo pelo WhatsApp.
+
+
+LIBERAR A ACESSIBILIDADE (obrigatório)
+--------------------------------------
+
+O Gestor precisa “ler o card” da corrida na tela do Uber, 99 ou inDrive.
+Sem isso, a oferta não aparece no overlay.
+
+No Gestor: na primeira abertura (ou em Config → aba APP) toque em Acessib.
+até virar 🆗.
+
+Se o interruptor não aparecer, estiver cinza ou o Gestor não estiver na lista
+(comum em app instalado por arquivo, fora da loja):
+
+1. Configurações → Aplicativos → Gestor Driver.
+2. Toque nos 3 pontinhos (canto superior).
+3. Toque em Permitir configurações restritas (pode pedir PIN, senha ou digital).
+   Se não aparecer essa opção, pule para o passo 4.
+4. Volte: Configurações → Acessibilidade.
+   Procure Serviços instalados, Apps instalados, Apps baixados ou Serviços baixados
+   (o nome muda conforme a marca).
+5. Toque em Gestor Driver → ligue o serviço → Confirmar / Permitir.
+
+Pronto quando Acessib. estiver 🆗 no Gestor.
+
+Faça o mesmo com as outras permissões da aba APP, até ficarem 🆗:
+- Notificações (ler aviso de corrida)
+- Sobrepor (janela por cima do mapa)
+- Bateria (ignorar otimização, para o selo não sumir)
+
+Localização é opcional. Não impede o monitoramento.
+
+
+iPHONE
+------
+
+iPhone não instala este arquivo. O Gestor Driver usa janela por cima de outro app
+e leitura da tela; o iOS não permite isso da mesma forma.

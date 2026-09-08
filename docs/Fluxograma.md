@@ -25,10 +25,10 @@ O aplicativo:
 4. inicia o monitoramento;
 5. exibe o selo flutuante sobre o app de transporte;
 6. monitora notificações;
-7. na oferta, mostra a **barra compacta** no topo (só o cabeçalho); toque fora dela (mapa/plataforma) recolhe ao selo na hora;
-8. `⬇️` ou toque no selo abre a **expandida em overlay** (altura do conteúdo, não 1/3 fixo);
-9. Histórico e Configuração abrem **embaixo da expandida** (painéis overlay, exclusivos);
-10. Recolher (`⬆️`) volta à compacta; toque **fora** das janelas do Gestor Driver (ou **após 5 s**) retorna ao selo. Aceite detectado também vai ao selo;
+7. na oferta, mostra a **compacta** no topo (R$/Km · Dist. · Tempo · Nota); arrastável; toque nela ou fora **não** a esconde;
+8. overlay sobre outros apps = **só** selo · atalhos · compacta (§44);
+9. Histórico, Semáforo, Carteira, Despesas, Usuário e Config abrem como **telas nativas** (Activity Compose), todas com o mesmo cabeçalho: ← volta às Opções e selo fecha a tela e retorna ao selo;
+10. aceite/expirar/recusar → compacta some; selo permanece no monitoramento;
 11. Ocultar e expiração (sem item de histórico selecionado) retornam ao selo na última posição;
 12. Fechar encerra o app após confirmação.
 
@@ -127,12 +127,23 @@ Nova oferta substitui a corrida atual. Sem oferta = selo. Histórico só muda no
 
 # 4. Fluxo de minimização
 
-          EXPANDIDA (overlay, altura do conteúdo)
+          ATALHOS (overlay, congelado §44)
           │
-          ├── 📜 Histórico → painel overlay abaixo (⤴️ Histórico recolhe; ⬅️➡️, deslize ou clique no rótulo; cabeçalho Data…Nota; linha com borda fina da classificação; mesma altura compacta; lista rola)
-          ├── ⚙️ Config → painel overlay abaixo (abas VEÍCULO / CUSTOS / CALIBRAR / APP; ⬅️➡️, deslize ou clique no rótulo; mesma altura compacta; campos extra rolam)
-          ├── ⬆️ retrai para compacta (toque fora → selo imediato; senão 5 s → selo, mesmo com oferta)
-          └── ❎ Ocultar → selo (fecha histórico e config)
+          ├── Histórico → tela nativa          (Corridas aceitas)
+          ├── Carteira → Dashboard             (Gestor financeiro)
+          ├── Despesas → aba Custos/Despesas   (Lançar despesas)
+          ├── Semáforo → tela nativa           (Calibrar faixas)
+          ├── Usuário → aba Veículo            (Ajustar veiculo)
+          ├── Configurar → aba Configurações   (Configurar App)
+          └── Fechar → **tela de confirmação** (§44 #6) / encerra  (Encerrar App)
+
+## 4.1 Fechamentos locais e cabeçalho comum
+
+- Todas as abas nativas usam o mesmo cabeçalho visual, com título, seta de retorno e botão com o ícone do selo.
+- A seta retorna à aba Opções/Atalhos; o botão selo fecha a tela nativa e retorna ao selo flutuante.
+- O card **Detalhes da corrida** usa `X` no cabeçalho. Esse `X` fecha somente o card e devolve o usuário ao Histórico; não encerra o monitoramento.
+- A tela compacta usa `X` no cabeçalho superior. Esse `X` fecha somente a compacta e devolve ao selo; não recusa, não aceita, não apaga a oferta e não encerra o monitoramento.
+- Toque na área da compacta ou fora dela permanece inerte; somente o `X` executa o fechamento explícito da compacta.
 
 #5. Fluxo de encerramento
 
@@ -152,14 +163,14 @@ Nova oferta substitui a corrida atual. Sem oferta = selo. Histórico só muda no
 
 Fonte da verdade: R$/KM → faixa → classificação → cor. A interface não escolhe a cor.
 
-Corrida atual (borda grossa, 5 dp) — **Pro:** 🔴 Ruim · 🟡 Boa · 🟢 Ótima (§40). **Beta histórica:**
+Corrida atual (borda grossa, **6 dp**) — **Pro:** 🔴 Ruim · 🟡 Boa · 🟢 Ótima (§40). **Beta histórica:**
 
 - 🔴 Ruim = vermelho
 - 🟠 Regular = laranja
 - 🟢 Boa = verde
 - 🔵 Ótima = azul
 
-Janelas Histórico e Configuração: borda cinza fina (2 dp), fundo semitransparente.
+Janelas Histórico / Semáforo / Dashboard / Config: borda cinza fina (2 dp), fundo do painel.
 
 Histórico (itens das listas Uber / 99 / inDrive): borda **fina** na cor da classificação. Compacta/expandida com oferta ou item selecionado **mantém a borda colorida grossa**.
 

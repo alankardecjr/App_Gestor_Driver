@@ -1,8 +1,8 @@
 # Relatório — UI, usabilidade e acessibilidade
 
-**Data:** 02/09/2026  
+**Data:** 07/09/2026
 **No ar:** Beta `1.1.10` (UI congelada em 02/09/2026)  
-**Rascunho:** Vs 2.0  
+**Rascunho:** Vs 2.0 — telas nativas consolidadas
 **Inspiração:** `C:\Users\akard\Pictures\Gestor drive\Inspiração`
 
 Cópia de trabalho também em: `Documentos\Bloco de notas\Relatorio_UI_Gestor_Driver_Beta_vs_2.0.txt`
@@ -39,12 +39,22 @@ Ruim na 2.0 crua: card inteiro na notificação; compacta cobrindo Recusar por 2
 
 - **Notificação:** uma linha de resumo + Abrir / Desligar; Embarque/Destino só com endereço.
 - **Compacta:** mini-card, borda 5 dp, valores grandes, fora da zona Recusar; 2 s / 4 s; toque fora não recolhe.
-- **Selo:** maior; toque = menu; X = esconde overlay, monitoramento segue.
-- **Menu:** Histórico · Calibrar · Custos · Usuário · Dashboard (Pro) · Configurações · Fechar.
-- **Histórico:** cards por corrida, abas Uber / 99 / inDrive.
-- **Config:** lista + Ajuda; tema na aba APP.
+- **Selo:** maior; toque = abre/fecha Atalhos; arrastar ao X = esconde overlay, monitoramento segue.
+- **Atalhos (congelado 05/09/2026 §44):** Histórico | Carteira | Despesas | Semáforo | Usuário | Configurar | Fechar — card arredondado + ícones; sem botão X. Descrições: Corridas aceitas · Gestor financeiro · Lançar despesas · Calibrar faixas · Ajustar veiculo · Configurar App · Encerrar App.
+- **Confirmação:** tela nativa — Fechar/Desligar App; Limpar histórico (§44 superfície 6).
+- **Histórico / Carteira / Semáforo / Config:** telas nativas (Activity), mesmo painel.
+- **Carteira** → Dashboard; **Usuário** → Veículo; **Semáforo** → tela própria; Config = Despesas · Veículo · App.
+- **Config:** lista + Ajuda; tema na aba App.
 
-## 6. Recomendação
+## 6. Padrão consolidado das telas nativas
+
+- **Atalhos e Menu > Opções:** usam o mesmo painel, hierarquia, cartões arredondados, ícones coloridos e espaçamento de toque. O selo abre Atalhos; o ícone do app abre Opções sem alterar o layout.
+- **Histórico:** usa o cabeçalho nativo compartilhado, abas de plataforma com navegação lateral, calendário semanal e cards de corridas com seleção e exclusão acessíveis.
+- **Carteira:** usa o mesmo cabeçalho nativo e oferece os modos **Semana**, **Mês** e **Ano**. As setas navegam pelo período; o botão de calendário permite escolher um dia específico.
+- **Estimativa de gastos:** Combustível, Óleo, Pneus dianteiros/traseiros, Seguro e IPVA aparecem em cards separados, com valores alinhados à direita e indicação de rateio quando aplicável.
+- **Tema:** o painel, bordas, textos e cartões respeitam a paleta clara/escura do aplicativo.
+
+## 7. Recomendação
 
 Seguir a 2.0 na hierarquia e no menu. Não clonar o app da Play Store. Não jogar a expandida atual na barra de notificação.
 

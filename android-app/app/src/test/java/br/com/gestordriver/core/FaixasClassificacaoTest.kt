@@ -40,12 +40,13 @@ class FaixasClassificacaoTest {
     }
 
     @Test
-    fun ruim_min_e_otima_max_nao_mudam() {
+    fun ruim_min_nao_muda_e_otima_max_pode_ser_editada() {
         val padrao = ConfiguracaoUsuario.padrao()
         val min = FaixasClassificacao.aplicar(padrao, FaixasClassificacao.Campo.RUIM_MIN, 5.0)
         val max = FaixasClassificacao.aplicar(padrao, FaixasClassificacao.Campo.OTIMA_MAX, 5.0)
         assertEquals(padrao, min)
-        assertEquals(padrao, max)
+        assertEquals(5.0, max.limiteOtimaMax, 0.0)
+        assertEquals(max.limiteOtimaMin, max.limiteBoaMax + FaixasClassificacao.PASSO, 0.0001)
     }
 
     @Test
@@ -58,5 +59,57 @@ class FaixasClassificacaoTest {
         assertEquals(1.80, corrigida.limiteRuimMax, 0.0)
         assertEquals(1.81, corrigida.limiteBoaMin, 0.0)
         assertEquals(corrigida.limiteOtimaMin, corrigida.limiteBoaMax + FaixasClassificacao.PASSO, 0.0001)
+    }
+
+    @Test
+    fun marcas_deslizantes_max_ruim_encadeia_min_boa_em_um_centavo() {
+        val atualizada = FaixasClassificacao.aplicarMarcas(
+            ConfiguracaoUsuario.padrao(),
+            ruimMax = 1.85,
+            boaMax = 1.99,
+        )
+        assertEquals(1.85, atualizada.limiteRuimMax, 0.0)
+        assertEquals(1.86, atualizada.limiteBoaMin, 0.0)
+        assertEquals(1.99, atualizada.limiteBoaMax, 0.0)
+        assertEquals(2.00, atualizada.limiteOtimaMin, 0.0)
+    }
+
+    @Test
+    fun marcas_deslizantes_max_boa_encadeia_min_otima_em_um_centavo() {
+        val atualizada = FaixasClassificacao.aplicarMarcas(
+            ConfiguracaoUsuario.padrao(),
+            ruimMax = 1.59,
+            boaMax = 2.10,
+        )
+        assertEquals(1.59, atualizada.limiteRuimMax, 0.0)
+        assertEquals(1.60, atualizada.limiteBoaMin, 0.0)
+        assertEquals(2.10, atualizada.limiteBoaMax, 0.0)
+        assertEquals(2.11, atualizada.limiteOtimaMin, 0.0)
+    }
+
+    @Test
+    fun marcas_deslizantes_baixar_boa_puxa_ruim_menos_um_centavo() {
+        val atualizada = FaixasClassificacao.aplicarMarcas(
+            ConfiguracaoUsuario.padrao(),
+            ruimMax = 1.59,
+            boaMax = 1.50,
+        )
+        assertEquals(1.50, atualizada.limiteBoaMax, 0.0)
+        assertEquals(1.51, atualizada.limiteOtimaMin, 0.0)
+        assertEquals(1.50, atualizada.limiteBoaMin, 0.0)
+        assertEquals(1.49, atualizada.limiteRuimMax, 0.0)
+    }
+
+    @Test
+    fun marcas_deslizantes_subir_ruim_acima_da_boa_empurra_cadeia() {
+        val atualizada = FaixasClassificacao.aplicarMarcas(
+            ConfiguracaoUsuario.padrao(),
+            ruimMax = 2.05,
+            boaMax = 2.06,
+        )
+        assertEquals(2.05, atualizada.limiteRuimMax, 0.0)
+        assertEquals(2.06, atualizada.limiteBoaMin, 0.0)
+        assertEquals(2.06, atualizada.limiteBoaMax, 0.0)
+        assertEquals(2.07, atualizada.limiteOtimaMin, 0.0)
     }
 }

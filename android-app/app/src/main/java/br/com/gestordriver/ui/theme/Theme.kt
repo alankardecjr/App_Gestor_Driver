@@ -1,30 +1,11 @@
 package br.com.gestordriver.ui.theme
 
-import android.os.Build
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
-import androidx.compose.material3.dynamicDarkColorScheme
-import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.platform.LocalContext
-
-private val DarkColorScheme = darkColorScheme(
-    primary = Purple80,
-    secondary = PurpleGrey80,
-    tertiary = Pink80,
-    background = androidx.compose.ui.graphics.Color(0xFF10161D),
-    surface = androidx.compose.ui.graphics.Color(0xFF10161D),
-)
-
-private val LightColorScheme = lightColorScheme(
-    primary = Purple40,
-    secondary = PurpleGrey40,
-    tertiary = Pink40,
-    background = androidx.compose.ui.graphics.Color(0xFFF4F6F8),
-    surface = androidx.compose.ui.graphics.Color(0xFFF4F6F8),
-)
+import androidx.compose.ui.graphics.Color
 
 @Composable
 fun GestorDriverTheme(
@@ -32,13 +13,43 @@ fun GestorDriverTheme(
     dynamicColor: Boolean = false,
     content: @Composable () -> Unit
 ) {
-    val colorScheme = when {
-        dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
-            val contexto = LocalContext.current
-            if (darkTheme) dynamicDarkColorScheme(contexto) else dynamicLightColorScheme(contexto)
-        }
-        darkTheme -> DarkColorScheme
-        else -> LightColorScheme
+    val paleta = PaletaApp.de(darkTheme)
+    val colorScheme = if (paleta.escuro) {
+        darkColorScheme(
+            primary = Color(0xFF4D9183),
+            onPrimary = Color.White,
+            primaryContainer = paleta.fundoMetrica,
+            onPrimaryContainer = paleta.texto,
+            secondary = Color(0xFF4D8796),
+            onSecondary = Color.White,
+            tertiary = Color(0xFFA98452),
+            onTertiary = Color.White,
+            background = paleta.fundo,
+            onBackground = paleta.texto,
+            surface = paleta.fundoPainel,
+            onSurface = paleta.texto,
+            surfaceVariant = paleta.fundoCardHistorico,
+            onSurfaceVariant = paleta.textoDetalhes,
+            outline = paleta.borda,
+        )
+    } else {
+        lightColorScheme(
+            primary = Color(0xFF3B776B),
+            onPrimary = Color.White,
+            primaryContainer = paleta.fundoMetrica,
+            onPrimaryContainer = paleta.texto,
+            secondary = Color(0xFF3C7180),
+            onSecondary = Color.White,
+            tertiary = Color(0xFF8A6A42),
+            onTertiary = Color.White,
+            background = paleta.fundo,
+            onBackground = paleta.texto,
+            surface = paleta.fundoPainel,
+            onSurface = paleta.texto,
+            surfaceVariant = paleta.fundoCardHistorico,
+            onSurfaceVariant = paleta.textoDetalhes,
+            outline = paleta.borda,
+        )
     }
 
     MaterialTheme(

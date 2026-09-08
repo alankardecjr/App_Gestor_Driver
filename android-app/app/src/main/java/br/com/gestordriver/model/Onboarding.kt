@@ -20,19 +20,19 @@ object TutorialConteudo {
         ),
         TutorialPasso(
             titulo = "Compacta",
-            texto = "Card no topo só na oferta: $/Km, $/Lucro, $/Gasto e Nota. Some em 1 s (expirou/recusou) ou 2 s (aceitou). Toque na compacta ou fora não faz nada.",
+            texto = "Card no topo só na oferta: R$/Km, Dist., Tempo e Nota. Arrastável (guarda posição). Borda na cor da classificação. Toque no corpo ou fora não faz nada; X fecha a compacta e retorna ao selo.",
         ),
         TutorialPasso(
-            titulo = "Menu",
-            texto = "Histórico, Dashboard, Despesas, Semáforo, Veiculo, Configurar e Fechar. A seta das abas sempre volta ao atalho.",
+            titulo = "Menu / Atalhos",
+            texto = "Toque no selo abre Atalhos (selo some). X ou toque fora fecha e devolve o selo. Itens: Histórico | Carteira | Despesas | Semáforo | Usuário | Configurar | Fechar.",
         ),
         TutorialPasso(
             titulo = "Notificação",
             texto = "Resumo da oferta. Expirar ou recusar limpa e volta a Monitorando ofertas. Aceite mantém o resumo até a próxima oferta. Abrir App / Desligar App.",
         ),
         TutorialPasso(
-            titulo = "Config",
-            texto = "Abas em formato de ficheiro: Histórico, Dashboard, Despesas, Semáforo, Veiculo e Configurar. Cancelar descarta. Salvar grava.",
+            titulo = "Configurar",
+            texto = "Atalho Configurar abre ajustes do app (permissões, tema, conta). Despesas e Usuário abrem Custos e Veículo. Cancelar descarta. Salvar grava.",
         ),
         TutorialPasso(
             titulo = "Histórico",

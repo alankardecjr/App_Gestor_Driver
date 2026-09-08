@@ -109,11 +109,6 @@ class RideScreenReaderService : AccessibilityService() {
         } else if (BarraSistema.ehHome(pacote, classe, janelaNova)) {
             OverlayBridge.emitir(OverlayAcao.RecolherParaSelo)
         }
-        if (janelaMudou && PlatformDetector.ehSuportada(pacote) &&
-            OverlayBridge.snapshot.value.compactaVisivel
-        ) {
-            OverlayBridge.reafirmarCamada()
-        }
         if (!PlatformDetector.ehSuportada(pacote)) {
             return
         }

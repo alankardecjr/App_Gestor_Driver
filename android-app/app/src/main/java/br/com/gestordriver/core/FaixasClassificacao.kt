@@ -29,10 +29,10 @@ object FaixasClassificacao {
         if (campo == Campo.RUIM_MIN) "MIN" else formatar(valor)
 
     fun rotuloMax(campo: Campo, valor: Double): String =
-        if (campo == Campo.OTIMA_MAX) "MAX" else formatar(valor)
+        formatar(valor)
 
     fun campoEditavel(campo: Campo): Boolean =
-        campo != Campo.RUIM_MIN && campo != Campo.OTIMA_MAX
+        campo != Campo.RUIM_MIN
 
     fun valorDe(atual: ConfiguracaoUsuario, campo: Campo): Double =
         when (campo) {
@@ -51,8 +51,17 @@ object FaixasClassificacao {
         ruimMax: Double,
         boaMax: Double,
     ): ConfiguracaoUsuario {
-        var proxima = aplicar(atual, Campo.RUIM_MAX, ruimMax)
-        return aplicar(proxima, Campo.BOA_MAX, boaMax)
+        val ruim = arredondar(ruimMax).coerceIn(MIN_ABSOLUTO, MAX_ABSOLUTO)
+        val boa = arredondar(boaMax).coerceIn(MIN_ABSOLUTO, MAX_ABSOLUTO)
+        val deltaRuim = kotlin.math.abs(ruim - arredondar(atual.limiteRuimMax))
+        val deltaBoa = kotlin.math.abs(boa - arredondar(atual.limiteBoaMax))
+        // Uma marca por vez (como −/+): max de uma faixa puxa min da próxima em +PASSO
+        // (e o inverso em −PASSO). Só a marca que mais mudou é aplicada.
+        return when {
+            deltaRuim < PASSO / 2 && deltaBoa < PASSO / 2 -> atual
+            deltaRuim >= deltaBoa -> aplicar(atual, Campo.RUIM_MAX, ruim)
+            else -> aplicar(atual, Campo.BOA_MAX, boa)
+        }
     }
 
     fun aplicar(
@@ -67,6 +76,7 @@ object FaixasClassificacao {
         var boaMin = atual.limiteBoaMin
         var boaMax = atual.limiteBoaMax
         var otimaMin = atual.limiteOtimaMin
+        var otimaMax = atual.limiteOtimaMax
         val v = arredondar(valor).coerceIn(MIN_ABSOLUTO, MAX_ABSOLUTO)
         val campoEfetivo = when (campo) {
             Campo.REGULAR_MAX -> Campo.BOA_MAX
@@ -79,6 +89,7 @@ object FaixasClassificacao {
             Campo.BOA_MIN -> boaMin = v
             Campo.BOA_MAX -> boaMax = v
             Campo.OTIMA_MIN -> otimaMin = v
+            Campo.OTIMA_MAX -> otimaMax = v
             else -> return atual
         }
 
@@ -111,6 +122,9 @@ object FaixasClassificacao {
                     ruimMax = anterior(boaMin)
                 }
             }
+            Campo.OTIMA_MAX -> {
+                otimaMax = otimaMax.coerceAtLeast(otimaMin)
+            }
             else -> Unit
         }
 
@@ -120,6 +134,7 @@ object FaixasClassificacao {
             boaMin = boaMin,
             boaMax = boaMax,
             otimaMin = otimaMin,
+            otimaMax = otimaMax,
         )
     }
 
@@ -128,6 +143,7 @@ object FaixasClassificacao {
         var boaMin = arredondar(atual.limiteBoaMin)
         var boaMax = arredondar(atual.limiteBoaMax)
         var otimaMin = arredondar(atual.limiteOtimaMin)
+        var otimaMax = arredondar(atual.limiteOtimaMax.coerceIn(MIN_ABSOLUTO, MAX_ABSOLUTO))
         if (boaMin < seguinte(ruimMax)) {
             boaMin = seguinte(ruimMax)
         }
@@ -139,6 +155,9 @@ object FaixasClassificacao {
         }
         if (otimaMin > MAX_ABSOLUTO) {
             otimaMin = MAX_ABSOLUTO
+        }
+        if (otimaMax < otimaMin) {
+            otimaMax = otimaMin
         }
         if (boaMax > anterior(otimaMin) && otimaMin > MIN_ABSOLUTO) {
             boaMax = anterior(otimaMin)
@@ -155,6 +174,7 @@ object FaixasClassificacao {
             boaMin = boaMin,
             boaMax = boaMax,
             otimaMin = otimaMin,
+            otimaMax = otimaMax,
         )
     }
 
@@ -164,6 +184,7 @@ object FaixasClassificacao {
         boaMin: Double,
         boaMax: Double,
         otimaMin: Double,
+        otimaMax: Double,
     ): ConfiguracaoUsuario {
         val ruim = arredondar(ruimMax.coerceAtLeast(MIN_ABSOLUTO))
         val boaIni = arredondar(boaMin)
@@ -177,7 +198,7 @@ object FaixasClassificacao {
             limiteBoaMin = boaIni,
             limiteBoaMax = boaFim,
             limiteOtimaMin = otima,
-            limiteOtimaMax = MAX_ABSOLUTO,
+            limiteOtimaMax = arredondar(otimaMax.coerceIn(otima, MAX_ABSOLUTO)),
         )
     }
 

@@ -41,7 +41,7 @@ data class ConfiguracaoUsuario(
     val kmAnual: Double = 0.0,
 
     val navegacao: AppNavegacao = AppNavegacao.GOOGLE_MAPS,
-    val tema: TemaApp = TemaApp.CELULAR,
+    val tema: TemaApp = TemaApp.CLARO,
 
     val contaTipo: TipoContaVinculada = TipoContaVinculada.NENHUMA,
     val contaEmail: String = "",
@@ -57,6 +57,14 @@ data class ConfiguracaoUsuario(
 
     val limiteOtimaMin: Double = 0.0,
     val limiteOtimaMax: Double = 0.0,
+
+    /** Semáforo R$/hora: marca vermelha (ruim até) e verde (bom a partir). */
+    val limiteHoraRuimMax: Double = 47.0,
+    val limiteHoraBoaMax: Double = 57.0,
+
+    /** Semáforo nota: marca vermelha e verde. */
+    val limiteNotaRuimMax: Double = 4.75,
+    val limiteNotaBoaMax: Double = 4.90,
 ) {
     fun faixasDefinidas(): Boolean {
         return limiteOtimaMin > 0.0 ||
@@ -114,6 +122,7 @@ data class ConfiguracaoUsuario(
             precoEtanol = 4.39,
             precoEnergia = 0.85,
             navegacao = AppNavegacao.GOOGLE_MAPS,
+            tema = TemaApp.CLARO,
             limiteRuimMin = 0.0,
             limiteRuimMax = 1.59,
             limiteRegularMin = 1.60,
@@ -122,6 +131,10 @@ data class ConfiguracaoUsuario(
             limiteBoaMax = 1.99,
             limiteOtimaMin = 2.00,
             limiteOtimaMax = 99.0,
+            limiteHoraRuimMax = 47.0,
+            limiteHoraBoaMax = 57.0,
+            limiteNotaRuimMax = 4.75,
+            limiteNotaBoaMax = 4.90,
         )
     }
 }

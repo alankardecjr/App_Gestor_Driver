@@ -24,8 +24,14 @@ Código (telas A/B): ver [`ROTEIRO_PRO.md`](ROTEIRO_PRO.md).
 - [x] Tema Escuro / Claro / Celular
 - [x] Card histórico: Consumo (L) + Gasto; Embarque / Destino
 - [x] Alerta óleo 500 km; confirmação de abastecimento ao Salvar
-- [x] Free com cadeados na calculadora / dashboard
-- [ ] Bloco C — teste de rua (SM-A145M)
+- [x] **Tela Atalhos congelada** (§44, 05/09/2026): Histórico | Carteira | Despesas | Semáforo | Usuário | Configurar | Fechar (sem X; selo abre/fecha; posição dir/esq/acima/abaixo)
+- [x] Telas nativas (Compose): Histórico, Semáforo, Carteira/Dashboard, Config (Despesas/Veículo/App)
+- [x] Compacta só na oferta; some na hora no aceite/expirar/recusar
+- [x] **Compacta Pro:** R$/Km · Dist. · Tempo · Nota + ícone · Parada(s); borda 6 dp; ~4,5×1,7 cm; arrastável; toque não faz nada
+- [x] Telas nativas sem rodapé; Opções + ← → Opções; X → selo; Cancelar/Salvar nas abas editáveis; título Carteira
+- [x] Esquema Pro congelado (selo · atalhos · compacta · notificação · menu · **confirmação**) — 05/09/2026
+- [x] Overlay sobre outros apps: **só** selo · atalhos · compacta (§44)
+- [ ] Bloco C — teste de rua (SM-A145M) — **roteiro 06/09/2026** em [`ROTEIRO_PRO.md`](ROTEIRO_PRO.md)
 - [ ] Freeze Pro após rua; commit só com pedido
 
 ## Depois

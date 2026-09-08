@@ -31,6 +31,38 @@ class ConfiguracoesViewModel(
         aplicar(FaixasClassificacao.aplicarMarcas(configuracao, ruimMax, boaMax))
     }
 
+    fun atualizarMarcasHora(ruimMax: Double, boaMax: Double) {
+        val passo = FaixasClassificacao.PASSO
+        val baixo = (kotlin.math.round(ruimMax * 100.0) / 100.0).coerceIn(0.0, 200.0)
+        val altoPedido = kotlin.math.round(boaMax * 100.0) / 100.0
+        val mudouBaixo = kotlin.math.abs(baixo - configuracao.limiteHoraRuimMax) >= passo / 2
+        val (baixoFinal, altoFinal) = if (mudouBaixo) {
+            val alto = altoPedido.coerceIn(baixo + passo, 200.0)
+            baixo to alto
+        } else {
+            val alto = altoPedido.coerceIn(passo, 200.0)
+            val baixoAjustado = baixo.coerceIn(0.0, alto - passo)
+            baixoAjustado to alto
+        }
+        aplicar(configuracao.copy(limiteHoraRuimMax = baixoFinal, limiteHoraBoaMax = altoFinal))
+    }
+
+    fun atualizarMarcasNota(ruimMax: Double, boaMax: Double) {
+        val passo = FaixasClassificacao.PASSO
+        val baixo = (kotlin.math.round(ruimMax * 100.0) / 100.0).coerceIn(0.0, 5.0)
+        val altoPedido = kotlin.math.round(boaMax * 100.0) / 100.0
+        val mudouBaixo = kotlin.math.abs(baixo - configuracao.limiteNotaRuimMax) >= passo / 2
+        val (baixoFinal, altoFinal) = if (mudouBaixo) {
+            val alto = altoPedido.coerceIn(baixo + passo, 5.0)
+            baixo to alto
+        } else {
+            val alto = altoPedido.coerceIn(passo, 5.0)
+            val baixoAjustado = baixo.coerceIn(0.0, alto - passo)
+            baixoAjustado to alto
+        }
+        aplicar(configuracao.copy(limiteNotaRuimMax = baixoFinal, limiteNotaBoaMax = altoFinal))
+    }
+
     fun atualizarMarca(valor: String) {
         aplicar(configuracao.copy(marcaVeiculo = valor))
     }
@@ -247,6 +279,11 @@ class ConfiguracoesViewModel(
     }
 
     fun cancelar() {
+        configuracao = store.carregar()
+    }
+
+    /** Recarrega do store ao abrir tela editável (estado limpo para editar). */
+    fun prepararEdicao() {
         configuracao = store.carregar()
     }
 }
