@@ -1,0 +1,4 @@
+{
+  "name": "Gestor Driver",
+  "install": "bash .cursor/install.sh"
+}
