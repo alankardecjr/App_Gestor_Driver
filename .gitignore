@@ -14,6 +14,10 @@ build/
 **/build/
 *.apk
 *.aab
+
+# Android local SDK path (machine-specific)
+local.properties
+android-app/local.properties
 .idea/
 .vscode/
 .pytest_cache/
