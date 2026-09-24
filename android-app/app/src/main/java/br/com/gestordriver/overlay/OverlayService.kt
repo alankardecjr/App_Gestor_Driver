@@ -1045,7 +1045,7 @@ class OverlayService : Service() {
                         setTextColor(Color.parseColor("#7CB342"))
                         textSize = 9f
                         gravity = Gravity.CENTER
-                        text = "LÍQUIDO —"
+                        text = "RESULTADO —"
                     },
                 )
             }

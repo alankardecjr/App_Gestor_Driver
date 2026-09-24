@@ -367,7 +367,7 @@ object PresentationBuilder {
             CampoApresentacao(id = "km_total_detalhe", titulo = "Total percorrido", valor = "—"),
             CampoApresentacao(id = "combustivel_estimado", titulo = "Consumo estimado", valor = "—"),
             CampoApresentacao(id = "custo_combustivel", titulo = "Gasto estimado", valor = "—"),
-            CampoApresentacao(id = "lucro_estimado", titulo = "Lucro estimado", valor = "—"),
+            CampoApresentacao(id = "lucro_estimado", titulo = "Resultado estimado", valor = "—"),
             CampoApresentacao(id = "status_oferta", titulo = "Status", valor = "Aguardando oferta"),
         )
         return CorridaPresentation(
@@ -543,7 +543,7 @@ object PresentationBuilder {
 
                 CampoApresentacao(
                     id = "lucro_estimado",
-                    titulo = "Lucro estimado",
+                    titulo = "Resultado estimado",
                     valor =
                         if (recursos.exibeCustoCombustivel) {
                             analise.custoCombustivel
