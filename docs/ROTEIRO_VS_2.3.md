@@ -68,6 +68,20 @@ R$/hora online real (`SessaoTrabalho`), Design System / tokens, depreciação.
   única do usuário e **desacoplar** `monitorando` dos fluxos de navegação que hoje
   o setam `true` implicitamente.
 
+## Status de implementação
+
+- [x] Bloco A — R$/hora (tempo total) — Kotlin + Python + testes.
+- [x] Bloco B — Compacta nova (Pro) + ✕ para descartar oferta.
+- [x] Bloco C — Classificação 3 faixas (Ótima/Boa/Ruim); teste do histórico corrigido.
+- [x] Bloco D — Terminologia "Lucro" → "Resultado".
+- [x] Bloco F — Monitoramento ON/OFF explícito (cold start OFF, confirmação, notificação Desativar+Abrir).
+- [x] Semáforo — Meta de R$/hora do motorista (`metaGanhoHora`).
+- [x] Dashboard anual — já existente (Dia/Semana/Mês/Ano).
+- Comparação de mercado e recomendações de UX: `docs/ANALISE_TECNICA_MERCADO.md`.
+
+Validação: `pytest` 28/28 · `:app:testDebugUnitTest` 197/0. Overlay precisa de
+verificação visual em aparelho (não testável em emulador).
+
 ## Regra de trabalho (dos anexos)
 
 Por etapa: identificar arquivos → entender → alterar só o escopo → compilar →
