@@ -17,4 +17,5 @@ data class AnaliseCorrida(
     val custoCombustivel: Double?,
     val classificacao: Classificacao,
     val corClassificacao: String,
+    val valorPorHora: Double? = null,
 )

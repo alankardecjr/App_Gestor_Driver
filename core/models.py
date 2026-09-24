@@ -32,3 +32,15 @@ class Corrida:
             return 0.0
 
         return self.valor_total / self.km_total
+
+    @property
+    def valor_por_hora(self) -> Optional[float]:
+        """Ganho por hora usando o tempo total da oferta.
+
+        Espelha o R$/KM (que usa a distancia total). Retorna None quando o
+        tempo estimado nao esta disponivel.
+        """
+        if not self.tempo_estimado or self.tempo_estimado <= 0:
+            return None
+
+        return self.valor_total / (self.tempo_estimado / 60)

@@ -80,6 +80,31 @@ class AnaliseCorridaContractTestCase(unittest.TestCase):
         self.assertAlmostEqual(resultado.custo_combustivel, 7.8044444444)
         self.assertEqual(resultado.classificacao, Classificacao.EXCELENTE)
 
+    def test_deve_calcular_valor_por_hora_com_tempo_total(self):
+        corrida = Corrida(
+            valor_total=38.0,
+            km_ate_passageiro=3.2,
+            km_viagem=12.8,
+            tempo_estimado=24,
+        )
+
+        resultado = CalculadoraCorrida().calcular(corrida)
+
+        # 38,00 / (24 min / 60) = 95,00 por hora
+        self.assertAlmostEqual(resultado.valor_por_hora, 95.0)
+        self.assertAlmostEqual(corrida.valor_por_hora, 95.0)
+
+    def test_valor_por_hora_deve_ser_none_sem_tempo(self):
+        corrida = Corrida(
+            valor_total=38.0,
+            km_ate_passageiro=3.2,
+            km_viagem=12.8,
+            tempo_estimado=None,
+        )
+
+        self.assertIsNone(corrida.valor_por_hora)
+        self.assertIsNone(CalculadoraCorrida().calcular(corrida).valor_por_hora)
+
 
 if __name__ == "__main__":
     unittest.main()

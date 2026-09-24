@@ -14,4 +14,16 @@ data class Corrida(
 
     val valorPorKm: Double
         get() = if (kmTotal <= 0) 0.0 else valorTotal / kmTotal
+
+    /**
+     * Ganho por hora usando o tempo total da oferta (deslocamento até o
+     * passageiro + viagem). `tempoEstimado` já é a soma das pernas do card.
+     * Retorna null quando o tempo não está disponível.
+     */
+    val valorPorHora: Double?
+        get() {
+            val minutos = tempoEstimado ?: return null
+            if (minutos <= 0) return null
+            return valorTotal / (minutos / 60.0)
+        }
 }

@@ -79,4 +79,5 @@ class CalculadoraCorrida:
             ),
             classificacao=classificacao,
             cor_classificacao=self.classificador.cor_de(classificacao),
+            valor_por_hora=corrida.valor_por_hora,
         )

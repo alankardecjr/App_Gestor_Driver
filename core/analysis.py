@@ -51,3 +51,5 @@ class AnaliseCorrida:
 
     classificacao: Classificacao
     cor_classificacao: str
+
+    valor_por_hora: Optional[float] = None

@@ -39,6 +39,7 @@ class CalculadoraCorrida(
             custoCombustivel = gasto,
             classificacao = classificacao,
             corClassificacao = classificador.corDe(classificacao),
+            valorPorHora = corrida.valorPorHora,
         )
     }
 }
