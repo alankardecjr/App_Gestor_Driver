@@ -860,8 +860,13 @@ class OverlayService : Service() {
             }
             true
         }
-        // Cabeçalho: plataforma da oferta.
-        layout.addView(
+        // Cabeçalho: plataforma da oferta + botão X (fecha a compacta).
+        val cabecalho = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            setPadding(0, 0, 0, dp(2))
+        }
+        cabecalho.addView(
             TextView(this).apply {
                 tag = "cmp_plataforma"
                 setTextColor(OverlayTema.de(this@OverlayService).secundario)
@@ -869,10 +874,26 @@ class OverlayService : Service() {
                 maxLines = 1
                 typeface = android.graphics.Typeface.DEFAULT_BOLD
                 gravity = Gravity.START
-                setPadding(0, 0, 0, dp(2))
+                layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
                 text = ""
             },
         )
+        cabecalho.addView(
+            TextView(this).apply {
+                text = "✕"
+                setTextColor(OverlayTema.de(this@OverlayService).secundario)
+                textSize = 16f
+                typeface = android.graphics.Typeface.DEFAULT_BOLD
+                gravity = Gravity.CENTER
+                minWidth = dp(32)
+                minHeight = dp(32)
+                isClickable = true
+                isFocusable = true
+                setPadding(dp(8), dp(2), dp(2), dp(2))
+                setOnClickListener { OverlayBridge.emitir(OverlayAcao.FecharCompacta) }
+            },
+        )
+        layout.addView(cabecalho)
         // Métricas de decisão: R$/KM · R$/HORA · TEMPO · NOTA (sem VALOR:
         // a plataforma já mostra o valor bruto).
         val metricas = LinearLayout(this).apply {

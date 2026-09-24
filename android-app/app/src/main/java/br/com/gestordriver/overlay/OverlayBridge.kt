@@ -119,6 +119,7 @@ sealed class OverlayAcao {
     data object CancelarFechar : OverlayAcao()
     data object ConfirmarFechar : OverlayAcao()
     data object DesativarMonitoramento : OverlayAcao()
+    data object FecharCompacta : OverlayAcao()
     data object SolicitarLimparHistorico : OverlayAcao()
     data object CancelarLimparHistorico : OverlayAcao()
     data object ConfirmarLimparHistorico : OverlayAcao()

@@ -164,6 +164,7 @@ class AppViewModel(
                     OverlayAcao.CancelarFechar -> cancelarFecharApp()
                     OverlayAcao.ConfirmarFechar -> confirmarFecharApp()
                     OverlayAcao.DesativarMonitoramento -> desativarMonitoramento()
+                    OverlayAcao.FecharCompacta -> fecharCompactaOferta()
                     OverlayAcao.SolicitarLimparHistorico -> solicitarLimparHistorico()
                     OverlayAcao.CancelarLimparHistorico -> cancelarLimparHistorico()
                     OverlayAcao.ConfirmarLimparHistorico -> confirmarLimparHistorico()
@@ -294,6 +295,19 @@ class AppViewModel(
     /** Liga o monitoramento (ação explícita do usuário na aba Opções). */
     fun ativarMonitoramento() {
         iniciarMonitoramento()
+    }
+
+    /**
+     * X no topo da compacta: descarta a oferta atual e volta ao selo.
+     * Recusa não grava histórico e mantém o monitoramento ligado.
+     */
+    fun fecharCompactaOferta() {
+        if (!state.monitorando) {
+            return
+        }
+        cancelarCompactaTemporaria()
+        state = state.copy(ofertaAtiva = false, analiseAtual = null)
+        irParaSelo()
     }
 
     /** Abre a confirmação antes de desligar o monitoramento. */
