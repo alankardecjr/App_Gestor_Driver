@@ -83,6 +83,23 @@ class ConfiguracaoPersistenciaTest {
     }
 
     @Test
+    fun meta_ganho_hora_persiste_e_avalia_a_oferta() {
+        val store = MemoriaConfiguracaoStore()
+        val antes = ConfiguracoesViewModel(store)
+        antes.atualizarMetaGanhoHora(25.0)
+        antes.salvar()
+
+        val depois = ConfiguracoesViewModel(store)
+        assertEquals(25.0, depois.configuracao.metaGanhoHora, 0.0)
+        assertTrue(depois.configuracao.metaGanhoHoraDefinida())
+        // 95 R$/h >= meta 25 -> atinge; 20 R$/h < 25 -> não atinge.
+        assertEquals(true, depois.configuracao.atingeMetaGanhoHora(95.0))
+        assertEquals(false, depois.configuracao.atingeMetaGanhoHora(20.0))
+        // Sem meta -> null (indefinido).
+        assertEquals(null, ConfiguracaoUsuario.padrao().atingeMetaGanhoHora(95.0))
+    }
+
+    @Test
     fun motor_respeita_faixas_salvas_pelo_usuario() {
         val configuracao = ConfiguracaoUsuario.padrao().copy(
             limiteOtimaMin = 4.0,

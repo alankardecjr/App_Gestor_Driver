@@ -219,6 +219,10 @@ class ConfiguracoesViewModel(
         aplicar(FaixasClassificacao.aplicar(configuracao, FaixasClassificacao.Campo.OTIMA_MAX, valor))
     }
 
+    fun atualizarMetaGanhoHora(valor: Double) {
+        aplicar(configuracao.copy(metaGanhoHora = valor.coerceAtLeast(0.0)))
+    }
+
     fun salvar(aplicarAbastecimento: Boolean = true) {
         val comAbastecimento = if (aplicarAbastecimento) {
             configuracao.aplicarCalculoAbastecimento()

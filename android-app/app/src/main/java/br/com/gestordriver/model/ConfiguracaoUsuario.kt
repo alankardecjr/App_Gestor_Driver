@@ -57,7 +57,20 @@ data class ConfiguracaoUsuario(
 
     val limiteOtimaMin: Double = 0.0,
     val limiteOtimaMax: Double = 0.0,
+
+    // Meta de ganho por hora (R$/h) do motorista. 0 = não definida.
+    val metaGanhoHora: Double = 0.0,
 ) {
+    fun metaGanhoHoraDefinida(): Boolean = metaGanhoHora > 0.0
+
+    /** true = atinge/supera a meta; false = abaixo; null = meta não definida. */
+    fun atingeMetaGanhoHora(valorPorHora: Double?): Boolean? {
+        if (!metaGanhoHoraDefinida() || valorPorHora == null) {
+            return null
+        }
+        return valorPorHora >= metaGanhoHora
+    }
+
     fun faixasDefinidas(): Boolean {
         return limiteOtimaMin > 0.0 ||
             limiteBoaMin > 0.0 ||

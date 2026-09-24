@@ -71,6 +71,7 @@ fun ConfiguracaoUsuario.paraPreferencias(): Map<String, String> = mapOf(
     "limiteBoaMax" to limiteBoaMax.toString(),
     "limiteOtimaMin" to limiteOtimaMin.toString(),
     "limiteOtimaMax" to limiteOtimaMax.toString(),
+    "metaGanhoHora" to metaGanhoHora.toString(),
 )
 
 fun Map<String, String>.paraConfiguracaoUsuario(): ConfiguracaoUsuario {
@@ -132,6 +133,7 @@ fun Map<String, String>.paraConfiguracaoUsuario(): ConfiguracaoUsuario {
         limiteBoaMax = this["limiteBoaMax"]?.toDoubleOrNull() ?: padrao.limiteBoaMax,
         limiteOtimaMin = this["limiteOtimaMin"]?.toDoubleOrNull() ?: padrao.limiteOtimaMin,
         limiteOtimaMax = this["limiteOtimaMax"]?.toDoubleOrNull() ?: padrao.limiteOtimaMax,
+        metaGanhoHora = this["metaGanhoHora"]?.toDoubleOrNull() ?: padrao.metaGanhoHora,
     )
 }
 

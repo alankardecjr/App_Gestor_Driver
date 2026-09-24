@@ -544,6 +544,21 @@ private fun AbaClassificacao(viewModel: ConfiguracoesViewModel) {
         viewModel::atualizarLimiteOtimaMin,
         viewModel::atualizarLimiteOtimaMax,
     )
+    SubtituloSecao(
+        texto = "Meta de ganho por hora",
+        subtitulo = "Sua média-alvo de R$/hora",
+        icone = "⏱️",
+        fundoIcone = Color(0xFFE8F5E9),
+        ajuda = "Defina quanto você quer ganhar por hora (R\$/h). O app usa essa meta para indicar se a corrida atinge o seu objetivo por tempo. 0 = sem meta.",
+    )
+    Row(modifier = Modifier.fillMaxWidth()) {
+        CampoNumericoCaixa(
+            "Meta R\$/hora",
+            configuracao.metaGanhoHora,
+            viewModel::atualizarMetaGanhoHora,
+            Modifier.weight(1f),
+        )
+    }
     }
 }
 
