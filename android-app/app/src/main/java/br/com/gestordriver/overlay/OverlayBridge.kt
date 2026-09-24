@@ -66,6 +66,7 @@ data class OverlaySnapshot(
     val offsetX: Float = 0f,
     val offsetY: Float = 0f,
     val valorPorKm: String = "—",
+    val valorPorHora: String = "—",
     val valorTotal: String = "—",
     val kmTotal: String = "—",
     val tempo: String = "—",

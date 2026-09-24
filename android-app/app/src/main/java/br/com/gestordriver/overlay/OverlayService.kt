@@ -854,22 +854,38 @@ class OverlayService : Service() {
             }
             true
         }
+        // Cabeçalho: plataforma da oferta.
+        layout.addView(
+            TextView(this).apply {
+                tag = "cmp_plataforma"
+                setTextColor(OverlayTema.de(this@OverlayService).secundario)
+                textSize = 12f
+                maxLines = 1
+                typeface = android.graphics.Typeface.DEFAULT_BOLD
+                gravity = Gravity.START
+                setPadding(0, 0, 0, dp(2))
+                text = ""
+            },
+        )
+        // Métricas de decisão: R$/KM · R$/HORA · TEMPO · NOTA (sem VALOR:
+        // a plataforma já mostra o valor bruto).
         val metricas = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
             tag = "metricas"
             gravity = Gravity.CENTER_VERTICAL
         }
-        listOf("$/Km", "$/Lucro", "$/Gasto", "Nota").forEach { titulo ->
+        listOf("R$/KM", "R$/HORA", "TEMPO", "NOTA").forEach { titulo ->
             metricas.addView(criarColunaCompacta(titulo))
         }
         layout.addView(metricas)
+        // Rodapé: distância total e paradas.
         val contexto = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
             tag = "contexto"
             gravity = Gravity.CENTER_VERTICAL
             setPadding(0, dp(8), 0, 0)
         }
-        listOf("ctx_sigla", "ctx_tempo", "ctx_km", "ctx_consumo", "ctx_paradas").forEach { tag ->
+        listOf("ctx_km", "ctx_paradas").forEach { tag ->
             contexto.addView(
                 TextView(this).apply {
                     this.tag = tag
@@ -917,13 +933,14 @@ class OverlayService : Service() {
     private fun atualizarCompacta(view: View, snapshot: OverlaySnapshot) {
         val layout = view as LinearLayout
         val metricas = layout.findViewWithTag<LinearLayout>("metricas")
-        val valores = if (snapshot.aguardandoOferta && !snapshot.corridaAceita) {
+        val aguardando = snapshot.aguardandoOferta && !snapshot.corridaAceita
+        val valores = if (aguardando) {
             listOf("—", "—", "—", "—")
         } else {
             listOf(
                 soNumero(snapshot.valorPorKm),
-                soNumero(snapshot.lucroEstimado),
-                soNumero(snapshot.gastoEstimado),
+                soNumero(snapshot.valorPorHora),
+                snapshot.tempo,
                 snapshot.nota,
             )
         }
@@ -931,24 +948,32 @@ class OverlayService : Service() {
             val bloco = metricas.getChildAt(index) as LinearLayout
             (bloco.getChildAt(1) as TextView).text = valor
         }
+        // Cor por célula: R$/KM segue a faixa da classificação; R$/HORA fica
+        // informativo (sem faixa própria definida ainda). Demais neutros.
+        val tema = OverlayTema.de(this)
+        val corKm = if (aguardando) tema.texto else Color.parseColor(corBorda(snapshot))
+        (metricas.getChildAt(0) as LinearLayout).let { (it.getChildAt(1) as TextView).setTextColor(corKm) }
+        (metricas.getChildAt(1) as LinearLayout).let { (it.getChildAt(1) as TextView).setTextColor(tema.texto) }
+        (metricas.getChildAt(2) as LinearLayout).let { (it.getChildAt(1) as TextView).setTextColor(tema.texto) }
+        (metricas.getChildAt(3) as LinearLayout).let { (it.getChildAt(1) as TextView).setTextColor(tema.texto) }
+
+        layout.findViewWithTag<TextView>("cmp_plataforma")?.text =
+            snapshot.plataformaSigla.ifBlank { "" }
+
         val contexto = layout.findViewWithTag<LinearLayout>("contexto")
         val paradas = snapshot.quantidadeParadas
-        contexto.findViewWithTag<TextView>("ctx_sigla").text =
-            snapshot.plataformaSigla.ifBlank { "—" }
-        contexto.findViewWithTag<TextView>("ctx_tempo").text = snapshot.tempoHm
-        contexto.findViewWithTag<TextView>("ctx_km").text = snapshot.kmTotal
-        contexto.findViewWithTag<TextView>("ctx_consumo").text =
-            snapshot.litrosEstimados.ifBlank { "—" }
+        contexto.findViewWithTag<TextView>("ctx_km").text =
+            if (aguardando) "—" else "Dist. ${snapshot.kmTotal}"
         val paradasView = contexto.findViewWithTag<TextView>("ctx_paradas")
-        if (paradas > 0) {
+        if (paradas > 0 && !aguardando) {
             paradasView.visibility = View.VISIBLE
             paradasView.text = "$paradas Parada(s)"
         } else {
             paradasView.visibility = View.GONE
             paradasView.text = ""
         }
-        layout.contentDescription = "R\$ por km ${valores[0]}, lucro estimado ${valores[1]}, " +
-            "gasto estimado ${valores[2]}, nota ${valores[3]}"
+        layout.contentDescription = "R\$ por km ${valores[0]}, R\$ por hora ${valores[1]}, " +
+            "tempo ${valores[2]}, nota ${valores[3]}"
         layout.background = fundoPainel(corBorda(snapshot), BORDA_COMPACTA_DP)
     }
 

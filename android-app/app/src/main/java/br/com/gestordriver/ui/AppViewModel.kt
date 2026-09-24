@@ -1457,6 +1457,9 @@ class AppViewModel(
                 offsetX = state.seloOffsetX,
                 offsetY = state.seloOffsetY,
                 valorPorKm = campos["valor_por_km"] ?: "—",
+                valorPorHora = analise?.valorPorHora
+                    ?.let { "R$" + PresentationBuilder.formatarDecimalPublico(it) }
+                    ?: "—",
                 valorTotal = campos["valor_total"] ?: "—",
                 kmTotal = campos["km_total"] ?: "—",
                 tempo = campos["tempo_estimado"] ?: "—",
