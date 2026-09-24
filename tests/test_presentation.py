@@ -64,7 +64,7 @@ class HistoricoPresentationTestCase(unittest.TestCase):
         item = HistoricoPresentation.criar([self.historico_recente]).itens[0]
 
         self.assertEqual(item.classificacao_visual.rotulo, "Boa")
-        self.assertEqual(item.classificacao_visual.cor, "#2E7D32")
+        self.assertEqual(item.classificacao_visual.cor, "#F9A825")
         self.assertEqual(item.linha_horizontal, "03/08 │ 12:00 │ 2,38 │ 38,00 │ 16,0 KM │ 24 │ 4,98")
 
 

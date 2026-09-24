@@ -197,7 +197,11 @@ class PresentationModel:
 
 
 def _rotulo_classificacao(classificacao: Classificacao) -> str:
-    return classificacao.name.capitalize()
+    # Modelo de 3 faixas (espelha o Android): Ótima / Boa / Ruim.
+    return {
+        Classificacao.EXCELENTE: "Ótima",
+        Classificacao.BOA: "Boa",
+    }.get(classificacao, "Ruim")
 
 
 @dataclass(slots=True)

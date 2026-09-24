@@ -48,7 +48,7 @@ class PresentationModelTestCase(unittest.TestCase):
 
         self.assertEqual(modelo.modo, ModoApresentacao.COMPACTA)
         self.assertEqual(modelo.acao_detalhes, "Mais detalhes")
-        self.assertEqual(modelo.classificacao_visual.rotulo, "Excelente")
+        self.assertEqual(modelo.classificacao_visual.rotulo, "Ótima")
         self.assertEqual(modelo.classificacao_visual.cor, "#2E7D32")
 
         campos = [campo.chave for campo in modelo.campos_visiveis]

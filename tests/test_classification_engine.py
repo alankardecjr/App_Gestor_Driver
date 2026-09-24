@@ -14,10 +14,17 @@ class MotorClassificacaoTestCase(unittest.TestCase):
     def setUp(self):
         self.motor = MotorClassificacao()
 
-    def test_deve_classificar_com_baixa(self):
+    def test_abaixo_da_boa_deve_ser_ruim(self):
+        # Modelo de 3 faixas: entre RUIM e BOA nao existe mais REGULAR.
         self.assertEqual(
             self.motor.classificar_por_valor_km(1.30),
-            Classificacao.REGULAR,
+            Classificacao.RUIM,
+        )
+
+    def test_deve_classificar_com_boa(self):
+        self.assertEqual(
+            self.motor.classificar_por_valor_km(1.70),
+            Classificacao.BOA,
         )
 
     def test_deve_classificar_com_ruim(self):
@@ -36,7 +43,10 @@ class MotorClassificacaoTestCase(unittest.TestCase):
             }
         )
 
-        self.assertEqual(motor.classificar_por_valor_km(2.10), Classificacao.REGULAR)
+        # 2,10 < BOA(2,50) -> RUIM no modelo de 3 faixas.
+        self.assertEqual(motor.classificar_por_valor_km(2.10), Classificacao.RUIM)
+        self.assertEqual(motor.classificar_por_valor_km(2.60), Classificacao.BOA)
+        self.assertEqual(motor.classificar_por_valor_km(3.10), Classificacao.EXCELENTE)
 
     def test_deve_retornar_cor_por_classificacao(self):
         self.assertEqual(self.motor.cor_de(Classificacao.EXCELENTE), "#2E7D32")
@@ -59,9 +69,10 @@ class CalculadoraCorridaClassificacaoTestCase(unittest.TestCase):
 
         resultado = CalculadoraCorrida().calcular(corrida)
 
+        # 20,00 / 14 km = 1,43 -> abaixo da BOA(1,60) -> RUIM (3 faixas).
         self.assertIsInstance(resultado, AnaliseCorrida)
-        self.assertEqual(resultado.classificacao.name, "REGULAR")
-        self.assertEqual(resultado.cor_classificacao, "#EF6C00")
+        self.assertEqual(resultado.classificacao.name, "RUIM")
+        self.assertEqual(resultado.cor_classificacao, "#C62828")
 
 
 if __name__ == "__main__":

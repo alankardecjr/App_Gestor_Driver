@@ -50,18 +50,16 @@ class MotorClassificacao:
         }
 
     def classificar_por_valor_km(self, valor_por_km: float) -> Classificacao:
-        """Retorna a classificacao oficial para um valor em R$/KM."""
+        """Retorna a classificacao oficial para um valor em R$/KM.
+
+        Modelo de 3 faixas (espelha o Android): OTIMA (EXCELENTE) / BOA / RUIM.
+        As faixas intermediarias legadas (REGULAR/BAIXA) foram aposentadas.
+        """
         if valor_por_km >= self._limites[Classificacao.EXCELENTE]:
             return Classificacao.EXCELENTE
 
         if valor_por_km >= self._limites[Classificacao.BOA]:
             return Classificacao.BOA
-
-        if valor_por_km >= self._limites[Classificacao.REGULAR]:
-            return Classificacao.REGULAR
-
-        if valor_por_km >= self._limites[Classificacao.BAIXA]:
-            return Classificacao.BAIXA
 
         return Classificacao.RUIM
 

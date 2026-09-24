@@ -38,9 +38,12 @@ expandida.
   - Card único (header/métricas/rodapé), borda 2dp na cor da classificação.
   - Campos vazios somem graciosamente (PARADAS só se > 0; NOTA vira "—").
 - **Bloco C** — Classificação: reconciliar para **RUIM/BOA/ÓTIMA**
-  (vermelho/amarelo/verde), remover faixa `BAIXA` inalcançável, ligar a
-  calibração do usuário (aba CALIBRAR/SEMÁFORO) à classificação da compacta,
-  corrigir o teste Python quebrado do histórico.
+  (vermelho/amarelo/verde) e corrigir o teste Python quebrado do histórico.
+  - No Android o motor **já é 3 faixas** (EXCELENTE=Ótima / BOA / RUIM) e a
+    calibração do usuário **já é aplicada** no pipeline real de ofertas
+    (`RideNotificationProcessor` usa `MotorClassificacao.daConfiguracao`).
+  - O núcleo Python produzia uma faixa `REGULAR` a mais → alinhado ao Android
+    (3 faixas), com rótulos Ótima/Boa/Ruim e cores verde/amarelo/vermelho.
 - **Bloco D** — Terminologia: "lucro" → "resultado operacional".
 - **Bloco F** — Monitoramento ON/OFF explícito.
 - **Bloco E** — Testes (matriz de domínio + fluxo ON/OFF) verdes + APK.
