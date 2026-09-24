@@ -113,6 +113,12 @@ class OverlayService : Service() {
             stopSelf()
             return START_NOT_STICKY
         }
+        if (intent?.action == ACAO_DESATIVAR) {
+            // Desativar = pausa o monitoramento; o app continua aberto.
+            OverlayBridge.emitir(OverlayAcao.DesativarMonitoramento)
+            stopSelf()
+            return START_NOT_STICKY
+        }
         if (intent?.action == ACAO_ABRIR) {
             startActivity(
                 Intent(this, MainActivity::class.java)
@@ -1513,10 +1519,10 @@ class OverlayService : Service() {
                 .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP),
             PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
         )
-        val desligar = PendingIntent.getService(
+        val desativar = PendingIntent.getService(
             this,
             1,
-            Intent(this, OverlayService::class.java).setAction(ACAO_PARAR),
+            Intent(this, OverlayService::class.java).setAction(ACAO_DESATIVAR),
             PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
         )
         val titulo: String
@@ -1541,7 +1547,7 @@ class OverlayService : Service() {
             .setOngoing(true)
             .setOnlyAlertOnce(true)
             .addAction(0, "Abrir App", abrir)
-            .addAction(0, "Desligar App", desligar)
+            .addAction(0, "Desativar", desativar)
             .build()
     }
 
@@ -1551,6 +1557,7 @@ class OverlayService : Service() {
         private const val BORDA_COMPACTA_DP = 5
         private const val SELO_DP = 60
         const val ACAO_PARAR = "br.com.gestordriver.overlay.PARAR"
+        const val ACAO_DESATIVAR = "br.com.gestordriver.overlay.DESATIVAR"
         const val ACAO_ABRIR = "br.com.gestordriver.overlay.ABRIR"
 
         fun iniciar(context: Context) {

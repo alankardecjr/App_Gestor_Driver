@@ -206,6 +206,16 @@ private fun ConteudoPrincipal(
                 )
             }
 
+            // =========================================================
+            // MONITORAMENTO ON/OFF (o usuário decide quando ligar)
+            // =========================================================
+
+            MonitoramentoToggle(
+                monitorando = state.monitorando,
+                onAtivar = viewModel::ativarMonitoramento,
+                onDesativar = viewModel::solicitarDesativarMonitoramento,
+            )
+
             Column(
                 modifier = Modifier.fillMaxWidth(),
                 verticalArrangement = Arrangement.spacedBy(0.dp),
@@ -356,7 +366,63 @@ private fun ConteudoPrincipal(
                 onPeriodo = viewModel::selecionarPeriodoHistorico,
             )
         }
+        if (state.confirmacaoDesativarVisivel) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.Black.copy(alpha = 0.45f))
+                    .clickable(enabled = false, onClick = {})
+                    .padding(horizontal = 16.dp, vertical = 24.dp),
+                contentAlignment = Alignment.Center,
+            ) {
+                ConfirmacaoFecharSection(
+                    titulo = "Desativar monitoramento",
+                    mensagem = "Deseja parar de monitorar as ofertas? O app continua aberto.",
+                    textoConfirmar = "Desativar",
+                    onCancelar = viewModel::cancelarDesativarMonitoramento,
+                    onConfirmar = viewModel::confirmarDesativarMonitoramento,
+                )
+            }
         }
+        }
+}
+
+@Composable
+private fun MonitoramentoToggle(
+    monitorando: Boolean,
+    onAtivar: () -> Unit,
+    onDesativar: () -> Unit,
+) {
+    val paleta = LocalPaletaApp.current
+    val corStatus = if (monitorando) parseColor("#2E7D32") else parseColor("#C62828")
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .border(width = 2.dp, color = paleta.borda, shape = CardDefaults.shape)
+            .background(paleta.fundoPainel, CardDefaults.shape)
+            .clickable(onClick = if (monitorando) onDesativar else onAtivar)
+            .padding(horizontal = 14.dp, vertical = 12.dp),
+        verticalArrangement = Arrangement.spacedBy(4.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        Text(
+            text = if (monitorando) "🟢 MONITORAMENTO ATIVO" else "🔴 MONITORAMENTO DESATIVADO",
+            color = corStatus,
+            style = MaterialTheme.typography.titleSmall,
+            fontWeight = FontWeight.Bold,
+        )
+        Text(
+            text = if (monitorando) "Monitorando ofertas" else "Toque para começar a monitorar",
+            color = paleta.textoSecundario,
+            style = MaterialTheme.typography.bodySmall,
+        )
+        Text(
+            text = if (monitorando) "DESATIVAR MONITORAMENTO" else "ATIVAR MONITORAMENTO",
+            color = TextoAmarelo,
+            style = MaterialTheme.typography.labelLarge,
+            fontWeight = FontWeight.Bold,
+        )
+    }
 }
 
 @Composable

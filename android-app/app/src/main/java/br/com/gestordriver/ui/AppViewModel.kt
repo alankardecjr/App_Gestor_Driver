@@ -163,6 +163,7 @@ class AppViewModel(
                     OverlayAcao.Fechar -> solicitarFecharApp()
                     OverlayAcao.CancelarFechar -> cancelarFecharApp()
                     OverlayAcao.ConfirmarFechar -> confirmarFecharApp()
+                    OverlayAcao.DesativarMonitoramento -> desativarMonitoramento()
                     OverlayAcao.SolicitarLimparHistorico -> solicitarLimparHistorico()
                     OverlayAcao.CancelarLimparHistorico -> cancelarLimparHistorico()
                     OverlayAcao.ConfirmarLimparHistorico -> confirmarLimparHistorico()
@@ -227,7 +228,11 @@ class AppViewModel(
                 concluirOnboarding()
                 return
             }
-            iniciarMonitoramento()
+            // Abrir o app NÃO liga o monitoramento: o usuário decide (botão em
+            // Opções). Só reafirmamos o overlay quando já estava monitorando.
+            if (state.monitorando) {
+                iniciarMonitoramento()
+            }
             return
         }
         val etapa = when {
@@ -271,13 +276,61 @@ class AppViewModel(
 
     private fun concluirOnboarding() {
         onboardingStore.marcarConcluido()
+        // Após o onboarding o app abre em Opções com o monitoramento DESLIGADO;
+        // o usuário liga quando quiser (esquema ON/OFF).
         state = state.copy(
             onboardingEtapa = OnboardingEtapa.NENHUMA,
             tutorialPasso = 0,
             destacarPermissoes = false,
-            interfaceOculta = true,
+            interfaceOculta = false,
+            monitorando = false,
         )
-        irParaSelo()
+    }
+
+    // ================================================================
+    // MONITORAMENTO ON/OFF
+    // ================================================================
+
+    /** Liga o monitoramento (ação explícita do usuário na aba Opções). */
+    fun ativarMonitoramento() {
+        iniciarMonitoramento()
+    }
+
+    /** Abre a confirmação antes de desligar o monitoramento. */
+    fun solicitarDesativarMonitoramento() {
+        if (!state.monitorando) {
+            return
+        }
+        state = state.copy(confirmacaoDesativarVisivel = true)
+    }
+
+    fun cancelarDesativarMonitoramento() {
+        state = state.copy(confirmacaoDesativarVisivel = false)
+    }
+
+    fun confirmarDesativarMonitoramento() {
+        desativarMonitoramento()
+    }
+
+    /**
+     * Desliga o monitoramento sem encerrar o app: para o serviço/overlay e
+     * volta para a interface (Opções). Diferente de "Fechar app".
+     */
+    fun desativarMonitoramento() {
+        cancelarCompactaTemporaria()
+        state = state.copy(
+            confirmacaoDesativarVisivel = false,
+            monitorando = false,
+            overlayAtivo = false,
+            seloFlutuante = false,
+            seloEscondido = false,
+            compactaTemporaria = false,
+            interfaceOculta = false,
+            historicoVisivel = false,
+            configuracoesVisivel = false,
+            dashboardVisivel = false,
+        )
+        publicarOverlay()
     }
 
     // ================================================================

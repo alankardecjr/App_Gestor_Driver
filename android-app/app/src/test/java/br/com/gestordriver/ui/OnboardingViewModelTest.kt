@@ -42,31 +42,57 @@ class OnboardingViewModelTest {
     }
 
     @Test
-    fun seguir_tutorial_ate_o_fim_inicia_monitoramento() {
+    fun seguir_tutorial_ate_o_fim_nao_inicia_monitoramento_sozinho() {
+        // Esquema ON/OFF: ao fim do onboarding o app fica em Opções DESLIGADO.
         val viewModel = novo(concluido = false)
         viewModel.avaliarInicio(permissoesOk = true, temConta = true)
         repeat(TutorialConteudo.passos.size) {
             viewModel.tutorialSeguir()
         }
         assertEquals(OnboardingEtapa.NENHUMA, viewModel.state.onboardingEtapa)
-        assertTrue(viewModel.state.monitorando)
+        assertFalse(viewModel.state.monitorando)
     }
 
     @Test
-    fun pular_tutorial_inicia_monitoramento() {
+    fun pular_tutorial_nao_inicia_monitoramento_sozinho() {
         val viewModel = novo(concluido = false)
         viewModel.avaliarInicio(permissoesOk = true, temConta = true)
         viewModel.tutorialPular()
         assertEquals(OnboardingEtapa.NENHUMA, viewModel.state.onboardingEtapa)
-        assertTrue(viewModel.state.monitorando)
+        assertFalse(viewModel.state.monitorando)
     }
 
     @Test
-    fun onboarding_ja_concluido_com_permissao_monitora() {
+    fun abrir_app_nao_liga_monitoramento_sozinho() {
+        // Cold start sempre OFF: o usuário decide quando ligar.
         val viewModel = novo(concluido = true)
         viewModel.avaliarInicio(permissoesOk = true, temConta = true)
         assertEquals(OnboardingEtapa.NENHUMA, viewModel.state.onboardingEtapa)
+        assertFalse(viewModel.state.monitorando)
+    }
+
+    @Test
+    fun ativar_e_desativar_monitoramento() {
+        val viewModel = novo(concluido = true)
+        viewModel.avaliarInicio(permissoesOk = true, temConta = true)
+        assertFalse(viewModel.state.monitorando)
+
+        viewModel.ativarMonitoramento()
         assertTrue(viewModel.state.monitorando)
+
+        // Desativar pede confirmação e não desliga sozinho.
+        viewModel.solicitarDesativarMonitoramento()
+        assertTrue(viewModel.state.confirmacaoDesativarVisivel)
+        assertTrue(viewModel.state.monitorando)
+
+        viewModel.cancelarDesativarMonitoramento()
+        assertFalse(viewModel.state.confirmacaoDesativarVisivel)
+        assertTrue(viewModel.state.monitorando)
+
+        viewModel.solicitarDesativarMonitoramento()
+        viewModel.confirmarDesativarMonitoramento()
+        assertFalse(viewModel.state.monitorando)
+        assertFalse(viewModel.state.confirmacaoDesativarVisivel)
     }
 
     @Test
