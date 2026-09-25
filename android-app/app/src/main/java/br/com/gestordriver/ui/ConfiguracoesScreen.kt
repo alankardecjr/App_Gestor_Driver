@@ -67,8 +67,8 @@ import br.com.gestordriver.ui.theme.LocalPaletaApp
 
 private val TextoAmareloConfig = Color(0xFFFFD54F)
 private val DestaqueSelecionado = Color(0xFF7CB342)
-private val FormaPainel = RoundedCornerShape(10.dp)
-private val FormaCaixa = RoundedCornerShape(6.dp)
+private val FormaPainel = RoundedCornerShape(16.dp)
+private val FormaCaixa = RoundedCornerShape(12.dp)
 
 private val FonteCampo = 14.sp
 private val FonteValor = 15.sp
@@ -83,9 +83,21 @@ fun ConfiguracoesScreen(
     abaInicial: Int = 0,
     destacarPermissoes: Boolean = false,
     plano: PlanoAcesso = PlanoAcesso.PRO,
+    monitorando: Boolean = false,
+    onAbaPersistida: (Int) -> Unit = {},
+    onHistorico: () -> Unit = {},
+    onCarteira: () -> Unit = {},
+    onAtivarMonitoramento: () -> Unit = {},
+    onDesativarMonitoramento: () -> Unit = {},
+    onLocalizacao: () -> Unit = {},
+    onFechar: () -> Unit = {},
+    confirmacaoMonitorVisivel: Boolean = false,
+    onCancelarMonitor: () -> Unit = {},
+    onConfirmarMonitor: () -> Unit = {},
+    subtituloMenu: String = "Menu principal",
 ) {
     val configuracao = viewModel.configuracao
-    var aba by remember { mutableIntStateOf(abaInicial) }
+    var aba by remember { mutableIntStateOf(if (abaInicial < 0) 0 else abaInicial + 1) }
     val rolagem = rememberScrollState()
     val foco = LocalFocusManager.current
     val teclado = LocalSoftwareKeyboardController.current
@@ -93,14 +105,14 @@ fun ConfiguracoesScreen(
     var dialogoEmail by remember { mutableStateOf(false) }
     var dialogoAbastecimento by remember { mutableStateOf(false) }
     LaunchedEffect(abaInicial) {
-        aba = abaInicial
+        aba = if (abaInicial < 0) 0 else abaInicial + 1
     }
     LaunchedEffect(aba) {
         rolagem.scrollTo(0)
         foco.clearFocus(force = true)
         teclado?.hide()
     }
-    val abas = listOf("Semáforo", "Custos", "Veículo", "App")
+    val abas = listOf("Opções", "Semáforo", "Custos", "Veículo", "App")
     val paleta = LocalPaletaApp.current
 
     Box(
@@ -112,38 +124,36 @@ fun ConfiguracoesScreen(
         Column(
             modifier = Modifier.fillMaxSize(),
         ) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(start = 8.dp, end = 16.dp, top = 8.dp, bottom = 8.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Text(
-                    text = "←",
-                    color = paleta.texto,
-                    fontSize = 22.sp,
-                    modifier = Modifier
-                        .clickable {
-                            viewModel.cancelar()
-                            onVoltar()
-                        }
-                        .padding(8.dp),
-                )
-                Text(
-                    text = "Configurações",
-                    color = paleta.texto,
-                    fontSize = FonteTitulo,
-                    fontWeight = FontWeight.Bold,
-                    modifier = Modifier.padding(start = 4.dp),
-                )
+            val titulosPagina = listOf(
+                "Gestor Driver" to "Menu principal",
+                "Semáforo" to "Regras de classificação",
+                "Custos" to "Controle de gastos do app",
+                "Usuário" to "Seus dados e preferências",
+                "Configurar" to "Ajustes do aplicativo",
+            )
+            val pagina = if (aba == 0) {
+                "Gestor Driver" to subtituloMenu
+            } else {
+                titulosPagina.getOrElse(aba) { "Menu" to "" }
             }
+            CabecalhoTela(
+                titulo = pagina.first,
+                subtitulo = pagina.second,
+                onVoltar = {
+                    viewModel.cancelar()
+                    onVoltar()
+                },
+            )
 
             FaixaAbasComSetas(
                 titulos = abas,
                 selecionada = aba,
                 corAtiva = DestaqueSelecionado,
                 corInativa = paleta.textoSecundario,
-                onSelecionar = { aba = it },
+                onSelecionar = { visual ->
+                    aba = visual
+                    onAbaPersistida(if (visual == 0) -1 else visual - 1)
+                },
                 mostrarIndicador = true,
                 tamanhoFonte = 11.sp,
             )
@@ -165,9 +175,21 @@ fun ConfiguracoesScreen(
                 verticalArrangement = Arrangement.spacedBy(6.dp),
             ) {
                 when (aba) {
-                    0 -> AbaClassificacao(viewModel)
-                    1 -> AbaCustos(viewModel, plano)
-                    2 -> AbaVeiculo(viewModel, plano)
+                    0 -> AbaOpcoes(
+                        monitorando = monitorando,
+                        onHistorico = onHistorico,
+                        onCarteira = onCarteira,
+                        onDespesas = { aba = 2; onAbaPersistida(1) },
+                        onSemaforo = { aba = 1; onAbaPersistida(0) },
+                        onUsuario = { aba = 3; onAbaPersistida(2) },
+                        onConfigurar = { aba = 4; onAbaPersistida(3) },
+                        onMonitoramento = if (monitorando) onDesativarMonitoramento else onAtivarMonitoramento,
+                        onLocalizacao = onLocalizacao,
+                        onFechar = onFechar,
+                    )
+                    1 -> AbaClassificacao(viewModel)
+                    2 -> AbaCustos(viewModel, plano)
+                    3 -> AbaVeiculo(viewModel, plano)
                     else -> AbaApp(
                         viewModel = viewModel,
                         destacarPermissoes = destacarPermissoes,
@@ -177,6 +199,7 @@ fun ConfiguracoesScreen(
                 }
             }
 
+            if (aba != 0) {
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -227,8 +250,48 @@ fun ConfiguracoesScreen(
                     )
                 }
             }
+            }
         }
 
+        if (confirmacaoMonitorVisivel) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.Black.copy(alpha = 0.45f))
+                    .clickable(enabled = false, onClick = {}),
+                contentAlignment = Alignment.Center,
+            ) {
+                CaixaDialogo(
+                    titulo = if (monitorando) "Desligar monitoramento" else "Ligar monitoramento",
+                    modifier = Modifier.padding(horizontal = 16.dp),
+                ) {
+                    Text(
+                        text = if (monitorando) {
+                            "Desligar o monitoramento? O selo e o aviso somem. O app continua aberto."
+                        } else {
+                            "Ligar o monitoramento? O selo e o aviso aparecem."
+                        },
+                        color = LocalPaletaApp.current.textoSecundario,
+                        fontSize = 13.sp,
+                    )
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceEvenly,
+                    ) {
+                        TextButton(onClick = onCancelarMonitor) {
+                            Text("Cancelar", color = LocalPaletaApp.current.textoSecundario)
+                        }
+                        TextButton(onClick = onConfirmarMonitor) {
+                            Text(
+                                if (monitorando) "Desligar" else "Ligar",
+                                color = Color(0xFF2E7D32),
+                                fontWeight = FontWeight.SemiBold,
+                            )
+                        }
+                    }
+                }
+            }
+        }
         if (dialogoGoogle) {
             DialogoContaGoogle(
                 emailAtual = if (configuracao.contaTipo == TipoContaVinculada.GOOGLE) {
@@ -296,7 +359,6 @@ private fun AbaVeiculo(viewModel: ConfiguracoesViewModel, plano: PlanoAcesso) {
         texto = "Descrição do veículo",
         subtitulo = "Marca, modelo e placa",
         icone = "🚗",
-        fundoIcone = Color(0xFFE3F2FD),
         ajuda = "Final da placa (0–9) define o mês de vencimento do IPVA. O valor do IPVA entra no custo do Dashboard.",
     )
     Row(
@@ -342,7 +404,6 @@ private fun AbaVeiculo(viewModel: ConfiguracoesViewModel, plano: PlanoAcesso) {
         texto = "Consumo",
         subtitulo = "Km/L ou km/kWh",
         icone = "⛽",
-        fundoIcone = Color(0xFFEDE7F6),
         ajuda = "Gasolina/etanol em km/L. Energia em km/kWh. Entra no gasto estimado da oferta.",
     )
     LinhaCampos {
@@ -378,7 +439,6 @@ private fun AbaCustos(viewModel: ConfiguracoesViewModel, plano: PlanoAcesso) {
         texto = "Despesas do veiculo",
         subtitulo = "Preço e tipo de energia",
         icone = "⛽",
-        fundoIcone = Color(0xFFEDE7F6),
         ajuda = "Preço do litro ou do kWh. Com o consumo, o app calcula gasto e lucro da oferta.",
     )
     LinhaCampos {
@@ -503,6 +563,88 @@ private fun AbaCustos(viewModel: ConfiguracoesViewModel, plano: PlanoAcesso) {
 }
 
 @Composable
+private fun AbaOpcoes(
+    monitorando: Boolean,
+    onHistorico: () -> Unit,
+    onCarteira: () -> Unit,
+    onDespesas: () -> Unit,
+    onSemaforo: () -> Unit,
+    onUsuario: () -> Unit,
+    onConfigurar: () -> Unit,
+    onMonitoramento: () -> Unit,
+    onLocalizacao: () -> Unit,
+    onFechar: () -> Unit,
+) {
+    LinhaOpcao(
+        "📡",
+        if (monitorando) "Monitorar (on)" else "Monitorar",
+        if (monitorando) "Ligado. Toque para confirmar." else "Desligado. Toque para ligar.",
+        onMonitoramento,
+        ligado = monitorando,
+    )
+    LinhaOpcao("📍", "Localização", "Mapa na posição atual", onLocalizacao)
+    LinhaOpcao("📅", "Histórico", "Ver corridas aceitas", onHistorico)
+    LinhaOpcao("👛", "Carteira", "Saldo e movimentações", onCarteira)
+    LinhaOpcao("🧾", "Despesas", "Controle de gastos do app", onDespesas)
+    LinhaOpcao("🚦", "Semáforo", "Regras de classificação", onSemaforo)
+    LinhaOpcao("👤", "Usuário", "Seus dados e preferências", onUsuario)
+    LinhaOpcao("⚙", "Configurar", "Ajustes do aplicativo", onConfigurar)
+    LinhaOpcao("⏻", "Fechar", "Encerrar o aplicativo", onFechar, perigo = true)
+}
+
+@Composable
+private fun LinhaOpcao(
+    icone: String,
+    titulo: String,
+    subtitulo: String,
+    onClick: () -> Unit,
+    perigo: Boolean = false,
+    ligado: Boolean = false,
+) {
+    val paleta = LocalPaletaApp.current
+    val verde = Color(0xFF2E7D32)
+    val cor = when {
+        perigo -> Color(0xFFE53935)
+        ligado -> verde
+        else -> paleta.texto
+    }
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .border(1.dp, paleta.borda, RoundedCornerShape(16.dp))
+            .background(paleta.fundoPainel, RoundedCornerShape(16.dp))
+            .clickable(onClick = onClick)
+            .padding(horizontal = 12.dp, vertical = 10.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Box(
+            modifier = Modifier
+                .size(40.dp)
+                .background(
+                    when {
+                        perigo -> Color(0x33E53935)
+                        ligado -> Color(0x332E7D32)
+                        else -> paleta.pocoIcone
+                    },
+                    RoundedCornerShape(12.dp),
+                ),
+            contentAlignment = Alignment.Center,
+        ) {
+            Text(text = icone, fontSize = 16.sp)
+        }
+        Column(
+            modifier = Modifier
+                .weight(1f)
+                .padding(horizontal = 10.dp),
+        ) {
+            Text(text = titulo, color = cor, fontSize = 14.sp, fontWeight = FontWeight.Bold)
+            Text(text = subtitulo, color = paleta.textoSecundario, fontSize = 11.sp, maxLines = 1)
+        }
+        Text(text = "›", color = paleta.textoSecundario, fontSize = 18.sp)
+    }
+}
+
+@Composable
 private fun AbaClassificacao(viewModel: ConfiguracoesViewModel) {
     val configuracao = viewModel.configuracao
     Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
@@ -510,7 +652,6 @@ private fun AbaClassificacao(viewModel: ConfiguracoesViewModel) {
         texto = "Calibrar a classificação",
         subtitulo = "Cor da borda da compacta",
         icone = "🚦",
-        fundoIcone = Color(0xFFFFF8E1),
         ajuda = "Faixas de R$/km. A cor da borda da compacta segue esta escala. Arraste a barra ou use − e + de 0,01.",
     )
     BarrasSemaforo(viewModel)
@@ -548,7 +689,6 @@ private fun AbaClassificacao(viewModel: ConfiguracoesViewModel) {
         texto = "Meta de ganho por hora",
         subtitulo = "Sua média-alvo de R$/hora",
         icone = "⏱️",
-        fundoIcone = Color(0xFFE8F5E9),
         ajuda = "Defina quanto você quer ganhar por hora (R\$/h). O app usa essa meta para indicar se a corrida atinge o seu objetivo por tempo. 0 = sem meta.",
     )
     Row(modifier = Modifier.fillMaxWidth()) {
@@ -580,7 +720,6 @@ private fun AbaApp(
         texto = "Configurações do aplicativo",
         subtitulo = "Configurar app",
         icone = "⚙",
-        fundoIcone = Color(0xFFE0F2F1),
     )
     SubtituloSecao(
         texto = "Permissões",
@@ -617,7 +756,10 @@ private fun AbaApp(
             dica = "Configurações restritas → Serviços instalados",
             ok = leituraOk,
             destacar = destacarPermissoes && !leituraOk,
-            onClick = { contexto.startActivity(PermissoesMonitoramento.intentAcessibilidade()) },
+            onClick = {
+                br.com.gestordriver.overlay.OverlayBridge.segurarAcessibilidade()
+                contexto.startActivity(PermissoesMonitoramento.intentAcessibilidade())
+            },
             modifier = Modifier.weight(1f),
         )
         StatusToque(
@@ -838,7 +980,7 @@ private fun CaixaDialogo(
         modifier = modifier
             .fillMaxWidth()
             .padding(8.dp)
-            .border(2.dp, LocalPaletaApp.current.borda, FormaPainel)
+            .border(1.dp, LocalPaletaApp.current.borda, FormaPainel)
             .background(LocalPaletaApp.current.fundoPainel, FormaPainel)
             .padding(horizontal = 12.dp, vertical = 10.dp),
         contentAlignment = Alignment.Center,
@@ -858,7 +1000,6 @@ private fun SubtituloSecao(
     texto: String,
     ajuda: String? = null,
     icone: String? = null,
-    fundoIcone: Color = Color(0xFFE8EEF2),
     subtitulo: String? = null,
 ) {
     val contexto = LocalContext.current
@@ -873,8 +1014,8 @@ private fun SubtituloSecao(
             Box(
                 modifier = Modifier
                     .padding(end = 8.dp)
-                    .size(28.dp)
-                    .background(fundoIcone, RoundedCornerShape(7.dp)),
+                    .size(32.dp)
+                    .background(paleta.pocoIcone, RoundedCornerShape(10.dp)),
                 contentAlignment = Alignment.Center,
             ) {
                 Text(text = icone, fontSize = 13.sp)

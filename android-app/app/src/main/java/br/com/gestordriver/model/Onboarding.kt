@@ -20,7 +20,7 @@ object TutorialConteudo {
         ),
         TutorialPasso(
             titulo = "Compacta",
-            texto = "Card no topo só na oferta: $/Km, $/Lucro, $/Gasto e Nota. Some em 1 s (expirou/recusou) ou 2 s (aceitou). Toque na compacta ou fora não faz nada.",
+            texto = "Card no topo só na oferta: R$/km, R$/hora, tempo e nota. O X descarta a oferta. Some sozinha quando expira. Toque na compacta ou fora não faz nada.",
         ),
         TutorialPasso(
             titulo = "Menu",
@@ -28,7 +28,7 @@ object TutorialConteudo {
         ),
         TutorialPasso(
             titulo = "Notificação",
-            texto = "Resumo da oferta. Expirar ou recusar limpa e volta a Monitorando ofertas. Aceite mantém o resumo até a próxima oferta. Abrir App / Desligar App.",
+            texto = "Resumo da oferta. Expira, recusa ou aceite: a compacta some e volta o selo. Arraste para o lugar do mapa. X fecha. Abrir e Desativar. Fechar o app fica só no menu.",
         ),
         TutorialPasso(
             titulo = "Config",
@@ -36,7 +36,7 @@ object TutorialConteudo {
         ),
         TutorialPasso(
             titulo = "Histórico",
-            texto = "Só entra corrida aceita. Filtro Todos/Uber/99/inDrive. Semana (DOM–SÁB) com setas. Card: ganhos, $/Km, lucro, gasto e nota.",
+            texto = "Só entra corrida aceita. Filtro Todos/Uber/99/inDrive. Semana (DOM–SÁB) com setas. Card: ganhos, R$/km, resultado, gasto e nota.",
         ),
     )
 }

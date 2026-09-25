@@ -37,6 +37,7 @@ data class OverlayHistoricoItem(
 
 data class OverlaySnapshot(
     val monitorando: Boolean = false,
+    val notificacaoFechada: Boolean = false,
     val seloVisivel: Boolean = false,
     val compactaVisivel: Boolean = false,
     val expandidaVisivel: Boolean = false,
@@ -44,6 +45,7 @@ data class OverlaySnapshot(
     val configuracoesVisivel: Boolean = false,
     val dashboardVisivel: Boolean = false,
     val confirmacaoFecharVisivel: Boolean = false,
+    val confirmacaoMonitorVisivel: Boolean = false,
     val confirmacaoLimparHistoricoVisivel: Boolean = false,
     val historicoAba: String = "Todos",
     val historicoFaturamento: String = "—",
@@ -77,6 +79,7 @@ data class OverlaySnapshot(
     val litrosEstimados: String = "—",
     val gastoEstimado: String = "—",
     val lucroEstimado: String = "—",
+    val lucroPercentual: String = "—",
     val kmAtePassageiro: String = "—",
     val kmViagem: String = "—",
     val quantidadeParadas: Int = 0,
@@ -86,6 +89,11 @@ data class OverlaySnapshot(
     val enderecoDestino: String? = null,
     val corridaAceita: Boolean = false,
     val corClassificacao: String = ClassificacaoConstantes.COR_BORDA_NEUTRA,
+    val corValorPorHora: String = ClassificacaoConstantes.COR_BORDA_NEUTRA,
+    val corBordaCompacta: String = ClassificacaoConstantes.COR_BORDA_NEUTRA,
+    val horaEstimada: Boolean = false,
+    val anunciarVoz: Boolean = true,
+    val rotuloClassificacao: String = "",
 ) {
     val confirmacaoVisivel: Boolean
         get() = confirmacaoFecharVisivel || confirmacaoLimparHistoricoVisivel
@@ -119,7 +127,13 @@ sealed class OverlayAcao {
     data object CancelarFechar : OverlayAcao()
     data object ConfirmarFechar : OverlayAcao()
     data object DesativarMonitoramento : OverlayAcao()
+    data object AtivarMonitoramento : OverlayAcao()
+    data object SolicitarMonitoramento : OverlayAcao()
+    data object ConfirmarMonitoramento : OverlayAcao()
+    data object CancelarMonitoramento : OverlayAcao()
+    data object PedirLocalizacao : OverlayAcao()
     data object FecharCompacta : OverlayAcao()
+    data object FecharNotificacao : OverlayAcao()
     data object SolicitarLimparHistorico : OverlayAcao()
     data object CancelarLimparHistorico : OverlayAcao()
     data object ConfirmarLimparHistorico : OverlayAcao()
@@ -145,6 +159,33 @@ object OverlayBridge {
 
     fun pausarLeitura(duracaoMs: Long = 800L) {
         pausarLeituraAteMs = System.currentTimeMillis() + duracaoMs
+    }
+
+    @Volatile
+    private var segurarAcessibilidadeAteMs: Long = 0L
+
+    /** Enquanto o usuário concede a permissão, o serviço não se desliga sozinho. */
+    fun segurarAcessibilidade(duracaoMs: Long = 15 * 60_000L) {
+        segurarAcessibilidadeAteMs = System.currentTimeMillis() + duracaoMs
+    }
+
+    fun acessibilidadeSegurada(): Boolean = System.currentTimeMillis() < segurarAcessibilidadeAteMs
+
+    fun marcarNotificacaoFechada() {
+        _snapshot.value = _snapshot.value.copy(notificacaoFechada = true)
+    }
+
+    fun desligarMonitoramentoNoSnapshot() {
+        _snapshot.value = _snapshot.value.copy(
+            monitorando = false,
+            notificacaoFechada = false,
+            seloVisivel = false,
+            compactaVisivel = false,
+            expandidaVisivel = false,
+            historicoVisivel = false,
+            configuracoesVisivel = false,
+            dashboardVisivel = false,
+        )
     }
 
     fun publicar(snapshot: OverlaySnapshot) {

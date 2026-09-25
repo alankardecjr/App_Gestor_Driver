@@ -13,29 +13,32 @@ data class PaletaApp(
     val fundoCardHistorico: Color,
     val fundoMetrica: Color,
     val fundoCaixa: Color,
+    val pocoIcone: Color,
 ) {
     companion object {
         val escura = PaletaApp(
-            fundo = Color(0xFF10161D),
-            fundoPainel = Color(0xF2050809),
-            borda = Color(0xFF607D8B),
+            fundo = Color(0xFF0E0E10),
+            fundoPainel = Color(0xFF1C1C1E),
+            borda = Color(0xFF2E2E32),
             texto = Color.White,
-            textoSecundario = Color(0xFFC5D3DE),
+            textoSecundario = Color(0xFFB0B0B6),
             textoDetalhes = Color(0xFFE0E7ED),
-            fundoCardHistorico = Color(0xFF1A2228),
+            fundoCardHistorico = Color(0xFF1C1C1E),
             fundoMetrica = Color(0xFF14261C),
-            fundoCaixa = Color(0x33000000),
+            fundoCaixa = Color(0xFF2A2A2E),
+            pocoIcone = Color(0xFF2A2A2E),
         )
         val clara = PaletaApp(
-            fundo = Color(0xFFF4F6F8),
+            fundo = Color(0xFFF6F7F8),
             fundoPainel = Color(0xFFFFFFFF),
-            borda = Color(0xFF90A4AE),
-            texto = Color(0xFF0D1B22),
-            textoSecundario = Color(0xFF37474F),
+            borda = Color(0xFFE6E8EC),
+            texto = Color(0xFF111111),
+            textoSecundario = Color(0xFF8A8A8E),
             textoDetalhes = Color(0xFF263238),
             fundoCardHistorico = Color(0xFFFFFFFF),
-            fundoMetrica = Color(0xFFE8F5E9),
-            fundoCaixa = Color(0x14000000),
+            fundoMetrica = Color(0xFFF6F7F8),
+            fundoCaixa = Color(0xFFF2F3F5),
+            pocoIcone = Color(0xFFF2F3F5),
         )
 
         fun de(escuro: Boolean): PaletaApp = if (escuro) escura else clara

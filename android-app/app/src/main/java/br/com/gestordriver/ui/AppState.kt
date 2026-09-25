@@ -114,6 +114,9 @@ data class AppState(
 
     val seloEscondido: Boolean = false,
 
+    /** Usuário fechou o aviso na barra. O monitoramento continua. */
+    val notificacaoFechada: Boolean = false,
+
     val corridaAntesDaOferta: AnaliseCorrida? = null,
 
     // ================================================================

@@ -1,14 +1,44 @@
 package br.com.gestordriver.navigation
 
+import android.Manifest
 import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
+import android.location.LocationManager
 import android.net.Uri
 import android.widget.Toast
+import androidx.core.content.ContextCompat
 import br.com.gestordriver.model.AppNavegacao
 
 object NavegacaoLauncher {
     private const val PACOTE_MAPS = "com.google.android.apps.maps"
     private const val PACOTE_WAZE = "com.waze"
+
+    /** Abre o mapa no ponto atual. Sem permissão, não abre. */
+    fun abrirPosicaoAtual(context: Context) {
+        val fine = ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION)
+        val coarse = ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_COARSE_LOCATION)
+        if (fine != PackageManager.PERMISSION_GRANTED && coarse != PackageManager.PERMISSION_GRANTED) {
+            return
+        }
+        val manager = context.getSystemService(LocationManager::class.java)
+        val ponto = listOf(
+            LocationManager.GPS_PROVIDER,
+            LocationManager.NETWORK_PROVIDER,
+            LocationManager.PASSIVE_PROVIDER,
+        ).firstNotNullOfOrNull { provedor ->
+            runCatching { manager?.getLastKnownLocation(provedor) }.getOrNull()
+        }
+        val uri = if (ponto != null) {
+            Uri.parse("geo:${ponto.latitude},${ponto.longitude}?z=16")
+        } else {
+            Uri.parse("geo:0,0?q=my+location")
+        }
+        val intent = Intent(Intent.ACTION_VIEW, uri).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        runCatching { context.startActivity(intent) }.onFailure {
+            Toast.makeText(context, "Não foi possível abrir o mapa.", Toast.LENGTH_SHORT).show()
+        }
+    }
 
     fun abrir(
         context: Context,

@@ -54,12 +54,12 @@ R$/hora online real (`SessaoTrabalho`), Design System / tokens, depreciação.
 ## Bloco F — Monitoramento ON/OFF (decisões confirmadas)
 
 - **Cold start sempre OFF**: abrir o app não liga o monitoramento; o usuário decide.
-- **Botão na aba Opções** com legenda que muda conforme o estado
-  (🔴 DESATIVADO → ATIVAR / 🟢 ATIVO → DESATIVAR).
-- **Separar** "Desativar monitoramento" (pausa o serviço, app continua) de
-  "Fechar app" (encerra). A notificação persistente passa a ter **Desativar + Abrir**;
-  "Fechar" fica só dentro do app.
-- **Desativar pede confirmação**.
+- **Botão na aba Opções** com legenda que muda conforme o estado.
+  Ligado: verde, **Monitorar (on)**. Desligado: **Monitorar**.
+- **Separar** "Desligar monitoramento" (some selo e aviso; o app continua) de
+  "Fechar app" (encerra). A notificação persistente tem **Abrir App**.
+  Dispensar o aviso não desliga o monitoramento.
+- **Ligar e desligar pedem confirmação.**
 - Regra de ouro (já respeitada): fechar o selo ≠ desligar o monitoramento.
 - Base já existente: `AppState.monitorando`, start/stop reativo do `OverlayService`
   em `MainActivity`, foreground service + notificação persistente, overlays escondem
@@ -74,13 +74,24 @@ R$/hora online real (`SessaoTrabalho`), Design System / tokens, depreciação.
 - [x] Bloco B — Compacta nova (Pro) + ✕ para descartar oferta.
 - [x] Bloco C — Classificação 3 faixas (Ótima/Boa/Ruim); teste do histórico corrigido.
 - [x] Bloco D — Terminologia "Lucro" → "Resultado".
-- [x] Bloco F — Monitoramento ON/OFF explícito (cold start OFF, confirmação, notificação Desativar+Abrir).
+- [x] Bloco F — Monitoramento ON/OFF explícito (cold start OFF, confirmação nos dois sentidos, aviso sem ação Desativar).
+- [x] Janela principal — menu na aba Opções, tela cheia. Overlay só selo, atalhos e compacta.
+
+## Janela principal e overlays
+
+- Ao iniciar o app, a janela principal é o **menu na aba Opções** (tela cheia).
+  Título **Gestor Driver**. Subtítulo: monitoramento e corridas de hoje.
+- Histórico, Carteira, Semáforo, Usuário e Configurar abrem **dentro do app**.
+- Por cima de outros apps: **selo**, **tela de atalhos** e **compacta**.
+- Selo e aviso da barra só com monitoramento ligado. Fechar um ou os dois não
+  desliga. Fechar aviso, selo e o app desliga por segurança.
 - [x] Semáforo — Meta de R$/hora do motorista (`metaGanhoHora`).
 - [x] Dashboard anual — já existente (Dia/Semana/Mês/Ano).
 - Comparação de mercado e recomendações de UX: `docs/ANALISE_TECNICA_MERCADO.md`.
 
-Validação: `pytest` 28/28 · `:app:testDebugUnitTest` 197/0. Overlay precisa de
-verificação visual em aparelho (não testável em emulador).
+Validação desta etapa: `AppViewModelTest` e `OnboardingViewModelTest` verdes.
+`:app:assembleDebug` gera o APK de debug. Overlay ainda precisa de verificação
+visual no aparelho.
 
 ## Regra de trabalho (dos anexos)
 

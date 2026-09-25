@@ -6,6 +6,7 @@ data class CamposExtraidos(
     val kmViagem: Double,
     val tempoEstimado: Int?,
     val quantidadeParadas: Int = 0,
+    val tempoCompleto: Boolean = false,
 )
 
 object NotificationExtractor {
@@ -76,6 +77,7 @@ object NotificationExtractor {
     fun extrairCamposPadrao(texto: String): CamposExtraidos {
         val valorTotal = extrairValor(texto)
         val paradas = extrairQuantidadeParadas(texto)
+        val tempoCompleto = temposDeclarados(texto) >= 2
         val trechos99 = extrairTrechos99(texto)
         if (trechos99 != null) {
             return CamposExtraidos(
@@ -84,6 +86,7 @@ object NotificationExtractor {
                 kmViagem = trechos99.second,
                 tempoEstimado = trechos99.third,
                 quantidadeParadas = paradas,
+                tempoCompleto = tempoCompleto,
             )
         }
 
@@ -102,6 +105,7 @@ object NotificationExtractor {
                     ?: segundaDistancia(texto, kmAteRotulo ?: trechosUber?.first ?: 0.0),
                 tempoEstimado = trechosUber?.third ?: extrairTempo(texto),
                 quantidadeParadas = paradas,
+                tempoCompleto = tempoCompleto,
             )
         }
 
@@ -117,6 +121,7 @@ object NotificationExtractor {
                 kmViagem = kmViagem,
                 tempoEstimado = trechosUber.third,
                 quantidadeParadas = paradas,
+                tempoCompleto = tempoCompleto,
             )
         }
 
@@ -135,6 +140,7 @@ object NotificationExtractor {
             kmViagem = kmViagem,
             tempoEstimado = tempoEstimado,
             quantidadeParadas = paradas,
+            tempoCompleto = tempoCompleto,
         )
     }
 
@@ -165,6 +171,12 @@ object NotificationExtractor {
             return runCatching { normalizarNumero(match.groupValues[1]) }.getOrNull()
         }
         return null
+    }
+
+    private fun temposDeclarados(texto: String): Int {
+        val pares = NotificationPatterns.PAR_TEMPO_DISTANCIA.findAll(texto).count()
+        val trechos = NotificationPatterns.TRECHO_TEMPO_DISTANCIA.findAll(texto).count()
+        return maxOf(pares, trechos)
     }
 
     private fun extrairParesTempoDistancia(texto: String): Triple<Double, Double, Int>? {

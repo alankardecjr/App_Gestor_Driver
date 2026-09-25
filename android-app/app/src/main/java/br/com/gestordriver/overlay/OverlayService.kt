@@ -64,6 +64,15 @@ class OverlayService : Service() {
     private var lixeiraParams: WindowManager.LayoutParams? = null
     private var ultimoSnapshot: OverlaySnapshot? = null
     private var arrastandoSelo = false
+    private var toqueNoSelo = false
+    private var arrastandoCompacta = false
+    private val fecharAtalhoFora = Runnable {
+        if (!toqueNoSelo) {
+            OverlayBridge.emitir(OverlayAcao.RecolherParaSelo)
+        }
+    }
+    private var compactaLembradaX: Int? = null
+    private var compactaLembradaY: Int? = null
     private var historicoAberto = false
     private var configAberto = false
     private var dashboardAberto = false
@@ -90,7 +99,15 @@ class OverlayService : Service() {
                 }
                 ultimoSnapshot = snapshot
                 atualizarJanelas(snapshot)
-                atualizarNotificacao(snapshot)
+                if (!snapshot.monitorando) {
+                    encerrarSemMonitoramento()
+                    return@collect
+                }
+                if (snapshot.notificacaoFechada) {
+                    removerNotificacaoMantendoServico()
+                } else {
+                    atualizarNotificacao(snapshot)
+                }
                 if (snapshot.compactaVisivel && compactaNova) {
                     agendarCompactaNaFrente()
                 } else if (!snapshot.compactaVisivel) {
@@ -119,11 +136,20 @@ class OverlayService : Service() {
             stopSelf()
             return START_NOT_STICKY
         }
+        if (intent?.action == ACAO_FECHAR_NOTIFICACAO) {
+            OverlayBridge.marcarNotificacaoFechada()
+            OverlayBridge.emitir(OverlayAcao.FecharNotificacao)
+            return START_STICKY
+        }
         if (intent?.action == ACAO_ABRIR) {
             startActivity(
                 Intent(this, MainActivity::class.java)
                     .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP),
             )
+        }
+        if (!OverlayBridge.snapshot.value.monitorando) {
+            encerrarSemMonitoramento()
+            return START_NOT_STICKY
         }
         atualizarJanelas(OverlayBridge.snapshot.value)
         if (OverlayBridge.snapshot.value.compactaVisivel) {
@@ -135,6 +161,18 @@ class OverlayService : Service() {
             )
         }
         return START_STICKY
+    }
+
+    override fun onTaskRemoved(rootIntent: Intent?) {
+        val snap = OverlayBridge.snapshot.value
+        val seloAberto = snap.seloVisivel || snap.compactaVisivel || snap.expandidaVisivel ||
+            snap.historicoVisivel || snap.configuracoesVisivel || snap.dashboardVisivel
+        if (snap.monitorando && snap.notificacaoFechada && !seloAberto) {
+            OverlayBridge.desligarMonitoramentoNoSnapshot()
+            OverlayBridge.emitir(OverlayAcao.DesativarMonitoramento)
+            encerrarSemMonitoramento()
+        }
+        super.onTaskRemoved(rootIntent)
     }
 
     override fun onDestroy() {
@@ -164,6 +202,12 @@ class OverlayService : Service() {
         cancelarCompactaNaFrente()
         scope.cancel()
         super.onDestroy()
+    }
+
+    private fun encerrarSemMonitoramento() {
+        runCatching { stopForeground(STOP_FOREGROUND_REMOVE) }
+        (getSystemService(NOTIFICATION_SERVICE) as NotificationManager).cancel(NOTIFICACAO_ID)
+        stopSelf()
     }
 
     private fun atualizarJanelas(snapshot: OverlaySnapshot) {
@@ -335,8 +379,9 @@ class OverlayService : Service() {
             focavel = false,
         ).also { compactaParams = it }
         params.gravity = Gravity.TOP or Gravity.START
-        params.x = insets.left + dp(8)
-        params.y = insets.top + dp(8)
+        if (!arrastandoCompacta) {
+            aplicarPosicaoLembrada(params)
+        }
         aplicarFlagsJanela(params, focavel = false)
         val view = compactaView ?: criarCompacta().also { nova ->
             val adicionou = runCatching { windowManager.addView(nova, params) }.isSuccess
@@ -376,7 +421,7 @@ class OverlayService : Service() {
             escutarBarraInferior(nova)
         }
         atualizarExpandida(view, snapshot)
-        aplicarFlagsToqueFora(params, ativo = false)
+        aplicarFlagsToqueFora(params, ativo = true)
         posicionarMenuAtalho(view, snapshot, params)
     }
 
@@ -524,8 +569,9 @@ class OverlayService : Service() {
     private fun criarExpandida(snapshot: OverlaySnapshot): View {
         val raiz = FrameLayout(this)
         raiz.setOnTouchListener { _, event ->
-            // Toque fora não fecha o menu; só o selo (abre/fecha) ou a barra do sistema.
             if (event.action == MotionEvent.ACTION_OUTSIDE) {
+                camadaHandler.removeCallbacks(fecharAtalhoFora)
+                camadaHandler.postDelayed(fecharAtalhoFora, 80)
                 return@setOnTouchListener true
             }
             false
@@ -546,35 +592,7 @@ class OverlayService : Service() {
                 marginStart = dp(8)
             }
         }
-        val itens = listOf(
-            ItemMenuAtalho("Histórico", "Corridas aceitas") {
-                OverlayBridge.emitir(OverlayAcao.AbrirHistorico)
-            },
-            ItemMenuAtalho("Dashboard", if (snapshot.planoPro) "Gestor financeiro" else "Disponível no Pro", pro = !snapshot.planoPro) {
-                OverlayBridge.emitir(OverlayAcao.DashboardPro)
-            },
-            ItemMenuAtalho("Despesas", "Lançar despesas") {
-                OverlayBridge.emitir(OverlayAcao.AbrirAtalhoConfig(1))
-            },
-            ItemMenuAtalho("Semáforo", "Regular faixas") {
-                OverlayBridge.emitir(OverlayAcao.AbrirAtalhoConfig(0))
-            },
-            ItemMenuAtalho("Veiculo", "Editar veiculo") {
-                OverlayBridge.emitir(OverlayAcao.AbrirAtalhoConfig(2))
-            },
-            ItemMenuAtalho("Configurar", "Configurar App") {
-                OverlayBridge.emitir(OverlayAcao.AbrirAtalhoConfig(3))
-            },
-            ItemMenuAtalho("Fechar", "Encerrar App") {
-                OverlayBridge.emitir(OverlayAcao.Fechar)
-            },
-        )
-        itens.forEachIndexed { indice, item ->
-            if (indice > 0) {
-                card.addView(divisorMenu())
-            }
-            card.addView(linhaMenuAtalho(item))
-        }
+        montarListaAtalhos(card, snapshot)
         raiz.addView(card)
         return raiz
     }
@@ -587,35 +605,11 @@ class OverlayService : Service() {
             montarConfirmacaoNoAtalho(card, snapshot)
             return
         }
-        val itens = listOf(
-            ItemMenuAtalho("Histórico", "Corridas aceitas") {
-                OverlayBridge.emitir(OverlayAcao.AbrirHistorico)
-            },
-            ItemMenuAtalho("Dashboard", if (snapshot.planoPro) "Gestor financeiro" else "Disponível no Pro", pro = !snapshot.planoPro) {
-                OverlayBridge.emitir(OverlayAcao.DashboardPro)
-            },
-            ItemMenuAtalho("Despesas", "Lançar despesas") {
-                OverlayBridge.emitir(OverlayAcao.AbrirAtalhoConfig(1))
-            },
-            ItemMenuAtalho("Semáforo", "Regular faixas") {
-                OverlayBridge.emitir(OverlayAcao.AbrirAtalhoConfig(0))
-            },
-            ItemMenuAtalho("Veiculo", "Editar veiculo") {
-                OverlayBridge.emitir(OverlayAcao.AbrirAtalhoConfig(2))
-            },
-            ItemMenuAtalho("Configurar", "Configurar App") {
-                OverlayBridge.emitir(OverlayAcao.AbrirAtalhoConfig(3))
-            },
-            ItemMenuAtalho("Fechar", "Encerrar App") {
-                OverlayBridge.emitir(OverlayAcao.Fechar)
-            },
-        )
-        itens.forEachIndexed { indice, item ->
-            if (indice > 0) {
-                card.addView(divisorMenu())
-            }
-            card.addView(linhaMenuAtalho(item))
+        if (snapshot.confirmacaoMonitorVisivel) {
+            montarConfirmacaoMonitor(card, snapshot)
+            return
         }
+        montarListaAtalhos(card, snapshot)
     }
 
     private fun montarConfirmacaoNoAtalho(card: LinearLayout, snapshot: OverlaySnapshot) {
@@ -673,12 +667,141 @@ class OverlayService : Service() {
         card.addView(acoes)
     }
 
+    private fun montarConfirmacaoMonitor(card: LinearLayout, snapshot: OverlaySnapshot) {
+        val ligado = snapshot.monitorando
+        card.setPadding(dp(12), dp(14), dp(12), dp(12))
+        card.addView(
+            TextView(this).apply {
+                text = if (ligado) "Desligar monitoramento" else "Ligar monitoramento"
+                setTextColor(OverlayTema.de(this@OverlayService).texto)
+                textSize = 15f
+                typeface = android.graphics.Typeface.DEFAULT_BOLD
+                gravity = Gravity.CENTER
+                setPadding(0, 0, 0, dp(8))
+            },
+        )
+        card.addView(
+            TextView(this).apply {
+                text = if (ligado) {
+                    "Desligar o monitoramento? O selo e o aviso somem. O app continua aberto."
+                } else {
+                    "Ligar o monitoramento? O selo e o aviso aparecem."
+                }
+                setTextColor(OverlayTema.de(this@OverlayService).secundario)
+                textSize = 13f
+                gravity = Gravity.CENTER
+                setPadding(0, 0, 0, dp(14))
+            },
+        )
+        val acoes = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER
+        }
+        acoes.addView(
+            TextView(this).apply {
+                text = "Cancelar"
+                setTextColor(OverlayTema.de(this@OverlayService).secundario)
+                textSize = 14f
+                gravity = Gravity.CENTER
+                setPadding(dp(12), dp(10), dp(12), dp(10))
+                layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+                setOnClickListener { OverlayBridge.emitir(OverlayAcao.CancelarMonitoramento) }
+            },
+        )
+        acoes.addView(
+            TextView(this).apply {
+                text = if (ligado) "Desligar" else "Ligar"
+                setTextColor(Color.parseColor("#2E7D32"))
+                textSize = 14f
+                typeface = android.graphics.Typeface.DEFAULT_BOLD
+                gravity = Gravity.CENTER
+                setPadding(dp(12), dp(10), dp(12), dp(10))
+                layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+                setOnClickListener { OverlayBridge.emitir(OverlayAcao.ConfirmarMonitoramento) }
+            },
+        )
+        card.addView(acoes)
+    }
+
     private data class ItemMenuAtalho(
+        val icone: String,
         val titulo: String,
         val subtitulo: String,
-        val pro: Boolean = false,
+        val perigo: Boolean = false,
+        val ligado: Boolean = false,
         val acao: () -> Unit,
     )
+
+    private fun itensAtalho(snapshot: OverlaySnapshot): List<ItemMenuAtalho> {
+        val ligado = snapshot.monitorando
+        return listOf(
+            ItemMenuAtalho(
+                "📡",
+                if (ligado) "Monitorar (on)" else "Monitorar",
+                if (ligado) "Ligado. Toque para confirmar." else "Desligado. Toque para ligar.",
+                ligado = ligado,
+            ) {
+                OverlayBridge.emitir(OverlayAcao.SolicitarMonitoramento)
+            },
+            ItemMenuAtalho("📍", "Localização", "Mapa na posição atual") {
+                val fina = checkSelfPermission(android.Manifest.permission.ACCESS_FINE_LOCATION)
+                val grossa = checkSelfPermission(android.Manifest.permission.ACCESS_COARSE_LOCATION)
+                val concedida = fina == android.content.pm.PackageManager.PERMISSION_GRANTED ||
+                    grossa == android.content.pm.PackageManager.PERMISSION_GRANTED
+                if (concedida) {
+                    br.com.gestordriver.navigation.NavegacaoLauncher.abrirPosicaoAtual(this)
+                } else {
+                    OverlayBridge.emitir(OverlayAcao.PedirLocalizacao)
+                }
+            },
+            ItemMenuAtalho("📅", "Histórico", "Ver corridas aceitas") {
+                OverlayBridge.emitir(OverlayAcao.AbrirHistorico)
+            },
+            ItemMenuAtalho("👛", "Carteira", if (snapshot.planoPro) "Saldo e movimentações" else "Disponível no Pro") {
+                OverlayBridge.emitir(OverlayAcao.DashboardPro)
+            },
+            ItemMenuAtalho("🧾", "Despesas", "Controle de gastos do app") {
+                OverlayBridge.emitir(OverlayAcao.AbrirAtalhoConfig(1))
+            },
+            ItemMenuAtalho("🚦", "Semáforo", "Regras de classificação") {
+                OverlayBridge.emitir(OverlayAcao.AbrirAtalhoConfig(0))
+            },
+            ItemMenuAtalho("👤", "Usuário", "Seus dados e preferências") {
+                OverlayBridge.emitir(OverlayAcao.AbrirAtalhoConfig(2))
+            },
+            ItemMenuAtalho("⚙", "Configurar", "Ajustes do aplicativo") {
+                OverlayBridge.emitir(OverlayAcao.AbrirAtalhoConfig(3))
+            },
+            ItemMenuAtalho("⏻", "Fechar", "Encerrar o aplicativo", perigo = true) {
+                OverlayBridge.emitir(OverlayAcao.Fechar)
+            },
+        )
+    }
+
+    private fun montarListaAtalhos(card: LinearLayout, snapshot: OverlaySnapshot) {
+        card.setPadding(dp(16), dp(14), dp(16), dp(14))
+        card.addView(botaoCircular("✕") { OverlayBridge.emitir(OverlayAcao.RecolherParaSelo) })
+        card.addView(
+            TextView(this).apply {
+                text = "Atalhos"
+                setTextColor(OverlayTema.de(this@OverlayService).menuTexto)
+                textSize = 22f
+                typeface = android.graphics.Typeface.DEFAULT_BOLD
+                setPadding(dp(4), dp(2), 0, 0)
+            },
+        )
+        card.addView(
+            TextView(this).apply {
+                text = "Acesse rapidamente as principais funções"
+                setTextColor(OverlayTema.de(this@OverlayService).secundario)
+                textSize = 12f
+                setPadding(dp(4), dp(2), 0, dp(10))
+            },
+        )
+        itensAtalho(snapshot).forEach { item ->
+            card.addView(linhaMenuAtalho(item))
+        }
+    }
 
     private fun fundoMenuCard(): GradientDrawable {
         val tema = OverlayTema.de(this)
@@ -703,47 +826,75 @@ class OverlayService : Service() {
     }
 
     private fun linhaMenuAtalho(item: ItemMenuAtalho): LinearLayout {
+        val tema = OverlayTema.de(this)
+        val corIcone = when {
+            item.perigo -> Color.parseColor("#E53935")
+            item.ligado -> Color.parseColor("#2E7D32")
+            else -> tema.menuTexto
+        }
+        val fundoIcone = when {
+            item.perigo -> Color.parseColor("#33E53935")
+            item.ligado -> Color.parseColor("#332E7D32")
+            else -> tema.pocoIcone
+        }
         return LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
-            setPadding(dp(10), dp(9), dp(10), dp(9))
-            minimumHeight = dp(48)
+            setPadding(dp(12), dp(10), dp(10), dp(10))
+            minimumHeight = dp(64)
             isClickable = true
             isFocusable = true
+            background = GradientDrawable().apply {
+                setColor(tema.card)
+                setStroke(dp(1), tema.borda)
+                cornerRadius = dp(16).toFloat()
+            }
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+            ).apply { bottomMargin = dp(8) }
             setOnClickListener { item.acao() }
+            addView(
+                TextView(this@OverlayService).apply {
+                    text = item.icone
+                    textSize = 16f
+                    gravity = Gravity.CENTER
+                    setTextColor(corIcone)
+                    background = GradientDrawable().apply {
+                        setColor(fundoIcone)
+                        cornerRadius = dp(10).toFloat()
+                    }
+                    minWidth = dp(40)
+                    minHeight = dp(40)
+                    layoutParams = LinearLayout.LayoutParams(dp(40), dp(40))
+                },
+            )
             addView(
                 LinearLayout(this@OverlayService).apply {
                     orientation = LinearLayout.VERTICAL
                     layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f).apply {
-                        marginEnd = dp(4)
+                        marginStart = dp(10)
+                        marginEnd = dp(6)
                     }
                     addView(
-                        LinearLayout(this@OverlayService).apply {
-                            orientation = LinearLayout.HORIZONTAL
-                            gravity = Gravity.CENTER_VERTICAL
-                            addView(
-                                TextView(this@OverlayService).apply {
-                                    text = item.titulo
-                                    setTextColor(OverlayTema.de(this@OverlayService).menuTexto)
-                                    textSize = 14f
-                                    typeface = android.graphics.Typeface.DEFAULT_BOLD
-                                    maxLines = 1
-                                    layoutParams = LinearLayout.LayoutParams(
-                                        LinearLayout.LayoutParams.WRAP_CONTENT,
-                                        LinearLayout.LayoutParams.WRAP_CONTENT,
-                                    )
+                        TextView(this@OverlayService).apply {
+                            text = item.titulo
+                            setTextColor(
+                                when {
+                                    item.perigo || item.ligado -> corIcone
+                                    else -> tema.menuTexto
                                 },
                             )
-                            if (item.pro) {
-                                addView(seloPro())
-                            }
+                            textSize = 14f
+                            typeface = android.graphics.Typeface.DEFAULT_BOLD
+                            maxLines = 1
                         },
                     )
                     addView(
                         TextView(this@OverlayService).apply {
                             text = item.subtitulo
-                            setTextColor(OverlayTema.de(this@OverlayService).secundario)
-                            textSize = 12f
+                            setTextColor(tema.secundario)
+                            textSize = 11f
                             maxLines = 1
                             ellipsize = TextUtils.TruncateAt.END
                         },
@@ -753,7 +904,7 @@ class OverlayService : Service() {
             addView(
                 TextView(this@OverlayService).apply {
                     text = "›"
-                    setTextColor(OverlayTema.de(this@OverlayService).secundario)
+                    setTextColor(tema.secundario)
                     textSize = 18f
                     gravity = Gravity.CENTER
                 },
@@ -789,7 +940,7 @@ class OverlayService : Service() {
         val bounds = windowManager.currentWindowMetrics.bounds
         val areaW = bounds.width() - insets.left - insets.right
         val areaH = bounds.height() - insets.top - insets.bottom
-        val largura = (areaW * 52 / 100).coerceIn(dp(196), dp(236))
+        val largura = (areaW * 86 / 100).coerceIn(dp(280), dp(400))
         view.measure(
             View.MeasureSpec.makeMeasureSpec(largura, View.MeasureSpec.EXACTLY),
             View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED),
@@ -846,50 +997,56 @@ class OverlayService : Service() {
     }
 
     private fun criarCompacta(): LinearLayout {
+        val tema = OverlayTema.de(this)
         val layout = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
-            setPadding(dp(14), dp(10), dp(14), dp(10))
+            setPadding(dp(10), dp(6), dp(8), dp(6))
             background = fundoPainel(ClassificacaoConstantes.COR_BORDA_NEUTRA, BORDA_COMPACTA_DP)
-            minimumWidth = dp(200) + mm(15)
-            minimumHeight = dp(72) + mm(5)
         }
-        layout.setOnTouchListener { _, event ->
-            // Toque na compacta ou fora: não faz nada (some sozinha).
-            if (event.action == MotionEvent.ACTION_OUTSIDE) {
-                return@setOnTouchListener true
-            }
-            true
-        }
-        // Cabeçalho: plataforma da oferta + botão X (fecha a compacta).
+        layout.setOnTouchListener(CompactaTouchListener())
         val cabecalho = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
-            setPadding(0, 0, 0, dp(2))
+            setPadding(0, 0, 0, dp(4))
         }
         cabecalho.addView(
             TextView(this).apply {
-                tag = "cmp_plataforma"
-                setTextColor(OverlayTema.de(this@OverlayService).secundario)
-                textSize = 12f
+                tag = "cmp_app"
+                setTextColor(tema.texto)
+                textSize = 14f
                 maxLines = 1
                 typeface = android.graphics.Typeface.DEFAULT_BOLD
-                gravity = Gravity.START
-                layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+                gravity = Gravity.CENTER_VERTICAL
+                text = ""
+            },
+        )
+        cabecalho.addView(
+            TextView(this).apply {
+                tag = "cmp_linha"
+                setTextColor(tema.texto)
+                textSize = 13f
+                maxLines = 1
+                ellipsize = TextUtils.TruncateAt.END
+                gravity = Gravity.START or Gravity.CENTER_VERTICAL
+                layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f).apply {
+                    marginStart = dp(6)
+                }
                 text = ""
             },
         )
         cabecalho.addView(
             TextView(this).apply {
                 text = "✕"
-                setTextColor(OverlayTema.de(this@OverlayService).secundario)
-                textSize = 16f
-                typeface = android.graphics.Typeface.DEFAULT_BOLD
+                setTextColor(tema.texto)
+                textSize = 14f
                 gravity = Gravity.CENTER
-                minWidth = dp(32)
-                minHeight = dp(32)
+                background = GradientDrawable().apply {
+                    shape = GradientDrawable.OVAL
+                    setColor(tema.pocoIcone)
+                }
+                layoutParams = LinearLayout.LayoutParams(dp(28), dp(28))
                 isClickable = true
                 isFocusable = true
-                setPadding(dp(8), dp(2), dp(2), dp(2))
                 setOnClickListener { OverlayBridge.emitir(OverlayAcao.FecharCompacta) }
             },
         )
@@ -901,57 +1058,83 @@ class OverlayService : Service() {
             tag = "metricas"
             gravity = Gravity.CENTER_VERTICAL
         }
-        listOf("R$/KM", "R$/HORA", "TEMPO", "NOTA").forEach { titulo ->
-            metricas.addView(criarColunaCompacta(titulo))
+        listOf("R$/KM" to true, "R$/HORA" to true, "NOTA" to false, "LUCRO%" to false).forEach { (titulo, hero) ->
+            metricas.addView(criarColunaCompacta(titulo, hero))
         }
         layout.addView(metricas)
-        // Rodapé: distância total e paradas.
-        val contexto = LinearLayout(this).apply {
+        val paradasLinha = LinearLayout(this).apply {
+            tag = "linha_paradas"
             orientation = LinearLayout.HORIZONTAL
-            tag = "contexto"
-            gravity = Gravity.CENTER_VERTICAL
-            setPadding(0, dp(8), 0, 0)
+            gravity = Gravity.CENTER
+            visibility = View.GONE
+            setPadding(0, dp(4), 0, 0)
         }
-        listOf("ctx_km", "ctx_paradas").forEach { tag ->
-            contexto.addView(
-                TextView(this).apply {
-                    this.tag = tag
-                    setTextColor(OverlayTema.de(this@OverlayService).secundario)
-                    textSize = 14f
-                    maxLines = 1
-                    ellipsize = TextUtils.TruncateAt.END
-                    layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
-                    gravity = Gravity.CENTER
-                    text = "—"
-                },
-            )
-        }
-        layout.addView(contexto)
+        paradasLinha.addView(
+            TextView(this).apply {
+                text = "⚑"
+                setTextColor(Color.parseColor("#F9A825"))
+                textSize = 13f
+                gravity = Gravity.CENTER
+            },
+        )
+        paradasLinha.addView(
+            TextView(this).apply {
+                tag = "ctx_paradas"
+                setTextColor(tema.texto)
+                textSize = 13f
+                typeface = android.graphics.Typeface.DEFAULT_BOLD
+                maxLines = 1
+                setPadding(dp(6), 0, 0, 0)
+                text = ""
+            },
+        )
+        layout.addView(paradasLinha)
         return layout
     }
 
-    private fun criarColunaCompacta(titulo: String): LinearLayout {
+    private fun criarColunaCompacta(titulo: String, hero: Boolean): LinearLayout {
         return LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             gravity = Gravity.CENTER
-            layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+            layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, if (hero) 1.45f else 0.85f)
             addView(
                 TextView(this@OverlayService).apply {
                     text = titulo
                     setTextColor(OverlayTema.de(this@OverlayService).secundario)
-                    textSize = 13f
+                    textSize = if (hero) 12f else 10f
+                    typeface = if (hero) android.graphics.Typeface.DEFAULT_BOLD else android.graphics.Typeface.DEFAULT
                     gravity = Gravity.CENTER
                     maxLines = 1
                 },
             )
             addView(
-                TextView(this@OverlayService).apply {
-                    setTextColor(OverlayTema.de(this@OverlayService).texto)
-                    textSize = 19f
+                LinearLayout(this@OverlayService).apply {
+                    orientation = LinearLayout.HORIZONTAL
                     gravity = Gravity.CENTER
-                    maxLines = 1
-                    ellipsize = TextUtils.TruncateAt.END
-                    text = "—"
+                    addView(
+                        View(this@OverlayService).apply {
+                            tag = "barra"
+                            background = GradientDrawable().apply {
+                                setColor(OverlayTema.de(this@OverlayService).borda)
+                                cornerRadius = dp(2).toFloat()
+                            }
+                            layoutParams = LinearLayout.LayoutParams(dp(3), dp(16)).apply {
+                                marginEnd = dp(4)
+                            }
+                        },
+                    )
+                    addView(
+                        TextView(this@OverlayService).apply {
+                            tag = "valor"
+                            setTextColor(OverlayTema.de(this@OverlayService).texto)
+                            textSize = if (hero) 20f else 14f
+                            typeface = if (hero) android.graphics.Typeface.DEFAULT_BOLD else android.graphics.Typeface.DEFAULT
+                            gravity = Gravity.CENTER
+                            maxLines = 1
+                            ellipsize = TextUtils.TruncateAt.END
+                            text = "—"
+                        },
+                    )
                 },
             )
         }
@@ -967,41 +1150,63 @@ class OverlayService : Service() {
             listOf(
                 soNumero(snapshot.valorPorKm),
                 soNumero(snapshot.valorPorHora),
-                snapshot.tempo,
                 snapshot.nota,
+                snapshot.lucroPercentual,
             )
         }
         valores.forEachIndexed { index, valor ->
-            val bloco = metricas.getChildAt(index) as LinearLayout
-            (bloco.getChildAt(1) as TextView).text = valor
+            valorCompacta(metricas, index).text = valor
         }
-        // Cor por célula: R$/KM segue a faixa da classificação; R$/HORA fica
-        // informativo (sem faixa própria definida ainda). Demais neutros.
+        // R$/KM pela faixa; R$/HORA pela meta. Borda = a pior das duas.
         val tema = OverlayTema.de(this)
-        val corKm = if (aguardando) tema.texto else Color.parseColor(corBorda(snapshot))
-        (metricas.getChildAt(0) as LinearLayout).let { (it.getChildAt(1) as TextView).setTextColor(corKm) }
-        (metricas.getChildAt(1) as LinearLayout).let { (it.getChildAt(1) as TextView).setTextColor(tema.texto) }
-        (metricas.getChildAt(2) as LinearLayout).let { (it.getChildAt(1) as TextView).setTextColor(tema.texto) }
-        (metricas.getChildAt(3) as LinearLayout).let { (it.getChildAt(1) as TextView).setTextColor(tema.texto) }
+        val corKm = if (aguardando) tema.borda else Color.parseColor(corBorda(snapshot))
+        val corHora = if (aguardando) tema.borda else Color.parseColor(snapshot.corValorPorHora)
+        pintarMetrica(metricas, 0, corKm, if (aguardando) tema.texto else corKm)
+        pintarMetrica(metricas, 1, corHora, if (aguardando) tema.texto else corHora)
+        pintarMetrica(metricas, 2, tema.borda, tema.texto)
+        pintarMetrica(metricas, 3, tema.borda, tema.texto)
 
-        layout.findViewWithTag<TextView>("cmp_plataforma")?.text =
+        layout.findViewWithTag<TextView>("cmp_app")?.text =
             snapshot.plataformaSigla.ifBlank { "" }
+        val tempo = snapshot.tempo.takeUnless { aguardando || it.isBlank() || it == "—" }.orEmpty()
+        val km = snapshot.kmTotal.takeUnless { aguardando || it.isBlank() || it == "—" }
+            ?.let { if (it.contains("km", ignoreCase = true)) it else "$it km" }
+            .orEmpty()
+        layout.findViewWithTag<TextView>("cmp_linha")?.text =
+            listOf(tempo, km).filter { it.isNotBlank() }.joinToString(" · ")
 
-        val contexto = layout.findViewWithTag<LinearLayout>("contexto")
         val paradas = snapshot.quantidadeParadas
-        contexto.findViewWithTag<TextView>("ctx_km").text =
-            if (aguardando) "—" else "Dist. ${snapshot.kmTotal}"
-        val paradasView = contexto.findViewWithTag<TextView>("ctx_paradas")
+        val linhaParadas = layout.findViewWithTag<LinearLayout>("linha_paradas")
+        val paradasView = layout.findViewWithTag<TextView>("ctx_paradas")
         if (paradas > 0 && !aguardando) {
-            paradasView.visibility = View.VISIBLE
-            paradasView.text = "$paradas Parada(s)"
+            linhaParadas.visibility = View.VISIBLE
+            paradasView.text = if (paradas == 1) "1 PARADA" else "$paradas PARADAS"
         } else {
-            paradasView.visibility = View.GONE
+            linhaParadas.visibility = View.GONE
             paradasView.text = ""
         }
         layout.contentDescription = "R\$ por km ${valores[0]}, R\$ por hora ${valores[1]}, " +
             "tempo ${valores[2]}, nota ${valores[3]}"
-        layout.background = fundoPainel(corBorda(snapshot), BORDA_COMPACTA_DP)
+        val borda = if (aguardando) ClassificacaoConstantes.COR_BORDA_NEUTRA else snapshot.corBordaCompacta
+        layout.background = fundoPainel(borda, BORDA_COMPACTA_DP)
+    }
+
+    private fun botaoCircular(simbolo: String, onClick: () -> Unit): TextView {
+        val tema = OverlayTema.de(this)
+        return TextView(this).apply {
+            text = simbolo
+            setTextColor(tema.menuTexto)
+            textSize = 16f
+            gravity = Gravity.CENTER
+            background = GradientDrawable().apply {
+                shape = GradientDrawable.OVAL
+                setColor(tema.pocoIcone)
+            }
+            layoutParams = LinearLayout.LayoutParams(dp(36), dp(36)).apply {
+                bottomMargin = dp(8)
+            }
+            setOnClickListener { onClick() }
+        }
     }
 
     private fun criarColunaMetrica(
@@ -1109,7 +1314,7 @@ class OverlayService : Service() {
         return GradientDrawable().apply {
             setColor(OverlayTema.de(this@OverlayService).fundoPainel)
             setStroke(dp(espessuraDp), Color.parseColor(corBorda))
-            cornerRadius = dp(10).toFloat()
+            cornerRadius = dp(16).toFloat()
         }
     }
 
@@ -1237,6 +1442,8 @@ class OverlayService : Service() {
                     toqueY = event.rawY
                     arrastou = false
                     arrastandoSelo = true
+                    toqueNoSelo = true
+                    camadaHandler.removeCallbacks(fecharAtalhoFora)
                     return true
                 }
 
@@ -1245,13 +1452,17 @@ class OverlayService : Service() {
                     val dy = (event.rawY - toqueY).toInt()
                     if (abs(dx) + abs(dy) > 12) {
                         arrastou = true
-                        mostrarLixeira()
                     }
                     // Só move a view localmente; a posição salva só confirma no UP
                     // (assim o X não grava a base da tela / o topo padrão).
                     params.x = inicialX + dx
                     params.y = inicialY + dy
                     limitarPosicao(params, v)
+                    if (arrastou && seloNaBase(params)) {
+                        mostrarLixeira()
+                    } else {
+                        ocultarLixeira()
+                    }
                     windowManager.updateViewLayout(v, params)
                     return true
                 }
@@ -1270,6 +1481,7 @@ class OverlayService : Service() {
                         OverlayBridge.emitir(OverlayAcao.MoverSelo(params.x.toFloat(), params.y.toFloat()))
                         OverlayBridge.emitir(OverlayAcao.EsconderSelo)
                         arrastandoSelo = false
+                        toqueNoSelo = false
                         return true
                     }
                     if (arrastou) {
@@ -1278,6 +1490,7 @@ class OverlayService : Service() {
                         reabrirApp(origemCompacta = false)
                     }
                     arrastandoSelo = false
+                    toqueNoSelo = false
                     return true
                 }
             }
@@ -1289,25 +1502,112 @@ class OverlayService : Service() {
         OverlayBridge.emitir(OverlayAcao.Reabrir(origemCompacta))
     }
 
+    private fun valorCompacta(metricas: LinearLayout, indice: Int): TextView {
+        val coluna = metricas.getChildAt(indice) as LinearLayout
+        val linha = coluna.getChildAt(1) as LinearLayout
+        return linha.findViewWithTag("valor")
+    }
+
+    private fun pintarMetrica(metricas: LinearLayout, indice: Int, corBarra: Int, corValor: Int) {
+        val coluna = metricas.getChildAt(indice) as LinearLayout
+        val linha = coluna.getChildAt(1) as LinearLayout
+        (linha.findViewWithTag<View>("barra").background as GradientDrawable).setColor(corBarra)
+        linha.findViewWithTag<TextView>("valor").setTextColor(corValor)
+    }
+
     private fun soNumero(valor: String): String =
         valor.replace("R$", "", ignoreCase = true).trim()
 
     private fun aplicarTamanhoCompacta(view: View, params: WindowManager.LayoutParams) {
         val insets = insetsSeguros()
-        val max = (windowManager.currentWindowMetrics.bounds.width() * 0.78f).toInt()
-            .coerceAtLeast(dp(220) + mm(15))
+        val larguraTela = windowManager.currentWindowMetrics.bounds.width() - insets.left - insets.right
+        // Referência: card da calculadora sobre o mapa deixa ~40% da largura livre
+        // (print de oferta) e fica na faixa curta de ~100 dp de altura. Teto 220 dp.
+        val livreParaMapa = larguraTela * 42 / 100
+        val max = minOf(dp(COMPACTA_LARGURA_MAX_DP), larguraTela - livreParaMapa).coerceAtLeast(dp(188))
         view.measure(
-            View.MeasureSpec.makeMeasureSpec(max, View.MeasureSpec.AT_MOST),
+            View.MeasureSpec.makeMeasureSpec(max, View.MeasureSpec.EXACTLY),
             View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED),
         )
-        params.width = (view.measuredWidth + mm(15))
-            .coerceAtLeast(dp(200) + mm(15))
-            .coerceAtMost(max)
-        params.height = (view.measuredHeight + mm(5)).coerceAtLeast(1)
+        params.width = max
+        params.height = view.measuredHeight.coerceAtLeast(1)
         params.gravity = Gravity.TOP or Gravity.START
-        params.x = insets.left + dp(8)
-        params.y = insets.top + dp(8)
+        if (!arrastandoCompacta) {
+            aplicarPosicaoLembrada(params)
+            limitarPosicao(params, view)
+        }
         runCatching { windowManager.updateViewLayout(view, params) }
+    }
+
+    private fun aplicarPosicaoLembrada(params: WindowManager.LayoutParams) {
+        if (compactaLembradaX == null) {
+            val prefs = getSharedPreferences(PREFS_COMPACTA, MODE_PRIVATE)
+            if (prefs.contains(PREF_COMPACTA_X)) {
+                compactaLembradaX = prefs.getInt(PREF_COMPACTA_X, 0)
+                compactaLembradaY = prefs.getInt(PREF_COMPACTA_Y, 0)
+            }
+        }
+        val insets = insetsSeguros()
+        params.x = compactaLembradaX ?: (insets.left + dp(8))
+        params.y = compactaLembradaY ?: (insets.top + dp(8))
+    }
+
+    private fun guardarPosicaoCompacta(x: Int, y: Int) {
+        compactaLembradaX = x
+        compactaLembradaY = y
+        getSharedPreferences(PREFS_COMPACTA, MODE_PRIVATE)
+            .edit()
+            .putInt(PREF_COMPACTA_X, x)
+            .putInt(PREF_COMPACTA_Y, y)
+            .apply()
+    }
+
+    private inner class CompactaTouchListener : View.OnTouchListener {
+        private var inicialX = 0
+        private var inicialY = 0
+        private var toqueX = 0f
+        private var toqueY = 0f
+        private var arrastou = false
+
+        override fun onTouch(v: View, event: MotionEvent): Boolean {
+            val params = compactaParams ?: return false
+            when (event.actionMasked) {
+                MotionEvent.ACTION_DOWN -> {
+                    inicialX = params.x
+                    inicialY = params.y
+                    toqueX = event.rawX
+                    toqueY = event.rawY
+                    arrastou = false
+                    arrastandoCompacta = true
+                    return true
+                }
+                MotionEvent.ACTION_MOVE -> {
+                    val dx = (event.rawX - toqueX).toInt()
+                    val dy = (event.rawY - toqueY).toInt()
+                    if (abs(dx) + abs(dy) > 8) {
+                        arrastou = true
+                    }
+                    params.x = inicialX + dx
+                    params.y = inicialY + dy
+                    limitarPosicao(params, v)
+                    runCatching { windowManager.updateViewLayout(v, params) }
+                    return true
+                }
+                MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
+                    if (arrastou) {
+                        limitarPosicao(params, v)
+                        guardarPosicaoCompacta(params.x, params.y)
+                        runCatching { windowManager.updateViewLayout(v, params) }
+                    } else {
+                        params.x = inicialX
+                        params.y = inicialY
+                    }
+                    arrastandoCompacta = false
+                    return true
+                }
+            }
+            return false
+        }
     }
 
     private fun mostrarLixeira() {
@@ -1322,6 +1622,7 @@ class OverlayService : Service() {
         params.height = tamanho
         params.x = 0
         params.y = insets.bottom + dp(24)
+        params.flags = params.flags or WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE
         val view = lixeiraView ?: TextView(this).apply {
             text = "X"
             gravity = Gravity.CENTER
@@ -1340,11 +1641,20 @@ class OverlayService : Service() {
             lixeiraView = nova
         }
         view.visibility = View.VISIBLE
+        view.elevation = 64f
         runCatching { windowManager.updateViewLayout(view, params) }
     }
 
     private fun ocultarLixeira() {
         lixeiraView?.visibility = View.INVISIBLE
+    }
+
+    private fun seloNaBase(selo: WindowManager.LayoutParams): Boolean {
+        val bounds = windowManager.currentWindowMetrics.bounds
+        val insets = insetsSeguros()
+        val faixa = (bounds.height() * 22 / 100).coerceAtLeast(dp(96))
+        val centro = selo.y + dp(SELO_DP) / 2
+        return centro >= bounds.height() - insets.bottom - faixa
     }
 
     private fun seloSobreLixeira(selo: WindowManager.LayoutParams): Boolean {
@@ -1528,8 +1838,17 @@ class OverlayService : Service() {
     }
 
     private fun atualizarNotificacao(snapshot: OverlaySnapshot) {
+        if (!snapshot.monitorando || snapshot.notificacaoFechada) {
+            return
+        }
         val manager = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
         manager.notify(NOTIFICACAO_ID, criarNotificacao(snapshot))
+    }
+
+    /** Tira o aviso da barra e mantém o serviço. O monitoramento não desliga. */
+    private fun removerNotificacaoMantendoServico() {
+        runCatching { stopForeground(STOP_FOREGROUND_DETACH) }
+        (getSystemService(NOTIFICATION_SERVICE) as NotificationManager).cancel(NOTIFICACAO_ID)
     }
 
     private fun criarNotificacao(snapshot: OverlaySnapshot = OverlaySnapshot()): Notification {
@@ -1540,10 +1859,10 @@ class OverlayService : Service() {
                 .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP),
             PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
         )
-        val desativar = PendingIntent.getService(
+        val fecharAviso = PendingIntent.getService(
             this,
-            1,
-            Intent(this, OverlayService::class.java).setAction(ACAO_DESATIVAR),
+            2,
+            Intent(this, OverlayService::class.java).setAction(ACAO_FECHAR_NOTIFICACAO),
             PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
         )
         val titulo: String
@@ -1551,7 +1870,7 @@ class OverlayService : Service() {
         val detalhe: String
         if (!snapshot.aguardandoOferta && snapshot.valorTotal != "—") {
             titulo = "${snapshot.valorTotal} · ${snapshot.tempoHm} · ${snapshot.kmTotal}"
-            texto = "$/km · $/Lucro · Consumo · Nota"
+            texto = "R$/km · Resultado · Consumo · Nota"
             detalhe = "$titulo\n$texto\n${soNumero(snapshot.valorPorKm)} · " +
                 "${soNumero(snapshot.lucroEstimado)} · ${snapshot.litrosEstimados} · ${snapshot.nota}"
         } else {
@@ -1565,10 +1884,10 @@ class OverlayService : Service() {
             .setStyle(NotificationCompat.BigTextStyle().bigText(detalhe))
             .setSmallIcon(R.drawable.ic_stat_monitor)
             .setContentIntent(abrir)
-            .setOngoing(true)
+            .setDeleteIntent(fecharAviso)
+            .setOngoing(false)
             .setOnlyAlertOnce(true)
             .addAction(0, "Abrir App", abrir)
-            .addAction(0, "Desativar", desativar)
             .build()
     }
 
@@ -1577,8 +1896,13 @@ class OverlayService : Service() {
         private const val NOTIFICACAO_ID = 7101
         private const val BORDA_COMPACTA_DP = 5
         private const val SELO_DP = 60
+        private const val COMPACTA_LARGURA_MAX_DP = 220
+        private const val PREFS_COMPACTA = "compacta_posicao"
+        private const val PREF_COMPACTA_X = "x"
+        private const val PREF_COMPACTA_Y = "y"
         const val ACAO_PARAR = "br.com.gestordriver.overlay.PARAR"
         const val ACAO_DESATIVAR = "br.com.gestordriver.overlay.DESATIVAR"
+        const val ACAO_FECHAR_NOTIFICACAO = "br.com.gestordriver.overlay.FECHAR_NOTIFICACAO"
         const val ACAO_ABRIR = "br.com.gestordriver.overlay.ABRIR"
 
         fun iniciar(context: Context) {

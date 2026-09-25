@@ -223,6 +223,10 @@ class ConfiguracoesViewModel(
         aplicar(configuracao.copy(metaGanhoHora = valor.coerceAtLeast(0.0)))
     }
 
+    fun atualizarAnunciarVoz(ligado: Boolean) {
+        aplicar(configuracao.copy(anunciarVoz = ligado))
+    }
+
     fun salvar(aplicarAbastecimento: Boolean = true) {
         val comAbastecimento = if (aplicarAbastecimento) {
             configuracao.aplicarCalculoAbastecimento()

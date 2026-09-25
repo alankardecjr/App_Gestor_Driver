@@ -8,6 +8,8 @@ data class Corrida(
     val enderecoEmbarque: String? = null,
     val enderecoDestino: String? = null,
     val quantidadeParadas: Int = 0,
+    /** True quando o card só trouxe um trecho de tempo. O R$/hora fica otimista. */
+    val horaEstimada: Boolean = false,
 ) {
     val kmTotal: Double
         get() = kmAtePassageiro + kmViagem

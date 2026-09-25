@@ -17,7 +17,7 @@ Detalhe Free vs Pro: [`docs/REGRAS_NEGOCIO.md`](docs/REGRAS_NEGOCIO.md) §38 · 
 
 O motorista tem poucos segundos e os números estão espalhados na tela da plataforma. O Gestor junta **R$/KM + classificação por cor + custo da corrida** sem tapar o mapa.
 
-Fluxo de uso: **selo** → **barra compacta** (oferta) → **expandida** (distâncias e custos). Histórico, dashboard e configuração abrem pelo menu do overlay.
+Fluxo de uso: ao abrir o app, a janela principal é o menu na aba **Opções**. Por cima de outros apps ficam só o **selo**, a **tela de atalhos** e a **compacta**. Histórico, Carteira e as abas de ajuste abrem dentro do app.
 
 ---
 

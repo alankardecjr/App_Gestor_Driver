@@ -60,6 +60,7 @@ data class ConfiguracaoUsuario(
 
     // Meta de ganho por hora (R$/h) do motorista. 0 = não definida.
     val metaGanhoHora: Double = 0.0,
+    val anunciarVoz: Boolean = true,
 ) {
     fun metaGanhoHoraDefinida(): Boolean = metaGanhoHora > 0.0
 

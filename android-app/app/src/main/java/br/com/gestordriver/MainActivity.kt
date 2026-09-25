@@ -51,8 +51,10 @@ class MainActivity : ComponentActivity() {
                 OverlayBridge.publicar(OverlayBridge.snapshot.value)
             }
         }
-        OverlayService.iniciar(this)
-        moveTaskToBack(true)
+        if (::appViewModel.isInitialized && appViewModel.state.monitorando) {
+            OverlayService.iniciar(this)
+            moveTaskToBack(true)
+        }
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -90,6 +92,7 @@ class MainActivity : ComponentActivity() {
                     return AppViewModel(
                         historicoRepository = app.historicoRepository,
                         onboardingStore = app.onboardingStore,
+                        configuracaoStore = app.configuracaoStore,
                     ) as T
                 }
             },
@@ -116,10 +119,43 @@ class MainActivity : ComponentActivity() {
 
                 LaunchedEffect(Unit) {
                     appViewModel.irParaSegundoPlano.collect {
-                        if (appViewModel.state.interfaceOculta) {
+                        if (appViewModel.state.monitorando && appViewModel.state.interfaceOculta) {
                             OverlayService.iniciar(this@MainActivity)
                             moveTaskToBack(true)
                         }
+                    }
+                }
+
+                LaunchedEffect(Unit) {
+                    appViewModel.pedirLocalizacao.collect {
+                        pedirLocalizacao()
+                    }
+                }
+
+                LaunchedEffect(Unit) {
+                    appViewModel.trazerJanela.collect {
+                        startActivity(
+                            Intent(this@MainActivity, MainActivity::class.java)
+                                .addFlags(
+                                    Intent.FLAG_ACTIVITY_REORDER_TO_FRONT or
+                                        Intent.FLAG_ACTIVITY_SINGLE_TOP or
+                                        Intent.FLAG_ACTIVITY_NEW_TASK,
+                                ),
+                        )
+                    }
+                }
+
+                LaunchedEffect(Unit) {
+                    appViewModel.mostrarOpcoes.collect {
+                        startActivity(
+                            Intent(this@MainActivity, MainActivity::class.java)
+                                .addFlags(
+                                    Intent.FLAG_ACTIVITY_REORDER_TO_FRONT or
+                                        Intent.FLAG_ACTIVITY_SINGLE_TOP or
+                                        Intent.FLAG_ACTIVITY_NEW_TASK,
+                                )
+                                .putExtra(EXTRA_ABRIR_OPCOES, true),
+                        )
                     }
                 }
 
@@ -142,6 +178,10 @@ class MainActivity : ComponentActivity() {
                         PermissoesMonitoramento.overlayConcedida(this@MainActivity)
                     ) {
                         OverlayService.iniciar(this@MainActivity)
+                        if (!PermissoesMonitoramento.acessibilidadeAtiva(this@MainActivity)) {
+                            OverlayBridge.segurarAcessibilidade()
+                            startActivity(PermissoesMonitoramento.intentAcessibilidade())
+                        }
                     }
                     if (!appViewModel.state.monitorando) {
                         OverlayService.parar(this@MainActivity)
@@ -188,7 +228,7 @@ class MainActivity : ComponentActivity() {
 
     override fun onPause() {
         super.onPause()
-        OverlayService.iniciar(this)
+        sincronizarOverlay()
     }
 
     override fun onUserLeaveHint() {
@@ -220,9 +260,7 @@ class MainActivity : ComponentActivity() {
                 appViewModel.restaurarTelaAposRecentes()
             }
         }
-        if (PermissoesMonitoramento.overlayConcedida(this)) {
-            OverlayService.iniciar(this)
-        }
+        sincronizarOverlay()
     }
 
     @Suppress("UNUSED_PARAMETER")
@@ -244,7 +282,7 @@ class MainActivity : ComponentActivity() {
             intent?.removeExtra(EXTRA_ABRIR_EXPANDIDA)
             intent?.removeExtra(EXTRA_ORIGEM_COMPACTA)
             viewModel.reabrirInterface(origemCompacta)
-            OverlayService.iniciar(this)
+            sincronizarOverlay()
             moveTaskToBack(true)
             return true
         }
@@ -258,59 +296,65 @@ class MainActivity : ComponentActivity() {
         if (pedirLocalizacao) {
             intent?.removeExtra(EXTRA_PEDIR_LOCALIZACAO)
             pedirLocalizacao()
-            OverlayService.iniciar(this)
+            sincronizarOverlay()
             moveTaskToBack(true)
             return true
         }
         val pedirAcessibilidade = intent?.getBooleanExtra(EXTRA_PEDIR_ACESSIBILIDADE, false) == true
         if (pedirAcessibilidade) {
             intent?.removeExtra(EXTRA_PEDIR_ACESSIBILIDADE)
+            OverlayBridge.segurarAcessibilidade()
             startActivity(PermissoesMonitoramento.intentAcessibilidade())
-            OverlayService.iniciar(this)
+            sincronizarOverlay()
             return true
         }
         val pedirBateria = intent?.getBooleanExtra(EXTRA_PEDIR_BATERIA, false) == true
         if (pedirBateria) {
             intent?.removeExtra(EXTRA_PEDIR_BATERIA)
             startActivity(PermissoesMonitoramento.intentBateria(this))
-            OverlayService.iniciar(this)
+            sincronizarOverlay()
             return true
         }
         val compartilharLog = intent?.getBooleanExtra(EXTRA_COMPARTILHAR_LOG, false) == true
         if (compartilharLog) {
             intent?.removeExtra(EXTRA_COMPARTILHAR_LOG)
             (application as GestorDriverApp).diagnosticLog.compartilhar(this)
-            OverlayService.iniciar(this)
+            sincronizarOverlay()
             return true
         }
         val abrirHistorico = intent?.getBooleanExtra(EXTRA_ABRIR_HISTORICO, false) == true
         if (abrirHistorico) {
             intent?.removeExtra(EXTRA_ABRIR_HISTORICO)
             viewModel.abrirHistoricoPeloOverlay()
-            OverlayService.iniciar(this)
-            moveTaskToBack(true)
+            sincronizarOverlay()
+            return true
+        }
+        val abrirOpcoes = intent?.getBooleanExtra(EXTRA_ABRIR_OPCOES, false) == true
+        if (abrirOpcoes) {
+            intent?.removeExtra(EXTRA_ABRIR_OPCOES)
+            viewModel.abrirMenuOpcoes()
+            sincronizarOverlay()
             return true
         }
         val recentesConfig = intent?.getBooleanExtra(EXTRA_RECENTES_CONFIG, false) == true
         if (recentesConfig) {
             intent?.removeExtra(EXTRA_RECENTES_CONFIG)
             viewModel.restaurarTelaAposRecentes()
-            OverlayService.iniciar(this)
+            sincronizarOverlay()
             return true
         }
         val abrirConfig = intent?.getBooleanExtra(EXTRA_ABRIR_CONFIG, false) == true
         if (abrirConfig) {
             intent?.removeExtra(EXTRA_ABRIR_CONFIG)
             viewModel.abrirConfiguracoes()
-            OverlayService.iniciar(this)
-            moveTaskToBack(true)
+            sincronizarOverlay()
             return true
         }
         val confirmarFechar = intent?.getBooleanExtra(EXTRA_CONFIRMAR_FECHAR, false) == true
         if (confirmarFechar) {
             intent?.removeExtra(EXTRA_CONFIRMAR_FECHAR)
             viewModel.solicitarFecharApp()
-            OverlayService.iniciar(this)
+            sincronizarOverlay()
             return true
         }
         val app = application as GestorDriverApp
@@ -320,10 +364,22 @@ class MainActivity : ComponentActivity() {
             temConta = temConta,
         )
         if (viewModel.state.onboardingEtapa != OnboardingEtapa.NENHUMA) {
+            sincronizarOverlay()
             return true
         }
-        OverlayService.iniciar(this)
+        sincronizarOverlay()
         return false
+    }
+
+    private fun sincronizarOverlay() {
+        if (!::appViewModel.isInitialized) {
+            return
+        }
+        if (appViewModel.state.monitorando && PermissoesMonitoramento.overlayConcedida(this)) {
+            OverlayService.iniciar(this)
+        } else {
+            OverlayService.parar(this)
+        }
     }
 
     private fun pedirNotificacaoPersistente() {
@@ -345,6 +401,7 @@ class MainActivity : ComponentActivity() {
             checkSelfPermission(it) != android.content.pm.PackageManager.PERMISSION_GRANTED
         }
         if (faltando.isEmpty()) {
+            br.com.gestordriver.navigation.NavegacaoLauncher.abrirPosicaoAtual(this)
             return
         }
         requestPermissions(faltando.toTypedArray(), 7103)
@@ -369,6 +426,7 @@ class MainActivity : ComponentActivity() {
         const val EXTRA_ABRIR_HISTORICO = "abrir_historico"
         const val EXTRA_ABRIR_CONFIG = "abrir_config"
         const val EXTRA_RECENTES_CONFIG = "recentes_config"
+        const val EXTRA_ABRIR_OPCOES = "abrir_opcoes"
         const val EXTRA_CONFIRMAR_FECHAR = "confirmar_fechar"
         const val EXTRA_PEDIR_LOCALIZACAO = "pedir_localizacao"
         const val EXTRA_PEDIR_ACESSIBILIDADE = "pedir_acessibilidade"

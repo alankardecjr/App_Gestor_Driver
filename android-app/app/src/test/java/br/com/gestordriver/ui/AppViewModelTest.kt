@@ -69,6 +69,7 @@ class AppViewModelTest {
         val viewModel =
             novoViewModel()
 
+        viewModel.iniciarMonitoramento()
         viewModel.reabrirInterface()
 
         assertEquals(
@@ -526,8 +527,8 @@ class AppViewModelTest {
         assertTrue(viewModel.state.historicoVisivel)
         assertEquals(1, viewModel.state.historico.size)
         assertFalse(OverlayBridge.snapshot.value.expandidaVisivel)
-        assertTrue(OverlayBridge.snapshot.value.historicoVisivel)
-        assertTrue(OverlayBridge.snapshot.value.confirmacaoLimparHistoricoVisivel)
+        assertFalse(OverlayBridge.snapshot.value.historicoVisivel)
+        assertFalse(OverlayBridge.snapshot.value.confirmacaoLimparHistoricoVisivel)
     }
 
     @Test
@@ -629,8 +630,8 @@ class AppViewModelTest {
         assertEquals(1, viewModel.state.historico.size)
         assertTrue(viewModel.state.corridaAceita)
         assertFalse(viewModel.state.ofertaAtiva)
-        assertFalse(viewModel.state.seloFlutuante)
-        assertTrue(viewModel.state.compactaTemporaria)
+        assertTrue(viewModel.state.seloFlutuante)
+        assertFalse(viewModel.state.compactaTemporaria)
         assertEquals(38.0, viewModel.state.analiseAtual?.valorTotal ?: 0.0, 0.001)
     }
 
@@ -721,8 +722,8 @@ class AppViewModelTest {
         viewModel.reabrirInterface()
         viewModel.abrirConfiguracoes()
         OverlayBridge.emitir(OverlayAcao.VoltarBarra)
-        assertFalse(viewModel.state.configuracoesVisivel)
-        assertEquals(ModoApresentacao.DETALHES, viewModel.state.corrida.modo)
+        assertTrue(viewModel.state.configuracoesVisivel)
+        assertEquals(-1, viewModel.state.abaConfiguracao)
         assertFalse(viewModel.state.seloFlutuante)
         OverlayBridge.emitir(OverlayAcao.VoltarBarra)
         assertTrue(viewModel.state.seloFlutuante)
@@ -751,7 +752,7 @@ class AppViewModelTest {
         viewModel.restaurarTelaAposRecentes()
         assertTrue(viewModel.state.historicoVisivel)
         assertFalse(viewModel.state.seloFlutuante)
-        assertTrue(viewModel.state.interfaceOculta)
+        assertFalse(viewModel.state.interfaceOculta)
         assertNull(viewModel.state.estadoSalvo)
     }
 
@@ -763,8 +764,8 @@ class AppViewModelTest {
         OverlayBridge.emitir(OverlayAcao.RecentesBarra)
         viewModel.restaurarTelaAposRecentes()
         OverlayBridge.emitir(OverlayAcao.VoltarBarra)
-        assertFalse(viewModel.state.configuracoesVisivel)
-        assertTrue(viewModel.state.interfaceOculta)
+        assertTrue(viewModel.state.configuracoesVisivel)
+        assertFalse(viewModel.state.interfaceOculta)
     }
 
     @Test
@@ -840,6 +841,21 @@ class AppViewModelTest {
     }
 
     @Test
+    fun fechar_notificacao_ou_selo_nao_desliga_monitoramento() {
+        val viewModel = novoViewModel()
+        viewModel.iniciarMonitoramento()
+        viewModel.fecharNotificacao()
+        assertTrue(viewModel.state.monitorando)
+        assertTrue(viewModel.state.notificacaoFechada)
+        assertTrue(viewModel.state.seloFlutuante)
+
+        viewModel.esconderSeloManterMonitor()
+        assertTrue(viewModel.state.monitorando)
+        assertTrue(viewModel.state.seloEscondido)
+        assertTrue(viewModel.state.notificacaoFechada)
+    }
+
+    @Test
     fun toque_no_selo_abre_e_fecha_menu_atalho_mantendo_selo_visivel() {
         val viewModel = novoViewModel()
         viewModel.iniciarMonitoramento()
@@ -883,6 +899,7 @@ class AppViewModelTest {
     @Test
     fun retrair_sem_oferta_inicia_espera_para_selo() {
         val viewModel = novoViewModel()
+        viewModel.iniciarMonitoramento()
         viewModel.reabrirInterface()
         viewModel.alternarDetalhes()
         assertTrue(viewModel.state.compactaTemporaria)
@@ -923,8 +940,8 @@ class AppViewModelTest {
         viewModel.expirarOfertaAtual()
         assertEquals(null, viewModel.state.analiseAtual)
         assertFalse(viewModel.state.ofertaAtiva)
-        assertFalse(viewModel.state.seloFlutuante)
-        assertTrue(viewModel.state.compactaTemporaria)
+        assertTrue(viewModel.state.seloFlutuante)
+        assertFalse(viewModel.state.compactaTemporaria)
         assertEquals(1, viewModel.state.historico.size)
         assertEquals(40.0, viewModel.state.historico.first().valorTotal, 0.001)
         assertEquals(ModoApresentacao.COMPACTA, viewModel.state.corrida.modo)
@@ -938,8 +955,8 @@ class AppViewModelTest {
         viewModel.atualizarPosicaoSelo(80f, 160f)
         viewModel.aplicarNovaCorrida(analiseFake())
         viewModel.expirarOfertaAtual()
-        assertFalse(viewModel.state.seloFlutuante)
-        assertTrue(viewModel.state.compactaTemporaria)
+        assertTrue(viewModel.state.seloFlutuante)
+        assertFalse(viewModel.state.compactaTemporaria)
         assertTrue(viewModel.state.interfaceOculta)
         assertEquals(80f, viewModel.state.seloOffsetX)
         assertEquals(160f, viewModel.state.seloOffsetY)

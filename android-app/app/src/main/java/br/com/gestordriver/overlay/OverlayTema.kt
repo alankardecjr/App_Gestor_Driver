@@ -18,6 +18,7 @@ data class OverlayCores(
     val menuTexto: Int,
     val metrica: Int,
     val caixa: Int,
+    val pocoIcone: Int,
 )
 
 /** Mesmas cores da paleta Compose (claro/escuro do telefone). */
@@ -37,31 +38,33 @@ object OverlayTema {
         }
         return if (escuro) {
             OverlayCores(
-                fundo = Color.parseColor("#10161D"),
-                fundoPainel = Color.parseColor("#F2050809"),
+                fundo = Color.parseColor("#0E0E10"),
+                fundoPainel = Color.parseColor("#1C1C1E"),
                 texto = Color.WHITE,
-                secundario = Color.parseColor("#C5D3DE"),
+                secundario = Color.parseColor("#B0B0B6"),
                 detalhes = Color.parseColor("#E0E7ED"),
-                borda = Color.parseColor("#607D8B"),
-                card = Color.parseColor("#1A2228"),
-                menu = Color.parseColor("#1A2228"),
+                borda = Color.parseColor("#2E2E32"),
+                card = Color.parseColor("#1C1C1E"),
+                menu = Color.parseColor("#161618"),
                 menuTexto = Color.WHITE,
                 metrica = Color.parseColor("#14261C"),
-                caixa = Color.parseColor("#33000000"),
+                caixa = Color.parseColor("#2A2A2E"),
+                pocoIcone = Color.parseColor("#2A2A2E"),
             )
         } else {
             OverlayCores(
-                fundo = Color.parseColor("#F4F6F8"),
+                fundo = Color.parseColor("#F6F7F8"),
                 fundoPainel = Color.WHITE,
-                texto = Color.parseColor("#0D1B22"),
-                secundario = Color.parseColor("#37474F"),
+                texto = Color.parseColor("#111111"),
+                secundario = Color.parseColor("#8A8A8E"),
                 detalhes = Color.parseColor("#263238"),
-                borda = Color.parseColor("#90A4AE"),
+                borda = Color.parseColor("#E6E8EC"),
                 card = Color.WHITE,
-                menu = Color.WHITE,
-                menuTexto = Color.parseColor("#0D1B22"),
-                metrica = Color.parseColor("#E8F5E9"),
-                caixa = Color.parseColor("#14000000"),
+                menu = Color.parseColor("#F6F7F8"),
+                menuTexto = Color.parseColor("#111111"),
+                metrica = Color.parseColor("#F6F7F8"),
+                caixa = Color.parseColor("#F2F3F5"),
+                pocoIcone = Color.parseColor("#F2F3F5"),
             )
         }
     }

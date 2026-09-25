@@ -41,9 +41,11 @@ Plataformas iniciais consideradas:
 
 A partir desta versão:
 
-> **O selo flutuante é a janela principal do Gestor Driver.**
+> **A janela principal do app é o menu, na aba Opções.** Ela abre em tela cheia ao iniciar o app (onboarding já feito) e cobre as demais telas do aplicativo.
 
-O aplicativo não deve permanecer permanentemente exibindo a tela compacta nem expandida.
+Por cima de outros apps só existem três overlays: **selo**, **tela de atalhos** e **compacta**. Histórico, Carteira, Semáforo, Usuário e Configurar abrem dentro da janela do app. O selo só aparece com o monitoramento ligado, quando o app não está na frente.
+
+O aplicativo não deve permanecer permanentemente exibindo a tela compacta nem a tela de atalhos.
 
 O comportamento esperado é:
 
@@ -52,7 +54,9 @@ Aplicativo iniciado
        ↓
 Permissões verificadas
        ↓
-Monitoramento iniciado
+Menu na aba Opções (monitoramento desligado)
+       ↓
+Usuário liga o monitoramento
        ↓
 ◉ Selo flutuante
 
@@ -487,7 +491,7 @@ O monitoramento continua ativo.
 
 23. Configurações
 
-A configuração abre como **painel overlay abaixo da expandida** (mesmo recorte e **mesma altura** do histórico: título **⬅️ CONFIGURAÇÃO ➡️**, bordas arredondadas, **borda cinza fina de 2 dp**, fundo semitransparente, mesmo recuo lateral). A janela fica **compacta** de propósito: **Combustível atual** e o restante que não couber usam a **barra de rolagem**. Não ampliar Config/Histórico só para evitar rolar. Troca de aba por **deslize horizontal**, **setas** ou **clique no rótulo** (VEÍCULO / CUSTOS / CALIBRAR / APP). As quatro abas usam a **mesma altura vertical**. A barra aparece no toque e some depois, junto da borda da janela.
+A configuração abre **dentro da janela do app**, não como overlay. Título da aba Opções: **Gestor Driver**; o subtítulo mostra se o monitoramento está ligado e quantas corridas houve hoje. Ordem dos atalhos: Monitorar, Localização, Histórico, Carteira, Despesas, Semáforo, Usuário, Configurar, Fechar. Monitorar pede confirmação e fica verde com **Monitorar (on)** quando ligado. Localização abre o mapa na posição atual. Nas outras abas, Cancelar e Salvar permanecem; na Opções essa barra não aparece. Troca de aba por **deslize horizontal**, **setas** ou **clique no rótulo** (Opções / Semáforo / Custos / Veículo / App).
 
 - **VEÍCULO** — descrição (marca, modelo, versão, ano, **final da placa**), consumo km/L gasolina e etanol. Pro: vencimento do IPVA e **calcular abastecimento**.
 - **CUSTOS** — preços **R$ / L Gasolina** e **R$ / L Etanol**, **combustível atual** (marca exclusiva Gasolina/Etanol). Pro (estruturado, bloqueado): troca de óleo (Valor R$, km, data) e pneus dianteiro/traseiro (Valor R$, rodagem, data).
@@ -528,7 +532,7 @@ painel CONFIGURAÇÃO (abaixo)
 
 24. Histórico e configuração
 
-Histórico e configuração são **painéis overlay distintos**, abaixo da expandida. Não abrem ao mesmo tempo.
+Histórico e configuração abrem **na janela do app**, um por vez, por cima do menu. A seta volta para a aba Opções. Não são overlay.
 
 Com histórico aberto, o botão vira **⤴️ Histórico** (recolhe o painel).
 

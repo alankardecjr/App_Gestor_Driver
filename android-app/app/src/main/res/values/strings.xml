@@ -1,4 +1,4 @@
 <resources>
     <string name="app_name">Gestor Driver</string>
-    <string name="acessibilidade_ofertas">Lê o card de oferta na tela da Uber, 99 e inDrive (incluindo captura da tela quando a corrida não vem como notificação).</string>
+    <string name="acessibilidade_ofertas">Lê só o card de oferta da Uber, 99 e inDrive. Não acessa banco, senha nem outros aplicativos. Fica desligado quando o monitoramento está off.</string>
 </resources>

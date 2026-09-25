@@ -10,6 +10,7 @@ data class CorridaParaResumo(
     val kmTotal: Double,
     val minutos: Int,
     val gastoCorrida: Double?,
+    val litros: Double? = null,
 )
 
 data class NumerosDashboard(
@@ -29,6 +30,9 @@ data class NumerosDashboard(
     val pneuTraseiro: Double?,
     val seguro: Double?,
     val ipva: Double?,
+    val kmTotal: Double,
+    val minutos: Int,
+    val litros: Double?,
 )
 
 object DashboardNumeros {
@@ -39,7 +43,9 @@ object DashboardNumeros {
     ): NumerosDashboard {
         val receitas = corridas.sumOf { it.valorTotal }
         val kmTotal = corridas.sumOf { it.kmTotal }
-        val horas = corridas.sumOf { it.minutos.toLong() } / 60.0
+        val minutos = corridas.sumOf { it.minutos }
+        val horas = minutos / 60.0
+        val litros = corridas.mapNotNull { it.litros }.takeIf { it.isNotEmpty() }?.sum()
         val combustivel = corridas.mapNotNull { it.gastoCorrida }.takeIf { it.isNotEmpty() }?.sum()
         val oleo = parcelaKm(config.oleoValor, config.oleoKilometragem, kmTotal)
         val pneuD = parcelaKm(config.pneuDianteiroValor, config.pneuDianteiroRodagem, kmTotal)
@@ -66,6 +72,9 @@ object DashboardNumeros {
             pneuTraseiro = pneuT,
             seguro = seguro,
             ipva = ipva,
+            kmTotal = kmTotal,
+            minutos = minutos,
+            litros = litros,
         )
     }
 

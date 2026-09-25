@@ -71,7 +71,7 @@ fun HistoricoTela(
     val marcados = state.historico.mapNotNull { it.dataHoraRegistro?.toLocalDate() }.toSet()
     val faixa = CalendarioApp.diasDaSemana(selecionado)
     val paleta = LocalPaletaApp.current
-    val forma = RoundedCornerShape(10.dp)
+    val forma = RoundedCornerShape(16.dp)
     val contexto = LocalContext.current
     val abaSelecionada = AbasPlataforma.indexOfFirst {
         it.equals(state.abaHistorico, ignoreCase = true)
@@ -83,35 +83,19 @@ fun HistoricoTela(
             .deslizeHorizontalAbas(abaSelecionada, AbasPlataforma.size) { novo ->
                 onAba(AbasPlataforma[novo])
             }
-            .background(paleta.fundoPainel, forma)
-            .border(2.dp, paleta.borda, forma)
+            .background(paleta.fundo, forma)
+            .border(1.dp, paleta.borda, forma)
             .padding(vertical = 8.dp),
     ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(start = 8.dp, end = 12.dp, bottom = 4.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Text(
-                text = "⬅️",
-                fontSize = 18.sp,
-                modifier = Modifier
-                    .clickable(onClick = onVoltar)
-                    .padding(8.dp),
-            )
-            Text(
-                text = "HISTÓRICO",
-                color = paleta.texto,
-                fontSize = 16.sp,
-                fontWeight = FontWeight.Bold,
-                modifier = Modifier.weight(1f),
-            )
-            Text(
-                text = "🗑️",
-                fontSize = 16.sp,
-                modifier = Modifier
-                    .clickable {
+        CabecalhoTela(
+            titulo = "Histórico",
+            subtitulo = "Corridas aceitas",
+            onVoltar = onVoltar,
+            acao = {
+                BotaoCircular(
+                    simbolo = "🗑",
+                    perigo = true,
+                    onClick = {
                         if (state.historicoChavesSelecionadas.isEmpty()) {
                             android.widget.Toast.makeText(
                                 contexto,
@@ -121,10 +105,10 @@ fun HistoricoTela(
                         } else {
                             onLimpar()
                         }
-                    }
-                    .padding(8.dp),
-            )
-        }
+                    },
+                )
+            },
+        )
 
         FaixaAbasComSetas(
             titulos = AbasPlataforma,
@@ -278,7 +262,7 @@ private fun CartaoCorridaHistorico(
 ) {
     val contexto = LocalContext.current
     val paleta = LocalPaletaApp.current
-    val forma = RoundedCornerShape(10.dp)
+    val forma = RoundedCornerShape(16.dp)
     val corClasse = parseCor(item.corClassificacao)
     Column(
         modifier = Modifier
@@ -314,7 +298,7 @@ private fun CartaoCorridaHistorico(
         Row(modifier = Modifier.fillMaxWidth()) {
             RotuloMetrica("Ganhos")
             RotuloMetrica("R$/Km")
-            RotuloMetrica("R$/Lucro")
+            RotuloMetrica("Resultado")
             RotuloMetrica("R$/gasto")
             RotuloMetrica("Nota")
         }

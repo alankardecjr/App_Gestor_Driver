@@ -35,7 +35,7 @@ import br.com.gestordriver.ui.theme.LocalPaletaApp
 
 private val TextoAmarelo = Color(0xFFFFD54F)
 private val TextoVerde = Color(0xFF7CB342)
-private val Forma = RoundedCornerShape(10.dp)
+private val Forma = RoundedCornerShape(16.dp)
 
 @Composable
 fun OnboardingHost(
@@ -100,6 +100,7 @@ private fun PainelPermissoes(
             "Configurações restritas → Serviços instalados",
             leituraOk,
         ) {
+            br.com.gestordriver.overlay.OverlayBridge.segurarAcessibilidade()
             contexto.startActivity(PermissoesMonitoramento.intentAcessibilidade())
         }
         LinhaStatus(
@@ -291,13 +292,13 @@ private fun CaixaOnboarding(
         modifier = Modifier
             .fillMaxWidth()
             .padding(12.dp)
-            .border(2.dp, LocalPaletaApp.current.borda, Forma)
+            .border(1.dp, LocalPaletaApp.current.borda, Forma)
             .background(LocalPaletaApp.current.fundoPainel, Forma)
             .padding(horizontal = 12.dp, vertical = 12.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        Text(titulo, color = LocalPaletaApp.current.texto, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
+        Text(titulo, color = LocalPaletaApp.current.texto, fontSize = 22.sp, fontWeight = FontWeight.Bold)
         conteudo()
     }
 }

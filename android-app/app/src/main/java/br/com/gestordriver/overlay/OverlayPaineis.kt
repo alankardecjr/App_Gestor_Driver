@@ -48,6 +48,8 @@ object OverlayPaineis {
     private var rascunho: ConfiguracaoUsuario? = null
     private var abaMontada: Int = -1
     private var alturaMinimaConteudo: Int = 0
+    private var calendarioDashboardAberto = false
+    private var mesCalendarioDashboard: java.time.YearMonth? = null
     private const val AMARELO = "#FFD54F"
 
     private enum class AbaMenuFicheiro(val titulo: String) {
@@ -302,6 +304,7 @@ object OverlayPaineis {
                 OverlayBridge.emitir(OverlayAcao.VoltarAtalho)
             }.also { cabeca ->
                 cabeca.findViewWithTag<TextView>("config_titulo")?.text = "Dashboard"
+                cabeca.addView(botaoCalendarioDashboard(context))
             },
         )
         coluna.addView(criarFaixaAbasFicheiro(context))
@@ -463,6 +466,7 @@ object OverlayPaineis {
                     kmTotal = it.kmTotal,
                     minutos = it.tempoEstimado ?: 0,
                     gastoCorrida = it.custoCombustivel,
+                    litros = it.combustivelEstimado,
                 )
             },
             config,
@@ -470,32 +474,44 @@ object OverlayPaineis {
         )
         fun dinheiro(v: Double) = "R$ ${"%.2f".format(v).replace(".", ",")}"
         fun decimal(v: Double) = "%.2f".format(v).replace(".", ",")
+        fun tempo(minutos: Int): String {
+            if (minutos <= 0) return "0 min"
+            val horas = minutos / 60
+            val resto = minutos % 60
+            return if (horas == 0) "$resto min" else "${horas}h ${resto}min"
+        }
+        val tinta = OverlayTema.de(contexto).texto
         corpo.addView(linhaTresMetricasDash(contexto, listOf(
-            Triple("Receitas", "", dinheiro(numeros.receitas) to Color.parseColor(VERDE)),
-            Triple("Despesas", "", dinheiro(numeros.despesas) to Color.parseColor("#E53935")),
+            Triple("Tempo", "", tempo(numeros.minutos) to tinta),
+            Triple("Km", "", "${"%.1f".format(numeros.kmTotal).replace(".", ",")} km" to tinta),
             Triple(
-                "Saldo",
+                "Consumo",
                 "",
-                dinheiro(numeros.saldo) to Color.parseColor(
-                    if (numeros.saldo >= 0) VERDE else "#E53935",
-                ),
+                (numeros.litros?.let { "${decimal(it)} L" } ?: "—") to tinta,
             ),
         )))
-        corpo.addView(rotulo(contexto, "Ganhos/Custos líquido", secao = true))
+        corpo.addView(rotulo(contexto, "Financeiro", secao = true))
+        val margem = if (numeros.receitas > 0) "${decimal(numeros.saldo / numeros.receitas * 100)}%" else "—"
+        corpo.addView(linhaTresMetricasDash(contexto, listOf(
+            Triple("Receitas", "", dinheiro(numeros.receitas) to tinta),
+            Triple("Despesas", "", dinheiro(numeros.despesas) to tinta),
+            Triple("Lucro", "", dinheiro(numeros.saldo) to tinta),
+            Triple("Margem", "", margem to tinta),
+        )))
         corpo.addView(linhaDuasMetricasDash(contexto,
-            "Ganhos Km" to ("R$ ${decimal(numeros.ganhoPorKm)}" to Color.parseColor(VERDE)),
-            "Custo Km" to ("R$ ${decimal(numeros.custoPorKm)}" to Color.parseColor("#E53935")),
+            "Ganhos / km" to ("R$ ${decimal(numeros.ganhoPorKm)}" to tinta),
+            "Custo / km" to ("R$ ${decimal(numeros.custoPorKm)}" to tinta),
         ))
         corpo.addView(linhaDuasMetricasDash(contexto,
-            "Ganhos hora" to ("R$ ${decimal(numeros.ganhoPorHora)}" to Color.parseColor(VERDE)),
-            "Custo hora" to ("R$ ${decimal(numeros.custoPorHora)}" to Color.parseColor("#E53935")),
+            "Ganhos / hora" to ("R$ ${decimal(numeros.ganhoPorHora)}" to tinta),
+            "Custo / hora" to ("R$ ${decimal(numeros.custoPorHora)}" to tinta),
         ))
         corpo.addView(rotulo(contexto, "Estimativa de custos", secao = true))
         listOf(
             "Combustível" to numeros.combustivel,
-            "óleo" to numeros.oleo,
-            "Pneu dianteiros" to numeros.pneuDianteiro,
-            "Pneu traseiros" to numeros.pneuTraseiro,
+            "Óleo" to numeros.oleo,
+            "Pneu dianteiro" to numeros.pneuDianteiro,
+            "Pneu traseiro" to numeros.pneuTraseiro,
             "Seguro" to numeros.seguro,
             "IPVA" to numeros.ipva,
         ).forEach { (rotuloItem, valor) ->
@@ -521,35 +537,102 @@ object OverlayPaineis {
         }
     }
 
+    private fun botaoCalendarioDashboard(context: Context): TextView =
+        TextView(context).apply {
+            text = "📅"
+            gravity = Gravity.CENTER
+            textSize = 16f
+            background = GradientDrawable().apply {
+                shape = GradientDrawable.OVAL
+                setColor(OverlayTema.de(context).pocoIcone)
+            }
+            layoutParams = LinearLayout.LayoutParams(dp(context, 36), dp(context, 36))
+            setOnClickListener { view ->
+                val coluna = view.rootView.findViewWithTag<LinearLayout>("dashboard_coluna") ?: return@setOnClickListener
+                calendarioDashboardAberto = !calendarioDashboardAberto
+                if (calendarioDashboardAberto) {
+                    mesCalendarioDashboard = CalendarioApp.mesDe(
+                        CalendarioApp.diaDe(OverlayBridge.snapshot.value.historicoEpochDay),
+                    )
+                }
+                atualizarCalendarioDashboard(coluna, OverlayBridge.snapshot.value)
+            }
+        }
+
     private fun atualizarCalendarioDashboard(coluna: LinearLayout, snapshot: OverlaySnapshot) {
         val selecionado = CalendarioApp.diaDe(snapshot.historicoEpochDay)
-        val periodo = CalendarioPeriodo.de(snapshot.historicoPeriodo)
         val hoje = CalendarioApp.hoje()
         val marcados = snapshot.historicoDiasComCorrida.toSet()
         val cabecalho = coluna.findViewWithTag<LinearLayout>("dashboard_cabecalho_semana")
         val grade = coluna.findViewWithTag<LinearLayout>("dashboard_grade") ?: return
         grade.removeAllViews()
-        when (periodo) {
-            CalendarioPeriodo.ANO, CalendarioPeriodo.SEMANA -> {
-                // Semana: só setas (faturamento da semana inteira). Ano: sem calendário.
-                cabecalho?.visibility = View.GONE
-                grade.visibility = View.GONE
+        if (!calendarioDashboardAberto) {
+            cabecalho?.visibility = View.GONE
+            grade.visibility = View.GONE
+            return
+        }
+        val mes = mesCalendarioDashboard ?: CalendarioApp.mesDe(selecionado)
+        mesCalendarioDashboard = mes
+        val ancora = mes.atDay(1)
+        cabecalho?.visibility = View.GONE
+        grade.visibility = View.VISIBLE
+        grade.addView(navegacaoMesDashboard(coluna.context, ancora))
+        grade.addView(LinearLayout(coluna.context).apply {
+            orientation = LinearLayout.HORIZONTAL
+            val tema = OverlayTema.de(coluna.context)
+            CalendarioApp.rotulosCabecalhoSemana().forEach { rotulo ->
+                addView(TextView(coluna.context).apply {
+                    text = rotulo
+                    setTextColor(tema.secundario)
+                    textSize = 10f
+                    gravity = Gravity.CENTER
+                    layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+                })
             }
-            CalendarioPeriodo.MES -> {
-                cabecalho?.visibility = View.GONE
-                grade.visibility = View.VISIBLE
-                CalendarioApp.mesesDoAno(selecionado).chunked(6).forEach { linha ->
-                    grade.addView(linhaMesesDashboard(coluna.context, linha, selecionado))
-                }
-            }
-            CalendarioPeriodo.DIA -> {
-                cabecalho?.visibility = View.VISIBLE
-                grade.visibility = View.VISIBLE
-                val dias = CalendarioApp.diasDaSemana(selecionado)
-                grade.addView(linhaDiasDashboard(coluna.context, dias, selecionado, hoje, marcados, periodo))
-            }
+        })
+        CalendarioApp.gradeMes(ancora).chunked(7).forEach { semana ->
+            grade.addView(
+                linhaDiasDashboard(
+                    coluna.context,
+                    semana,
+                    selecionado,
+                    hoje,
+                    marcados,
+                    ancora,
+                ),
+            )
         }
     }
+
+    private fun navegacaoMesDashboard(context: Context, ancora: java.time.LocalDate): LinearLayout =
+        LinearLayout(context).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            val tema = OverlayTema.de(context)
+            fun seta(texto: String, delta: Int) = TextView(context).apply {
+                text = texto
+                setTextColor(tema.texto)
+                textSize = 18f
+                gravity = Gravity.CENTER
+                setPadding(dp(context, 12), dp(context, 4), dp(context, 12), dp(context, 4))
+                setOnClickListener { view ->
+                    mesCalendarioDashboard = (mesCalendarioDashboard ?: CalendarioApp.mesDe(ancora))
+                        .plusMonths(delta.toLong())
+                    val coluna = view.rootView.findViewWithTag<LinearLayout>("dashboard_coluna") ?: return@setOnClickListener
+                    atualizarCalendarioDashboard(coluna, OverlayBridge.snapshot.value)
+                }
+            }
+            addView(seta("‹", -1))
+            addView(TextView(context).apply {
+                text = CalendarioApp.rotuloMesAno(ancora)
+                setTextColor(tema.texto)
+                textSize = 14f
+                typeface = Typeface.DEFAULT_BOLD
+                gravity = Gravity.CENTER
+                layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+            })
+            addView(seta("›", 1))
+        }
 
     private fun linhaMesesDashboard(
         context: Context,
@@ -595,43 +678,45 @@ object OverlayPaineis {
         selecionado: java.time.LocalDate,
         hoje: java.time.LocalDate,
         marcados: Set<Long>,
-        periodo: CalendarioPeriodo,
+        referenciaMes: java.time.LocalDate,
     ): LinearLayout =
         LinearLayout(context).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER
             dias.forEach { dia ->
-                val ativo = when (periodo) {
-                    CalendarioPeriodo.DIA -> dia == selecionado
-                    CalendarioPeriodo.SEMANA -> CalendarioApp.noPeriodo(dia, selecionado, CalendarioPeriodo.SEMANA) &&
-                        dia == selecionado
-                    CalendarioPeriodo.MES -> dia == selecionado
-                    CalendarioPeriodo.ANO -> false
-                }
-                val noMes = CalendarioApp.noMes(dia, selecionado)
+                val ativo = dia == selecionado
+                val noMes = CalendarioApp.noMes(dia, referenciaMes)
                 val temCorrida = marcados.contains(dia.toEpochDay())
                 addView(
                     TextView(context).apply {
                         text = buildString {
                             append(dia.dayOfMonth)
-                            if (temCorrida) append(" ·")
+                            if (temCorrida && noMes) append(" ·")
                         }
                         val tema = OverlayTema.de(context)
                         setTextColor(
                             when {
-                                ativo -> Color.parseColor(VERDE)
-                                dia == hoje -> Color.parseColor(AMARELO)
-                                periodo == CalendarioPeriodo.MES && !noMes -> tema.secundario
+                                ativo -> tema.fundoPainel
+                                !noMes -> tema.secundario
+                                dia == hoje -> tema.texto
                                 else -> tema.texto
                             },
                         )
-                        typeface = if (ativo) Typeface.DEFAULT_BOLD else Typeface.DEFAULT
+                        if (ativo) {
+                            background = GradientDrawable().apply {
+                                shape = GradientDrawable.OVAL
+                                setColor(tema.texto)
+                            }
+                        }
+                        typeface = if (ativo || temCorrida) Typeface.DEFAULT_BOLD else Typeface.DEFAULT
                         textSize = 13f
                         gravity = Gravity.CENTER
                         minHeight = dp(context, 36)
-                        alpha = if (periodo == CalendarioPeriodo.MES && !noMes) 0.45f else 1f
+                        alpha = if (noMes) 1f else 0.45f
                         layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
                         setOnClickListener {
+                            calendarioDashboardAberto = false
+                            mesCalendarioDashboard = CalendarioApp.mesDe(dia)
                             OverlayBridge.emitir(OverlayAcao.HistoricoDia(dia.toEpochDay()))
                         }
                     },
@@ -657,27 +742,31 @@ object OverlayPaineis {
                         background = GradientDrawable().apply {
                             setColor(OverlayTema.de(context).metrica)
                             setStroke(dp(context, 1), OverlayTema.de(context).borda)
-                            cornerRadius = dp(context, 8).toFloat()
+                            cornerRadius = dp(context, 16).toFloat()
                         }
                         setPadding(dp(context, 4), dp(context, 8), dp(context, 4), dp(context, 8))
+                        val fonte = if (itens.size >= 4) 10f else 11f
                         addView(TextView(context).apply {
                             text = titulo
-                            setTextColor(OverlayTema.de(context).texto)
-                            textSize = 11f
+                            setTextColor(OverlayTema.de(context).secundario)
+                            textSize = fonte
                             gravity = Gravity.CENTER
                             typeface = Typeface.DEFAULT_BOLD
                         })
-                        addView(TextView(context).apply {
-                            text = hint
-                            setTextColor(OverlayTema.de(context).secundario)
-                            textSize = 9f
-                            gravity = Gravity.CENTER
-                        })
+                        if (hint.isNotBlank()) {
+                            addView(TextView(context).apply {
+                                text = hint
+                                setTextColor(OverlayTema.de(context).secundario)
+                                textSize = 9f
+                                gravity = Gravity.CENTER
+                            })
+                        }
                         addView(TextView(context).apply {
                             text = valorCor.first
                             setTextColor(valorCor.second)
-                            textSize = 13f
+                            textSize = if (itens.size >= 4) 11f else 13f
                             gravity = Gravity.CENTER
+                            maxLines = 1
                             typeface = Typeface.DEFAULT_BOLD
                         })
                     },
@@ -703,12 +792,12 @@ object OverlayPaineis {
                         background = GradientDrawable().apply {
                             setColor(OverlayTema.de(context).fundoPainel)
                             setStroke(dp(context, 1), OverlayTema.de(context).borda)
-                            cornerRadius = dp(context, 8).toFloat()
+                            cornerRadius = dp(context, 16).toFloat()
                         }
                         setPadding(dp(context, 8), dp(context, 8), dp(context, 8), dp(context, 8))
                         addView(TextView(context).apply {
                             text = titulo
-                            setTextColor(OverlayTema.de(context).texto)
+                            setTextColor(OverlayTema.de(context).secundario)
                             textSize = 11f
                             typeface = Typeface.DEFAULT_BOLD
                         })
@@ -736,7 +825,7 @@ object OverlayPaineis {
             background = GradientDrawable().apply {
                 setColor(OverlayTema.de(context).fundoPainel)
                 setStroke(dp(context, 1), OverlayTema.de(context).borda)
-                cornerRadius = dp(context, 8).toFloat()
+                cornerRadius = dp(context, 16).toFloat()
             }
             layoutParams = LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT,
@@ -753,7 +842,7 @@ object OverlayPaineis {
             addView(TextView(context).apply {
                 text = valor
                 setTextColor(
-                    if (aviso) OverlayTema.de(context).secundario else Color.parseColor(VERDE),
+                    if (aviso) OverlayTema.de(context).secundario else OverlayTema.de(context).texto,
                 )
                 textSize = 12f
                 typeface = Typeface.DEFAULT_BOLD
@@ -1263,15 +1352,10 @@ object OverlayPaineis {
                 OverlayBridge.emitir(OverlayAcao.SelecionarHistorico(item.chave))
             }
             background = GradientDrawable().apply {
-                setColor(
-                    if (selecionado) {
-                        Color.parseColor("#CFD8DC")
-                    } else {
-                        OverlayTema.de(context).card
-                    },
-                )
+                val tema = OverlayTema.de(context)
+                setColor(if (selecionado) tema.pocoIcone else tema.card)
                 setStroke(dp(context, 2), Color.parseColor(item.corMarcador))
-                cornerRadius = dp(context, 10).toFloat()
+                cornerRadius = dp(context, 16).toFloat()
             }
             setPadding(dp(context, 10), dp(context, 10), dp(context, 10), dp(context, 10))
             layoutParams = LinearLayout.LayoutParams(
@@ -1316,7 +1400,7 @@ object OverlayPaineis {
             orientation = LinearLayout.HORIZONTAL
             setPadding(0, dp(context, 6), 0, 0)
         }
-        listOf("Ganhos", "$/Km", "$/Lucro", "$/Gasto", "Nota").forEach { titulo ->
+        listOf("Ganhos", "$/Km", "Resultado", "$/Gasto", "Nota").forEach { titulo ->
             rotulos.addView(
                 TextView(context).apply {
                     text = titulo
@@ -1492,7 +1576,6 @@ object OverlayPaineis {
             secaoComAjuda(
                 ctx,
                 "🚗",
-                "#E3F2FD",
                 "Descrição do veículo",
                 "Carro ou moto",
                 "Final da placa (0–9) define o mês do IPVA. O valor R$ entra no custo do Dashboard.",
@@ -1579,7 +1662,6 @@ object OverlayPaineis {
             secaoComAjuda(
                 ctx,
                 "⛽",
-                "#EDE7F6",
                 "Consumo km/L",
                 "Do combustível marcado",
                 "Quilômetros por litro do combustível atual. Entra no consumo e no gasto estimados da oferta.",
@@ -1624,7 +1706,6 @@ object OverlayPaineis {
             secaoComAjuda(
                 ctx,
                 "⛽",
-                "#EDE7F6",
                 "Despesas do veiculo",
                 "Preço e tipo de energia",
                 "Preço do litro ou do kWh. Com o consumo, o app calcula gasto e lucro da oferta.",
@@ -1781,7 +1862,6 @@ object OverlayPaineis {
             secaoComAjuda(
                 context,
                 "⚙",
-                "#E0F2F1",
                 "Configurações do aplicativo",
                 "Configurar app",
                 "",
@@ -1791,7 +1871,6 @@ object OverlayPaineis {
             secaoComAjuda(
                 context,
                 "",
-                "#E0F2F1",
                 "Permissões",
                 "Para monitorar ofertas",
                 "Notificação, sobrepor, acessibilidade e bateria são obrigatórias. Localização ajuda o mapa. Acessibilidade: Configurações restritas → Serviços instalados.",
@@ -1878,7 +1957,6 @@ object OverlayPaineis {
             secaoComAjuda(
                 context,
                 "",
-                "#F3E5F5",
                 "Tema",
                 "Escuro, claro ou do celular",
                 "Define as cores do overlay e das telas. Celular segue o modo do aparelho.",
@@ -1919,7 +1997,6 @@ object OverlayPaineis {
             secaoComAjuda(
                 context,
                 "",
-                "#E3F2FD",
                 "Navegação",
                 "Maps ou Waze",
                 "App de mapa para abrir embarque e destino quando o endereço for lido.",
@@ -2189,7 +2266,6 @@ object OverlayPaineis {
             secaoComAjuda(
                 ctx,
                 "🚦",
-                "#FFF8E1",
                 "Calibrar a classificação",
                 "Cor da borda da compacta",
                 "Faixas de R$/km. A cor da borda da compacta segue esta escala. Arraste a barra ou use − e + de 0,01.",
@@ -2689,7 +2765,6 @@ object OverlayPaineis {
     private fun secaoComAjuda(
         context: Context,
         icone: String,
-        fundoIcone: String,
         titulo: String,
         subtitulo: String,
         ajuda: String,
@@ -2705,8 +2780,8 @@ object OverlayPaineis {
                         gravity = Gravity.CENTER
                         textSize = 13f
                         background = GradientDrawable().apply {
-                            setColor(Color.parseColor(fundoIcone))
-                            cornerRadius = dp(context, 7).toFloat()
+                            setColor(OverlayTema.de(context).pocoIcone)
+                            cornerRadius = dp(context, 10).toFloat()
                         }
                         layoutParams = LinearLayout.LayoutParams(dp(context, 28), dp(context, 28)).apply {
                             marginEnd = dp(context, 8)
@@ -2888,9 +2963,15 @@ object OverlayPaineis {
                 TextView(context).apply {
                     text = "←"
                     setTextColor(OverlayTema.de(context).texto)
-                    textSize = 22f
+                    textSize = 16f
                     gravity = Gravity.CENTER
-                    setPadding(dp(context, 8), dp(context, 4), dp(context, 12), dp(context, 4))
+                    background = GradientDrawable().apply {
+                        shape = GradientDrawable.OVAL
+                        setColor(OverlayTema.de(context).pocoIcone)
+                    }
+                    layoutParams = LinearLayout.LayoutParams(dp(context, 36), dp(context, 36)).apply {
+                        marginEnd = dp(context, 12)
+                    }
                     setOnClickListener { onVoltar() }
                 },
             )
@@ -2899,7 +2980,7 @@ object OverlayPaineis {
                     tag = "config_titulo"
                     text = "Configurações"
                     setTextColor(OverlayTema.de(context).texto)
-                    textSize = 16f
+                    textSize = 22f
                     typeface = Typeface.DEFAULT_BOLD
                     gravity = Gravity.CENTER_VERTICAL
                     layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
@@ -3049,9 +3130,9 @@ object OverlayPaineis {
     private fun fundoNeutro(context: Context): GradientDrawable {
         val tema = OverlayTema.de(context)
         return GradientDrawable().apply {
-            setColor(tema.fundoPainel)
-            setStroke(dp(context, 2), tema.borda)
-            cornerRadius = dp(context, 10).toFloat()
+            setColor(tema.fundo)
+            setStroke(dp(context, 1), tema.borda)
+            cornerRadius = dp(context, 16).toFloat()
         }
     }
 

@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.windowInsetsPadding
@@ -38,7 +39,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -116,7 +116,7 @@ fun AppScreen(
                     state.dashboardVisivel -> DashboardTela(
                         state = state,
                         configuracao = configuracoesViewModel.configuracao,
-                        onVoltar = viewModel::fecharDashboard,
+                        onVoltar = viewModel::voltarParaOpcoes,
                         onDia = viewModel::selecionarDiaHistorico,
                         onAvancar = viewModel::avancarPeriodoHistorico,
                         onPeriodo = viewModel::selecionarPeriodoHistorico,
@@ -127,6 +127,18 @@ fun AppScreen(
                         abaInicial = state.abaConfiguracao,
                         destacarPermissoes = state.destacarPermissoes,
                         plano = state.plano,
+                        monitorando = state.monitorando,
+                        onAbaPersistida = viewModel::definirAbaConfiguracao,
+                        onHistorico = viewModel::abrirHistoricoNoMenu,
+                        onCarteira = viewModel::abrirCarteiraNoMenu,
+                        onAtivarMonitoramento = viewModel::solicitarAlternarMonitoramento,
+                        onDesativarMonitoramento = viewModel::solicitarAlternarMonitoramento,
+                        onLocalizacao = { activity?.pedirLocalizacao() },
+                        onFechar = viewModel::solicitarFecharApp,
+                        confirmacaoMonitorVisivel = state.confirmacaoDesativarVisivel,
+                        onCancelarMonitor = viewModel::cancelarDesativarMonitoramento,
+                        onConfirmarMonitor = viewModel::confirmarAlternarMonitoramento,
+                        subtituloMenu = subtituloMenu(state),
                     )
                 }
             }
@@ -169,19 +181,12 @@ private fun ConteudoPrincipal(
     configuracoesViewModel: ConfiguracoesViewModel,
     state: AppState,
 ) {
+        val activity = LocalContext.current as? br.com.gestordriver.MainActivity
         Box(modifier = Modifier.fillMaxSize()) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .background(
-                    Brush.linearGradient(
-                        colors = listOf(
-                            LocalPaletaApp.current.fundo,
-                            LocalPaletaApp.current.fundoPainel,
-                            LocalPaletaApp.current.fundo,
-                        ),
-                    ),
-                )
+                .background(LocalPaletaApp.current.fundo)
                 .verticalScroll(rememberScrollState())
                 .padding(
                     horizontal = 12.dp,
@@ -194,15 +199,17 @@ private fun ConteudoPrincipal(
             // TÍTULO
             // =========================================================
 
-            Box(
-                modifier = Modifier.fillMaxWidth(),
-                contentAlignment = Alignment.Center,
-            ) {
+            Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 4.dp)) {
                 Text(
-                    text = "Gestor Driver 🚗",
+                    text = "Gestor Driver",
                     color = LocalPaletaApp.current.texto,
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.SemiBold,
+                    fontSize = 22.sp,
+                    fontWeight = FontWeight.Bold,
+                )
+                Text(
+                    text = "Oferta, resultado e atalhos",
+                    color = LocalPaletaApp.current.textoSecundario,
+                    fontSize = 12.sp,
                 )
             }
 
@@ -212,8 +219,8 @@ private fun ConteudoPrincipal(
 
             MonitoramentoToggle(
                 monitorando = state.monitorando,
-                onAtivar = viewModel::ativarMonitoramento,
-                onDesativar = viewModel::solicitarDesativarMonitoramento,
+                onAtivar = viewModel::solicitarAlternarMonitoramento,
+                onDesativar = viewModel::solicitarAlternarMonitoramento,
             )
 
             Column(
@@ -235,8 +242,9 @@ private fun ConteudoPrincipal(
                         color = parseColor(
                             state.corrida.corClassificacao,
                         ),
-                        shape = CardDefaults.shape,
+                        shape = RoundedCornerShape(16.dp),
                     ),
+                shape = RoundedCornerShape(16.dp),
                 colors = CardDefaults.cardColors(
                     containerColor = LocalPaletaApp.current.fundoPainel,
                 ),
@@ -309,64 +317,79 @@ private fun ConteudoPrincipal(
                 )
             }
 
-            AnimatedVisibility(
-                visible = state.historicoVisivel &&
-                    state.corrida.modo == ModoApresentacao.DETALHES,
-                enter = slideInVertically(animationSpec = tween(220)) { -it },
-                exit = slideOutVertically(animationSpec = tween(180)) { -it },
-            ) {
-                Box(modifier = Modifier.fillMaxWidth()) {
-                    HistoricoTela(
-                        state = state,
-                        onVoltar = viewModel::alternarHistorico,
-                        onDia = viewModel::selecionarDiaHistorico,
-                        onAvancarSemana = viewModel::avancarSemanaHistorico,
-                        onAba = viewModel::selecionarAbaHistorico,
-                        onSelecionar = viewModel::marcarItemHistorico,
-                        onLimpar = viewModel::solicitarLimparHistorico,
-                    )
-                    if (state.confirmacaoLimparHistoricoVisivel) {
-                        Box(
-                            modifier = Modifier
-                                .matchParentSize()
-                                .background(Color.Black.copy(alpha = 0.45f))
-                                .clickable(enabled = false, onClick = {})
-                                .padding(horizontal = 16.dp, vertical = 24.dp),
-                            contentAlignment = Alignment.Center,
-                        ) {
-                            ConfirmacaoFecharSection(
-                                titulo = "gestor driver",
-                                mensagem = "Limpar histórico",
-                                textoConfirmar = "Limpar",
-                                onCancelar = viewModel::cancelarLimparHistorico,
-                                onConfirmar = viewModel::confirmarLimparHistorico,
-                            )
-                        }
-                    }
-                }
-            }
             }
         }
         if (state.configuracoesVisivel) {
             ConfiguracoesScreen(
                 viewModel = configuracoesViewModel,
-                onVoltar = viewModel::fecharConfiguracoes,
+                onVoltar = {
+                    if (state.abaConfiguracao < 0) {
+                        if (state.monitorando) {
+                            viewModel.recolherAoSairDoApp()
+                        }
+                    } else {
+                        viewModel.voltarParaOpcoes()
+                    }
+                },
                 abaInicial = state.abaConfiguracao,
                 destacarPermissoes = state.destacarPermissoes,
                 plano = state.plano,
+                monitorando = state.monitorando,
+                onAbaPersistida = viewModel::definirAbaConfiguracao,
+                onHistorico = viewModel::abrirHistoricoNoMenu,
+                onCarteira = viewModel::abrirCarteiraNoMenu,
+                onAtivarMonitoramento = viewModel::solicitarAlternarMonitoramento,
+                onDesativarMonitoramento = viewModel::solicitarAlternarMonitoramento,
+                onLocalizacao = { activity?.pedirLocalizacao() },
+                onFechar = viewModel::solicitarFecharApp,
+                confirmacaoMonitorVisivel = state.confirmacaoDesativarVisivel,
+                onCancelarMonitor = viewModel::cancelarDesativarMonitoramento,
+                onConfirmarMonitor = viewModel::confirmarAlternarMonitoramento,
+                subtituloMenu = subtituloMenu(state),
             )
+        }
+        if (state.historicoVisivel) {
+            Box(modifier = Modifier.fillMaxSize().background(LocalPaletaApp.current.fundo)) {
+                HistoricoTela(
+                    state = state,
+                    onVoltar = viewModel::voltarParaOpcoes,
+                    onDia = viewModel::selecionarDiaHistorico,
+                    onAvancarSemana = viewModel::avancarSemanaHistorico,
+                    onAba = viewModel::selecionarAbaHistorico,
+                    onSelecionar = viewModel::marcarItemHistorico,
+                    onLimpar = viewModel::solicitarLimparHistorico,
+                )
+                if (state.confirmacaoLimparHistoricoVisivel) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(Color.Black.copy(alpha = 0.45f))
+                            .clickable(enabled = false, onClick = {})
+                            .padding(horizontal = 16.dp, vertical = 24.dp),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        ConfirmacaoFecharSection(
+                            titulo = "Gestor Driver",
+                            mensagem = "Limpar histórico",
+                            textoConfirmar = "Limpar",
+                            onCancelar = viewModel::cancelarLimparHistorico,
+                            onConfirmar = viewModel::confirmarLimparHistorico,
+                        )
+                    }
+                }
+            }
         }
         if (state.dashboardVisivel) {
             DashboardTela(
                 state = state,
                 configuracao = configuracoesViewModel.configuracao,
-                onVoltar = viewModel::fecharDashboard,
+                onVoltar = viewModel::voltarParaOpcoes,
                 onDia = viewModel::selecionarDiaHistorico,
                 onAvancar = viewModel::avancarPeriodoHistorico,
                 onPeriodo = viewModel::selecionarPeriodoHistorico,
             )
         }
-        if (state.confirmacaoDesativarVisivel) {
+        if (state.confirmacaoDesativarVisivel && !state.configuracoesVisivel) {
             Box(
                 modifier = Modifier
                     .fillMaxSize()
@@ -376,15 +399,28 @@ private fun ConteudoPrincipal(
                 contentAlignment = Alignment.Center,
             ) {
                 ConfirmacaoFecharSection(
-                    titulo = "Desativar monitoramento",
-                    mensagem = "Deseja parar de monitorar as ofertas? O app continua aberto.",
-                    textoConfirmar = "Desativar",
+                    titulo = if (state.monitorando) "Desligar monitoramento" else "Ligar monitoramento",
+                    mensagem = if (state.monitorando) {
+                        "Desligar o monitoramento? O selo e o aviso somem. O app continua aberto."
+                    } else {
+                        "Ligar o monitoramento? O selo e o aviso aparecem."
+                    },
+                    textoConfirmar = if (state.monitorando) "Desligar" else "Ligar",
                     onCancelar = viewModel::cancelarDesativarMonitoramento,
-                    onConfirmar = viewModel::confirmarDesativarMonitoramento,
+                    onConfirmar = viewModel::confirmarAlternarMonitoramento,
                 )
             }
         }
         }
+}
+
+private fun subtituloMenu(state: AppState): String {
+    val hoje = state.historico.count {
+        it.dataHoraRegistro?.toLocalDate() == br.com.gestordriver.core.CalendarioApp.hoje()
+    }
+    val status = if (state.monitorando) "Monitorando" else "Desligado"
+    val corridas = if (hoje == 1) "1 corrida hoje" else "$hoje corridas hoje"
+    return "$status · $corridas"
 }
 
 @Composable
@@ -394,32 +430,50 @@ private fun MonitoramentoToggle(
     onDesativar: () -> Unit,
 ) {
     val paleta = LocalPaletaApp.current
-    val corStatus = if (monitorando) parseColor("#2E7D32") else parseColor("#C62828")
-    Column(
+    val forma = RoundedCornerShape(16.dp)
+    Row(
         modifier = Modifier
             .fillMaxWidth()
-            .border(width = 2.dp, color = paleta.borda, shape = CardDefaults.shape)
-            .background(paleta.fundoPainel, CardDefaults.shape)
+            .border(width = 1.dp, color = paleta.borda, shape = forma)
+            .background(paleta.fundoPainel, forma)
             .clickable(onClick = if (monitorando) onDesativar else onAtivar)
-            .padding(horizontal = 14.dp, vertical = 12.dp),
-        verticalArrangement = Arrangement.spacedBy(4.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
+            .padding(horizontal = 12.dp, vertical = 10.dp),
+        verticalAlignment = Alignment.CenterVertically,
     ) {
+        Box(
+            modifier = Modifier
+                .size(40.dp)
+                .background(paleta.pocoIcone, RoundedCornerShape(12.dp)),
+            contentAlignment = Alignment.Center,
+        ) {
+            Text(text = "📡", fontSize = 16.sp)
+        }
+        Column(
+            modifier = Modifier
+                .weight(1f)
+                .padding(horizontal = 10.dp),
+        ) {
+            Text(
+                text = "Monitoramento",
+                color = paleta.texto,
+                fontSize = 14.sp,
+                fontWeight = FontWeight.Bold,
+            )
+            Text(
+                text = if (monitorando) {
+                    "Ligado. Desligue antes de abrir o banco."
+                } else {
+                    "Desligado. Toque para dirigir."
+                },
+                color = paleta.textoSecundario,
+                fontSize = 11.sp,
+                maxLines = 2,
+            )
+        }
         Text(
-            text = if (monitorando) "🟢 MONITORAMENTO ATIVO" else "🔴 MONITORAMENTO DESATIVADO",
-            color = corStatus,
-            style = MaterialTheme.typography.titleSmall,
-            fontWeight = FontWeight.Bold,
-        )
-        Text(
-            text = if (monitorando) "Monitorando ofertas" else "Toque para começar a monitorar",
-            color = paleta.textoSecundario,
-            style = MaterialTheme.typography.bodySmall,
-        )
-        Text(
-            text = if (monitorando) "DESATIVAR MONITORAMENTO" else "ATIVAR MONITORAMENTO",
-            color = TextoAmarelo,
-            style = MaterialTheme.typography.labelLarge,
+            text = if (monitorando) "ON" else "OFF",
+            color = if (monitorando) parseColor("#2E7D32") else paleta.textoSecundario,
+            fontSize = 13.sp,
             fontWeight = FontWeight.Bold,
         )
     }
@@ -437,8 +491,8 @@ private fun ConfirmacaoFecharSection(
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .border(width = 2.dp, color = paleta.borda, shape = CardDefaults.shape)
-            .background(paleta.fundoPainel, CardDefaults.shape)
+            .border(width = 1.dp, color = paleta.borda, shape = RoundedCornerShape(16.dp))
+            .background(paleta.fundoPainel, RoundedCornerShape(16.dp))
             .padding(horizontal = 12.dp, vertical = 10.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -465,7 +519,7 @@ private fun ConfirmacaoFecharSection(
             TextButton(onClick = onConfirmar) {
                 Text(
                     text = textoConfirmar,
-                    color = TextoAmarelo,
+                    color = Color(0xFFE53935),
                     fontWeight = FontWeight.SemiBold,
                 )
             }
@@ -508,7 +562,7 @@ private fun CabecalhoCorrida(
             verticalAlignment = Alignment.CenterVertically,
         ) {
 
-            campos.forEach { campo ->
+            campos.filter { it.id != "valor_total" }.forEach { campo ->
 
                 Box(
                     modifier = Modifier
