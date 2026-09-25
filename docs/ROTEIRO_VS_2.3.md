@@ -76,12 +76,17 @@ R$/hora online real (`SessaoTrabalho`), Design System / tokens, depreciação.
 - [x] Bloco D — Terminologia "Lucro" → "Resultado".
 - [x] Bloco F — Monitoramento ON/OFF explícito (cold start OFF, confirmação nos dois sentidos, aviso sem ação Desativar).
 - [x] Janela principal — menu na aba Opções, tela cheia. Overlay só selo, atalhos e compacta.
+- [x] Menu sem faixa nem deslize. Ordem: Monitorar, Localização, Histórico, Carteira, Despesas, Semáforo, Usuário, Sistema, Fechar.
+- [x] Salvar grava e avisa na tela. Cancelar e a seta voltam para Opções. Semáforo salva pela seta.
+- [x] Recentes e Home mostram Opções. Selo no cabeçalho só com monitoramento ligado.
+- [x] Dashboard: seguro mensal e IPVA anual fecham no mês e no ano.
+- [x] Notificação fechada mostra os números da oferta (R$/km, resultado, litros, nota).
 
 ## Janela principal e overlays
 
 - Ao iniciar o app, a janela principal é o **menu na aba Opções** (tela cheia).
   Título **Gestor Driver**. Subtítulo: monitoramento e corridas de hoje.
-- Histórico, Carteira, Semáforo, Usuário e Configurar abrem **dentro do app**.
+- Histórico, Carteira, Semáforo, Usuário e Sistema abrem **dentro do app**.
 - Por cima de outros apps: **selo**, **tela de atalhos** e **compacta**.
 - Selo e aviso da barra só com monitoramento ligado. Fechar um ou os dois não
   desliga. Fechar aviso, selo e o app desliga por segurança.

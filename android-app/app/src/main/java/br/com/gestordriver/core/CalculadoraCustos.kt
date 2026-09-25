@@ -3,7 +3,7 @@ package br.com.gestordriver.core
 object CalculadoraCustos {
     /**
      * Custo por km da corrida (óleo + pneus).
-     * Seguro fica no Dashboard (rateio por recorrência mensal/anual).
+     * Seguro e IPVA ficam no dashboard. O seguro é mensal e o IPVA é anual.
      */
     fun custoPorKm(config: ConfiguracaoUsuario): Double {
         var porKm = 0.0

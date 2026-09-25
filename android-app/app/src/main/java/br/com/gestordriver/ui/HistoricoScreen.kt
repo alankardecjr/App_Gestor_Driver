@@ -1,13 +1,16 @@
 package br.com.gestordriver.ui
 
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
@@ -19,6 +22,10 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -30,6 +37,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import br.com.gestordriver.GestorDriverApp
 import br.com.gestordriver.core.CalendarioApp
+import br.com.gestordriver.core.ClassificacaoConstantes
+import br.com.gestordriver.core.SemaforoOferta
 import br.com.gestordriver.core.CalendarioPeriodo
 import br.com.gestordriver.data.chaveHistorico
 import br.com.gestordriver.model.HistoricoItemPresentation
@@ -40,13 +49,15 @@ import br.com.gestordriver.presentation.PresentationBuilder
 import br.com.gestordriver.ui.theme.LocalPaletaApp
 import java.time.LocalDate
 import java.time.LocalDateTime
+import java.time.YearMonth
 import java.time.format.DateTimeFormatter
 import java.time.format.TextStyle
 
-private val TextoVerde = Color(0xFF7CB342)
-private val TextoAmarelo = Color(0xFFFFD54F)
-private val TextoCinzaEmoji = Color(0xFF90A4AE)
-private val AbasPlataforma = listOf("Todos", "Uber", "99", "inDrive")
+private val VerdePaleta = Color(0xFF2E7D32)
+private val AmareloPaleta = Color(0xFFF9A825)
+private val VermelhoPaleta = Color(0xFFC62828)
+private val IconesAba = listOf("◻", "⬛", "🟡", "🟢")
+private val NomesAba = listOf("Todos", "Uber", "99", "inDrive")
 
 @Composable
 fun HistoricoTela(
@@ -56,15 +67,14 @@ fun HistoricoTela(
     onAvancarSemana: (Int) -> Unit,
     onAba: (String) -> Unit,
     onSelecionar: (HistoricoItemPresentation) -> Unit,
+    onCancelarMarcacao: () -> Unit,
     onLimpar: () -> Unit,
 ) {
-    val periodo = CalendarioPeriodo.SEMANA
     val itens = state.historico
         .sortedByDescending { it.dataHoraRegistro ?: LocalDateTime.MIN }
         .filter { item ->
             val dia = item.dataHoraRegistro?.toLocalDate() ?: return@filter false
-            CalendarioApp.noPeriodo(dia, state.historicoDia, periodo) &&
-                item.pertenceAba(state.abaHistorico)
+            dia == state.historicoDia && item.pertenceAba(state.abaHistorico)
         }
     val selecionado = state.historicoDia
     val hoje = CalendarioApp.hoje()
@@ -73,15 +83,18 @@ fun HistoricoTela(
     val paleta = LocalPaletaApp.current
     val forma = RoundedCornerShape(16.dp)
     val contexto = LocalContext.current
-    val abaSelecionada = AbasPlataforma.indexOfFirst {
+    val abaSelecionada = NomesAba.indexOfFirst {
         it.equals(state.abaHistorico, ignoreCase = true)
     }.coerceAtLeast(0)
+    val marcando = state.historicoChavesSelecionadas.isNotEmpty()
+    var calendarioAberto by remember { mutableStateOf(false) }
+    var mesCalendario by remember { mutableStateOf(CalendarioApp.mesDe(selecionado)) }
 
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .deslizeHorizontalAbas(abaSelecionada, AbasPlataforma.size) { novo ->
-                onAba(AbasPlataforma[novo])
+            .deslizeHorizontalAbas(abaSelecionada, NomesAba.size) { novo ->
+                onAba(NomesAba[novo])
             }
             .background(paleta.fundo, forma)
             .border(1.dp, paleta.borda, forma)
@@ -90,39 +103,68 @@ fun HistoricoTela(
         CabecalhoTela(
             titulo = "Histórico",
             subtitulo = "Corridas aceitas",
+            icone = "📅",
             onVoltar = onVoltar,
             acao = {
-                BotaoCircular(
-                    simbolo = "🗑",
-                    perigo = true,
-                    onClick = {
-                        if (state.historicoChavesSelecionadas.isEmpty()) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    BotaoCircular(
+                        simbolo = "?",
+                        onClick = {
                             android.widget.Toast.makeText(
                                 contexto,
-                                "Selecionar a(s) corrida(s)",
-                                android.widget.Toast.LENGTH_SHORT,
+                                "A semana serve para escolher o dia. A lista e os quatro campos mostram só as corridas aceitas nesse dia: faturamento, distância, tempo em corridas e a quantidade. Segure um card para marcar e a lixeira apaga o que estiver marcado.",
+                                android.widget.Toast.LENGTH_LONG,
                             ).show()
-                        } else {
-                            onLimpar()
-                        }
-                    },
-                )
+                        },
+                    )
+                    Spacer(modifier = Modifier.size(8.dp))
+                    BotaoCircular(
+                        simbolo = if (marcando) "←" else "📆",
+                        onClick = {
+                            if (marcando) {
+                                onCancelarMarcacao()
+                            } else {
+                                if (!calendarioAberto) {
+                                    mesCalendario = CalendarioApp.mesDe(selecionado)
+                                }
+                                calendarioAberto = !calendarioAberto
+                            }
+                        },
+                    )
+                    Spacer(modifier = Modifier.size(8.dp))
+                    BotaoCircular(
+                        simbolo = "🗑",
+                        perigo = true,
+                        onClick = {
+                            if (state.historicoChavesSelecionadas.isEmpty()) {
+                                android.widget.Toast.makeText(
+                                    contexto,
+                                    "Selecionar a(s) corrida(s)",
+                                    android.widget.Toast.LENGTH_SHORT,
+                                ).show()
+                            } else {
+                                onLimpar()
+                            }
+                        },
+                    )
+                }
             },
         )
 
         FaixaAbasComSetas(
-            titulos = AbasPlataforma,
+            titulos = NomesAba,
+            icones = IconesAba,
             selecionada = abaSelecionada,
             corAtiva = paleta.texto,
             corInativa = paleta.textoSecundario,
-            onSelecionar = { onAba(AbasPlataforma[it]) },
-            tamanhoFonte = 13.sp,
+            onSelecionar = { onAba(NomesAba[it]) },
+            tamanhoFonte = 11.sp,
         )
 
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 12.dp, vertical = 4.dp),
+                .padding(horizontal = 12.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             TituloComSetas(
@@ -133,13 +175,29 @@ fun HistoricoTela(
             )
         }
 
-        GradeDiasHistorico(
-            faixa = faixa,
-            selecionado = selecionado,
-            hoje = hoje,
-            marcados = marcados,
-            onDia = onDia,
-        )
+        if (calendarioAberto && !marcando) {
+            CalendarioMesHistorico(
+                mes = mesCalendario,
+                selecionado = selecionado,
+                hoje = hoje,
+                marcados = marcados,
+                onMes = { mesCalendario = mesCalendario.plusMonths(it.toLong()) },
+                onDia = { epoch ->
+                    onDia(epoch)
+                    calendarioAberto = false
+                },
+            )
+        } else {
+            GradeDiasHistorico(
+                faixa = faixa,
+                selecionado = selecionado,
+                hoje = hoje,
+                marcados = marcados,
+                onDia = onDia,
+            )
+        }
+
+        ResumoPeriodoHistorico(itens)
 
         val rolagem = rememberScrollState()
         Column(
@@ -153,7 +211,7 @@ fun HistoricoTela(
         ) {
             if (itens.isEmpty()) {
                 Text(
-                    text = CalendarioApp.textoVazio(periodo),
+                    text = CalendarioApp.textoVazio(CalendarioPeriodo.DIA),
                     color = paleta.textoSecundario,
                     fontSize = 12.sp,
                     modifier = Modifier.padding(horizontal = 4.dp, vertical = 8.dp),
@@ -162,8 +220,14 @@ fun HistoricoTela(
                 itens.forEach { item ->
                     CartaoCorridaHistorico(
                         item = item,
+                        mostrarMarca = marcando,
                         selecionado = item.chaveHistorico() in state.historicoChavesSelecionadas,
-                        onSelecionar = { onSelecionar(item) },
+                        onMarcar = { onSelecionar(item) },
+                        onSegurar = {
+                            if (item.chaveHistorico() !in state.historicoChavesSelecionadas) {
+                                onSelecionar(item)
+                            }
+                        },
                     )
                 }
             }
@@ -182,6 +246,74 @@ fun HistoricoTela(
 }
 
 @Composable
+private fun ResumoPeriodoHistorico(itens: List<HistoricoItemPresentation>) {
+    val paleta = LocalPaletaApp.current
+    val forma = RoundedCornerShape(16.dp)
+    val minutos = itens.sumOf { it.tempoEstimado ?: 0 }
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 8.dp, vertical = 4.dp)
+            .background(paleta.fundoPainel, forma)
+            .border(1.dp, paleta.borda, forma)
+            .padding(horizontal = 4.dp, vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        MetricaResumo("R$", PresentationBuilder.formatarDinheiroHistorico(itens.sumOf { it.valorTotal }), "Faturamento")
+        MetricaResumo("km", PresentationBuilder.formatarDistanciaHistorico(itens.sumOf { it.kmTotal }), "Distância")
+        MetricaResumo("h", formatarTempoResumo(minutos), "Tempo em corridas")
+        MetricaResumo("n", itens.size.toString(), "Corridas aceitas")
+    }
+}
+
+@Composable
+private fun RowScope.MetricaResumo(icone: String, valor: String, titulo: String) {
+    val paleta = LocalPaletaApp.current
+    Row(
+        modifier = Modifier.weight(1f),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.Center,
+    ) {
+        Box(
+            modifier = Modifier
+                .size(28.dp)
+                .background(paleta.pocoIcone, RoundedCornerShape(8.dp)),
+            contentAlignment = Alignment.Center,
+        ) {
+            Text(
+                text = icone,
+                color = paleta.texto,
+                fontSize = 11.sp,
+                fontWeight = FontWeight.Bold,
+            )
+        }
+        Column(modifier = Modifier.padding(start = 4.dp)) {
+            Text(
+                text = valor,
+                color = paleta.texto,
+                fontSize = 11.sp,
+                fontWeight = FontWeight.Bold,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+            Text(
+                text = titulo,
+                color = paleta.textoSecundario,
+                fontSize = 9.sp,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
+    }
+}
+
+private fun formatarTempoResumo(minutos: Int): String {
+    val horas = minutos / 60
+    val resto = minutos % 60
+    return if (horas == 0) "${resto}min" else "${horas}h ${resto}m"
+}
+
+@Composable
 private fun GradeDiasHistorico(
     faixa: List<LocalDate>,
     selecionado: LocalDate,
@@ -190,13 +322,14 @@ private fun GradeDiasHistorico(
     onDia: (Long) -> Unit,
 ) {
     val paleta = LocalPaletaApp.current
-    Column(modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)) {
+    Column(modifier = Modifier.padding(horizontal = 8.dp)) {
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
             CalendarioApp.rotulosCabecalhoSemana().forEach { rotulo ->
                 Text(
                     text = rotulo,
                     color = paleta.textoSecundario,
                     fontSize = 10.sp,
+                    lineHeight = 12.sp,
                     textAlign = TextAlign.Center,
                     modifier = Modifier.weight(1f),
                 )
@@ -211,19 +344,18 @@ private fun GradeDiasHistorico(
                 val temCorrida = marcados.contains(dia)
                 val cor = when {
                     ativo -> paleta.fundoPainel
-                    dia == hoje -> TextoAmarelo
+                    dia == hoje -> AmareloPaleta
                     else -> paleta.texto
                 }
                 Column(
                     modifier = Modifier
                         .weight(1f)
-                        .heightIn(min = 36.dp)
                         .clickable { onDia(dia.toEpochDay()) },
                     horizontalAlignment = Alignment.CenterHorizontally,
                 ) {
                     Box(
                         modifier = Modifier
-                            .size(28.dp)
+                            .size(24.dp)
                             .then(
                                 if (ativo) {
                                     Modifier.background(paleta.texto, CircleShape)
@@ -243,9 +375,8 @@ private fun GradeDiasHistorico(
                     if (temCorrida && !ativo) {
                         Box(
                             modifier = Modifier
-                                .padding(top = 1.dp)
-                                .size(4.dp)
-                                .background(TextoVerde, CircleShape),
+                                .size(3.dp)
+                                .background(VerdePaleta, CircleShape),
                         )
                     }
                 }
@@ -255,23 +386,21 @@ private fun GradeDiasHistorico(
 }
 
 @Composable
-private fun CartaoCorridaHistorico(
-    item: HistoricoItemPresentation,
-    selecionado: Boolean,
-    onSelecionar: () -> Unit,
+private fun CalendarioMesHistorico(
+    mes: YearMonth,
+    selecionado: LocalDate,
+    hoje: LocalDate,
+    marcados: Set<LocalDate>,
+    onMes: (Int) -> Unit,
+    onDia: (Long) -> Unit,
 ) {
-    val contexto = LocalContext.current
     val paleta = LocalPaletaApp.current
-    val forma = RoundedCornerShape(16.dp)
-    val corClasse = parseCor(item.corClassificacao)
+    val ancora = mes.atDay(1)
+    val dias = CalendarioApp.gradeMes(ancora)
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .background(paleta.fundoCardHistorico, forma)
-            .border(2.dp, corClasse, forma)
-            .clickable(onClick = onSelecionar)
-            .padding(10.dp),
-        verticalArrangement = Arrangement.spacedBy(6.dp),
+            .padding(horizontal = 8.dp, vertical = 4.dp),
     ) {
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -279,98 +408,288 @@ private fun CartaoCorridaHistorico(
             horizontalArrangement = Arrangement.SpaceBetween,
         ) {
             Text(
-                text = seloPlataforma(item.plataforma),
-                fontSize = 14.sp,
+                text = "‹",
+                color = paleta.texto,
+                fontSize = 18.sp,
+                modifier = Modifier
+                    .clickable { onMes(-1) }
+                    .padding(horizontal = 12.dp, vertical = 4.dp),
             )
             Text(
-                text = formatarCabecalhoData(item.dataHoraRegistro, item.dataLista, item.horaLista),
-                color = paleta.textoSecundario,
-                fontSize = 12.sp,
-                textAlign = TextAlign.End,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
+                text = CalendarioApp.rotuloMesAno(ancora),
+                color = paleta.texto,
+                fontSize = 14.sp,
+                fontWeight = FontWeight.SemiBold,
+            )
+            Text(
+                text = "›",
+                color = paleta.texto,
+                fontSize = 18.sp,
                 modifier = Modifier
-                    .weight(1f)
-                    .padding(start = 12.dp),
+                    .clickable { onMes(1) }
+                    .padding(horizontal = 12.dp, vertical = 4.dp),
             )
         }
-
         Row(modifier = Modifier.fillMaxWidth()) {
-            RotuloMetrica("Ganhos")
-            RotuloMetrica("R$/Km")
-            RotuloMetrica("Resultado")
-            RotuloMetrica("R$/gasto")
-            RotuloMetrica("Nota")
+            CalendarioApp.rotulosCabecalhoSemana().forEach { rotulo ->
+                Text(
+                    text = rotulo,
+                    color = paleta.textoSecundario,
+                    fontSize = 10.sp,
+                    lineHeight = 12.sp,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.weight(1f),
+                )
+            }
         }
+        dias.chunked(7).forEach { semana ->
+            Row(modifier = Modifier.fillMaxWidth()) {
+                semana.forEach { dia ->
+                    val noMes = CalendarioApp.noMes(dia, ancora)
+                    val ativo = dia == selecionado
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .clickable { onDia(dia.toEpochDay()) },
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(24.dp)
+                                .then(
+                                    if (ativo) {
+                                        Modifier.background(paleta.texto, CircleShape)
+                                    } else {
+                                        Modifier
+                                    },
+                                ),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            Text(
+                                text = "${dia.dayOfMonth}",
+                                color = when {
+                                    ativo -> paleta.fundoPainel
+                                    !noMes -> paleta.textoSecundario.copy(alpha = 0.4f)
+                                    dia == hoje -> AmareloPaleta
+                                    else -> paleta.texto
+                                },
+                                fontSize = 12.sp,
+                                fontWeight = if (ativo || marcados.contains(dia)) {
+                                    FontWeight.SemiBold
+                                } else {
+                                    FontWeight.Normal
+                                },
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalFoundationApi::class)
+@Composable
+private fun CartaoCorridaHistorico(
+    item: HistoricoItemPresentation,
+    mostrarMarca: Boolean,
+    selecionado: Boolean,
+    onMarcar: () -> Unit,
+    onSegurar: () -> Unit,
+) {
+    val contexto = LocalContext.current
+    val paleta = LocalPaletaApp.current
+    val forma = RoundedCornerShape(16.dp)
+    val verde = VerdePaleta
+    val lucroKm = if (item.kmTotal > 0 && item.custoCombustivel != null) {
+        (item.valorTotal - item.custoCombustivel) / item.kmTotal
+    } else {
+        null
+    }
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(paleta.fundoPainel, forma)
+            .border(1.dp, paleta.borda, forma)
+            .combinedClickable(
+                onClick = { if (mostrarMarca) onMarcar() },
+                onLongClick = onSegurar,
+            )
+            .padding(horizontal = 10.dp, vertical = 8.dp),
+        verticalArrangement = Arrangement.spacedBy(4.dp),
+    ) {
         Row(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            ValorGanhos(PresentationBuilder.formatarCelulaHistoricoValor(item.valorTotal))
-            CaixaMetrica(
-                PresentationBuilder.formatarCelulaHistoricoValorPorKm(item.valorPorKm),
-            )
-            CaixaMetrica(
-                PresentationBuilder.formatarLucroHistorico(item.valorTotal, item.custoCombustivel),
-            )
-            CaixaMetrica(
-                PresentationBuilder.formatarGastoHistorico(item.custoCombustivel),
-            )
-            CaixaMetrica(
-                PresentationBuilder.formatarCelulaHistoricoNota(item.notaPassageiro),
-            )
+            if (mostrarMarca) {
+                Text(
+                    text = if (selecionado) "☑" else "☐",
+                    color = if (selecionado) verde else paleta.textoSecundario,
+                    fontSize = 16.sp,
+                    modifier = Modifier.padding(end = 8.dp),
+                )
+            }
+            Box(
+                modifier = Modifier
+                    .size(28.dp)
+                    .background(paleta.pocoIcone, RoundedCornerShape(8.dp)),
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(text = seloPlataforma(item.plataforma), fontSize = 13.sp)
+            }
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .padding(horizontal = 8.dp),
+            ) {
+                Text(
+                    text = formatarCabecalhoData(item.dataHoraRegistro, item.dataLista, item.horaLista),
+                    color = paleta.texto,
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                Text(
+                    text = item.plataforma,
+                    color = paleta.textoSecundario,
+                    fontSize = 11.sp,
+                    maxLines = 1,
+                )
+            }
+            Column(horizontalAlignment = Alignment.End) {
+                Text(
+                    text = PresentationBuilder.formatarCelulaHistoricoNota(item.notaPassageiro),
+                    color = corDaNota(item),
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Bold,
+                )
+                Text(
+                    text = item.classificacao.rotulo,
+                    color = parseCor(item.corClassificacao),
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.SemiBold,
+                )
+            }
+            Box(
+                modifier = Modifier
+                    .padding(start = 8.dp)
+                    .size(28.dp)
+                    .background(paleta.pocoIcone, CircleShape)
+                    .clickable {
+                        android.widget.Toast.makeText(
+                            contexto,
+                            "Valor, R$/km, distância e tempo são da corrida aceita. Combustível e custo são o cálculo gravado. Resultado é o valor menos esse custo. A nota segue o semáforo da nota. Rota abre o mapa.",
+                            android.widget.Toast.LENGTH_LONG,
+                        ).show()
+                    },
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(
+                    text = "?",
+                    color = paleta.texto,
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Bold,
+                )
+            }
         }
-
-        Text(
-            text = "🛞 ${PresentationBuilder.formatarDistanciaHistorico(item.kmTotal)}  ·  " +
-                "🕐 ${PresentationBuilder.formatarTempoHm(item.tempoEstimado)}  ·  " +
-                "⛽ Consumo ${PresentationBuilder.formatarLitrosHistorico(item.combustivelEstimado)}",
-            color = TextoCinzaEmoji,
-            fontSize = 11.sp,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-        )
-
         val temEmbarque = !item.enderecoEmbarque.isNullOrBlank()
         val temDestino = !item.enderecoDestino.isNullOrBlank()
-        if (temEmbarque) {
-            LinhaRota("●", item.enderecoEmbarque.orEmpty())
-        }
-        if (temDestino) {
-            LinhaRota("■", item.enderecoDestino.orEmpty())
-        }
         if (temEmbarque || temDestino) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    if (temEmbarque) {
+                        LinhaRota("●", item.enderecoEmbarque.orEmpty(), VerdePaleta)
+                    }
+                    if (temDestino) {
+                        LinhaRota("●", item.enderecoDestino.orEmpty(), VermelhoPaleta)
+                    }
+                }
+                Text(
+                    text = "Rota",
+                    color = paleta.texto,
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    modifier = Modifier
+                        .background(paleta.pocoIcone, RoundedCornerShape(12.dp))
+                        .clickable {
+                            abrirMapaDoHistorico(
+                                contexto,
+                                item.enderecoEmbarque,
+                                item.enderecoDestino,
+                            )
+                        }
+                        .padding(horizontal = 12.dp, vertical = 10.dp),
+                )
+            }
+        }
+        Row(modifier = Modifier.fillMaxWidth()) {
+            CelulaHistorico("VALOR", PresentationBuilder.formatarCelulaHistoricoValor(item.valorTotal))
+            CelulaHistorico("R$/KM", PresentationBuilder.formatarCelulaHistoricoValorPorKm(item.valorPorKm))
+            CelulaHistorico("DISTÂNCIA", PresentationBuilder.formatarDistanciaHistorico(item.kmTotal))
+            CelulaHistorico("TEMPO", PresentationBuilder.formatarTempoHistorico(item.tempoEstimado))
+        }
+        Row(modifier = Modifier.fillMaxWidth()) {
+            CelulaHistorico("COMBUSTÍVEL", PresentationBuilder.formatarLitrosHistorico(item.combustivelEstimado))
+            CelulaHistorico("CUSTO", PresentationBuilder.formatarGastoHistorico(item.custoCombustivel))
+            CelulaHistorico(
+                "RESULTADO",
+                PresentationBuilder.formatarLucroHistorico(item.valorTotal, item.custoCombustivel),
+                verde,
+            )
+            CelulaHistorico(
+                "RESULTADO/KM",
+                lucroKm?.let { PresentationBuilder.formatarCelulaHistoricoValorPorKm(it) } ?: "—",
+                verde,
+            )
+        }
+        if (item.kmAtePassageiro > 0 || item.kmViagem > 0) {
             Row(modifier = Modifier.fillMaxWidth()) {
-                if (temEmbarque) {
-                    Text(
-                        text = "Embarque",
-                        color = TextoAmarelo,
-                        fontSize = 12.sp,
-                        textAlign = TextAlign.Center,
-                        modifier = Modifier
-                            .weight(1f)
-                            .clickable {
-                                abrirMapaDoHistorico(contexto, item.enderecoEmbarque, null)
-                            }
-                            .padding(vertical = 6.dp),
+                if (item.kmAtePassageiro > 0) {
+                    CelulaHistorico(
+                        "ATÉ O PASSAGEIRO",
+                        PresentationBuilder.formatarDistanciaHistorico(item.kmAtePassageiro),
                     )
                 }
-                if (temDestino) {
-                    Text(
-                        text = "Destino",
-                        color = TextoAmarelo,
-                        fontSize = 12.sp,
-                        textAlign = TextAlign.Center,
-                        modifier = Modifier
-                            .weight(1f)
-                            .clickable {
-                                abrirMapaDoHistorico(contexto, null, item.enderecoDestino)
-                            }
-                            .padding(vertical = 6.dp),
+                if (item.kmViagem > 0) {
+                    CelulaHistorico(
+                        "VIAGEM",
+                        PresentationBuilder.formatarDistanciaHistorico(item.kmViagem),
                     )
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun RowScope.CelulaHistorico(titulo: String, valor: String, corValor: Color? = null) {
+    val paleta = LocalPaletaApp.current
+    Column(
+        modifier = Modifier
+            .weight(1f)
+            .padding(horizontal = 2.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        Text(
+            text = titulo,
+            color = paleta.textoSecundario,
+            fontSize = 9.sp,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
+        Text(
+            text = valor,
+            color = corValor ?: paleta.texto,
+            fontSize = 13.sp,
+            fontWeight = FontWeight.Bold,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
     }
 }
 
@@ -413,7 +732,7 @@ private fun RowScope.CaixaMetrica(valor: String) {
     ) {
         Text(
             text = valor,
-            color = TextoVerde,
+            color = VerdePaleta,
             fontSize = 11.sp,
             fontWeight = FontWeight.SemiBold,
             maxLines = 1,
@@ -423,9 +742,9 @@ private fun RowScope.CaixaMetrica(valor: String) {
 }
 
 @Composable
-private fun LinhaRota(marca: String, texto: String) {
+private fun LinhaRota(marca: String, texto: String, cor: Color) {
     Row(verticalAlignment = Alignment.CenterVertically) {
-        Text(text = marca, color = TextoVerde, fontSize = 10.sp, modifier = Modifier.padding(end = 6.dp))
+        Text(text = marca, color = cor, fontSize = 12.sp, modifier = Modifier.padding(end = 6.dp))
         Text(
             text = texto,
             color = LocalPaletaApp.current.texto,
@@ -479,9 +798,24 @@ private fun abrirMapaDoHistorico(
     }
 }
 
+@Composable
+private fun corDaNota(item: HistoricoItemPresentation): Color {
+    val contexto = LocalContext.current
+    val config = (contexto.applicationContext as? GestorDriverApp)?.configuracaoStore?.carregar()
+    val cor = if (config != null && config.marcaNotaBoa > 0.0) {
+        SemaforoOferta.corPorDuasMarcas(item.notaPassageiro, config.marcaNotaRuim, config.marcaNotaBoa)
+    } else {
+        item.corClassificacao
+    }
+    if (cor == ClassificacaoConstantes.COR_BORDA_NEUTRA) {
+        return LocalPaletaApp.current.texto
+    }
+    return parseCor(cor)
+}
+
 private fun parseCor(valor: String): Color =
     try {
         Color(android.graphics.Color.parseColor(valor))
     } catch (_: IllegalArgumentException) {
-        TextoVerde
+        VerdePaleta
     }

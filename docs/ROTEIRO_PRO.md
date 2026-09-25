@@ -2,6 +2,8 @@
 
 Objetivo: fechar a **versão Pro** na branch `vs-2.0` (`2.0.0` / versionCode 13). **Não misturar com o Beta congelado em `main` (1.1.10).** Sem commit e sem push até pedido explícito.
 
+Nomes a partir da VS 2.3: Despesas, Usuário e Sistema. Menu e rateio atuais: `ROTEIRO_VS_2.3.md`. Este arquivo guarda o que foi aprovado no Pro 2.0.
+
 Revisão: **03/09/2026** — telas A/B no código. **Bloco C em andamento** no SM-A145M (`2.0.0` instalado). Fonte oficial de telas: `Roteiro_Oficial_Gestor_Driver_Vs Pro_2.0.txt`.
 
 ## Versões do produto (D1 + D12)

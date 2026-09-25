@@ -351,6 +351,30 @@ class AppViewModel(
         publicarOverlay()
     }
 
+    /** Recentes e Home: a miniatura e a volta mostram o menu em Opções. */
+    fun exibirOpcoesNosRecentes() {
+        if (state.onboardingEtapa != OnboardingEtapa.NENHUMA) {
+            return
+        }
+        val monitorando = state.monitorando
+        state = state.copy(
+            estadoSalvo = null,
+            recentesConfig = false,
+            historicoVisivel = false,
+            dashboardVisivel = false,
+            configuracoesVisivel = true,
+            abaConfiguracao = -1,
+            confirmacaoFecharVisivel = false,
+            confirmacaoLimparHistoricoVisivel = false,
+            confirmacaoDesativarVisivel = false,
+            compactaTemporaria = false,
+            seloEscondido = false,
+            interfaceOculta = monitorando,
+            seloFlutuante = monitorando,
+        )
+        publicarOverlay()
+    }
+
     fun definirAbaConfiguracao(indice: Int) {
         state = state.copy(
             abaConfiguracao = indice,
@@ -769,6 +793,17 @@ class AppViewModel(
         publicarOverlay()
     }
 
+    fun limparMarcacaoHistorico() {
+        if (state.historicoChavesSelecionadas.isEmpty()) {
+            return
+        }
+        state = state.copy(
+            historicoChavesSelecionadas = emptySet(),
+            historicoSelecionado = null,
+        )
+        publicarOverlay()
+    }
+
     fun selecionarAbaHistorico(aba: String) {
         state = state.copy(abaHistorico = aba)
         publicarOverlay()
@@ -823,7 +858,11 @@ class AppViewModel(
 
     fun registrarAceiteCorrida() {
         val analise = state.analiseAtual ?: ofertaParaHistorico ?: return
-        val itemHistorico = PresentationBuilder.historicoDe(analise)
+        val aceiteEm = CalendarioApp.agora()
+        val itemHistorico = PresentationBuilder.historicoDe(analise).copy(
+            dataHoraRegistro = aceiteEm,
+            dataHora = aceiteEm.format(java.time.format.DateTimeFormatter.ofPattern("dd/MM HH:mm")),
+        )
         if (state.historico.any { it.chaveHistorico() == itemHistorico.chaveHistorico() }) {
             return
         }
@@ -1599,7 +1638,11 @@ class AppViewModel(
                 )
             }
         val config = configuracaoStore.carregar()
-        val corHora = SemaforoOferta.corPorFaixaHora(analise?.valorPorHora, config.metaGanhoHora)
+        val corHora = if (config.marcaHoraBoa > 0.0) {
+            SemaforoOferta.corPorDuasMarcas(analise?.valorPorHora, config.marcaHoraRuim, config.marcaHoraBoa)
+        } else {
+            SemaforoOferta.corPorFaixaHora(analise?.valorPorHora, config.metaGanhoHora)
+        }
         OverlayBridge.publicar(
             OverlaySnapshot(
                 monitorando = state.monitorando,

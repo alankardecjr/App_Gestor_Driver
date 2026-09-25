@@ -24,7 +24,7 @@ object TutorialConteudo {
         ),
         TutorialPasso(
             titulo = "Menu",
-            texto = "Histórico, Dashboard, Despesas, Semáforo, Veiculo, Configurar e Fechar. A seta das abas sempre volta ao atalho.",
+            texto = "Histórico, Dashboard, Despesas, Semáforo, Veiculo, Sistema e Fechar. A seta das abas sempre volta ao atalho.",
         ),
         TutorialPasso(
             titulo = "Notificação",
@@ -32,7 +32,7 @@ object TutorialConteudo {
         ),
         TutorialPasso(
             titulo = "Config",
-            texto = "Abas em formato de ficheiro: Histórico, Dashboard, Despesas, Semáforo, Veiculo e Configurar. Cancelar descarta. Salvar grava.",
+            texto = "Abas em formato de ficheiro: Histórico, Dashboard, Despesas, Semáforo, Veiculo e Sistema. Cancelar descarta. Salvar grava.",
         ),
         TutorialPasso(
             titulo = "Histórico",

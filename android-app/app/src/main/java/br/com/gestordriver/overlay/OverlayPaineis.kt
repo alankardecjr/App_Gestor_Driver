@@ -58,7 +58,7 @@ object OverlayPaineis {
         DESPESAS("Despesas"),
         SEMAFORO("Semáforo"),
         VEICULO("Veiculo"),
-        CONFIGURAR("Configurar"),
+        CONFIGURAR("Sistema"),
     }
 
     private fun abaMenuAtiva(snapshot: OverlaySnapshot): AbaMenuFicheiro = when {
@@ -470,7 +470,8 @@ object OverlayPaineis {
                 )
             },
             config,
-            diasPeriodo = CalendarioApp.diasDoPeriodo(dia, periodo),
+            dia = dia,
+            periodo = periodo,
         )
         fun dinheiro(v: Double) = "R$ ${"%.2f".format(v).replace(".", ",")}"
         fun decimal(v: Double) = "%.2f".format(v).replace(".", ",")
@@ -1270,7 +1271,7 @@ object OverlayPaineis {
             1 -> "Despesas"
             0 -> "Calibrar a classificação"
             2 -> "Veiculo"
-            else -> "Configurar"
+            else -> "Sistema"
         }
         val scroll = view.findViewWithTag<ScrollView>("config_scroll") ?: return
         val conteudo = scroll.getChildAt(0) as? LinearLayout ?: return
@@ -1814,42 +1815,6 @@ object OverlayPaineis {
                 campo(ctx, "Data de vencimento", config.seguroData, "cfg_seguro_data", bloqueado = !planoPro, compacto = true).first,
             ),
         )
-        val ckMensal = CheckBox(ctx).apply {
-            text = "Mensal"
-            tag = "cfg_ck_seguro_mensal"
-            setTextColor(OverlayTema.de(context).texto)
-            textSize = 12f
-            scaleX = 0.82f
-            scaleY = 0.82f
-            isFocusableInTouchMode = false
-            isEnabled = planoPro
-            isChecked = config.seguroRecorrencia == SeguroRecorrencia.MENSAL
-        }
-        val ckAnual = CheckBox(ctx).apply {
-            text = "Anual"
-            tag = "cfg_ck_seguro_anual"
-            setTextColor(OverlayTema.de(context).texto)
-            textSize = 12f
-            scaleX = 0.82f
-            scaleY = 0.82f
-            isFocusableInTouchMode = false
-            isEnabled = planoPro
-            isChecked = config.seguroRecorrencia == SeguroRecorrencia.ANUAL
-        }
-        ckMensal.setOnCheckedChangeListener { _, marcado ->
-            if (marcado) {
-                ckAnual.isChecked = false
-                rascunho = (rascunho ?: config).copy(seguroRecorrencia = SeguroRecorrencia.MENSAL)
-            }
-        }
-        ckAnual.setOnCheckedChangeListener { _, marcado ->
-            if (marcado) {
-                ckMensal.isChecked = false
-                rascunho = (rascunho ?: config).copy(seguroRecorrencia = SeguroRecorrencia.ANUAL)
-            }
-        }
-        destino.addView(rotulo(ctx, "Recorrência", compacto = true))
-        destino.addView(linha(ctx, ckMensal, ckAnual))
     }
 
     private fun montarApp(
@@ -1863,7 +1828,7 @@ object OverlayPaineis {
                 context,
                 "⚙",
                 "Configurações do aplicativo",
-                "Configurar app",
+                "Sistema",
                 "",
             ),
         )
@@ -2459,11 +2424,6 @@ object OverlayPaineis {
                     raiz.findViewWithTag<CheckBox>("cfg_ck_gasolina")?.isChecked == true -> Combustivel.GASOLINA
                     else -> base.combustivel
                 }
-                val seguroRecorrencia = when {
-                    raiz.findViewWithTag<CheckBox>("cfg_ck_seguro_mensal")?.isChecked == true -> SeguroRecorrencia.MENSAL
-                    raiz.findViewWithTag<CheckBox>("cfg_ck_seguro_anual")?.isChecked == true -> SeguroRecorrencia.ANUAL
-                    else -> base.seguroRecorrencia
-                }
                 base.copy(
                     precoGasolina = num("cfg_preco_g", base.precoGasolina),
                     precoEtanol = num("cfg_preco_e", base.precoEtanol),
@@ -2480,7 +2440,7 @@ object OverlayPaineis {
                     pneuTraseiroData = txt("cfg_pneu_t_data") ?: base.pneuTraseiroData,
                     seguroValor = num("cfg_seguro_valor", base.seguroValor),
                     seguroData = txt("cfg_seguro_data") ?: base.seguroData,
-                    seguroRecorrencia = seguroRecorrencia,
+                    seguroRecorrencia = SeguroRecorrencia.MENSAL,
                 )
             }
             2 -> {

@@ -11,6 +11,8 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -26,6 +28,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.composed
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
@@ -38,6 +41,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import br.com.gestordriver.ui.theme.LocalPaletaApp
 import kotlinx.coroutines.delay
 import kotlin.math.abs
 
@@ -102,6 +106,7 @@ fun FaixaAbasComSetas(
     onSelecionar: (Int) -> Unit,
     mostrarIndicador: Boolean = false,
     tamanhoFonte: TextUnit = 14.sp,
+    icones: List<String> = emptyList(),
 ) {
     val ultima = titulos.lastIndex.coerceAtLeast(0)
     Row(
@@ -121,12 +126,26 @@ fun FaixaAbasComSetas(
         ) {
             titulos.forEachIndexed { index, titulo ->
                 val ativa = selecionada == index
+                val icone = icones.getOrNull(index)
                 Column(
                     modifier = Modifier
                         .weight(1f)
-                        .clickable { onSelecionar(index) },
+                        .clickable { onSelecionar(index) }
+                        .padding(vertical = 4.dp),
                     horizontalAlignment = Alignment.CenterHorizontally,
                 ) {
+                    if (!icone.isNullOrBlank()) {
+                        Box(
+                            modifier = Modifier
+                                .padding(bottom = 2.dp)
+                                .size(28.dp)
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(LocalPaletaApp.current.pocoIcone),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            Text(text = icone, color = LocalPaletaApp.current.texto, fontSize = 13.sp)
+                        }
+                    }
                     Text(
                         text = titulo,
                         color = if (ativa) corAtiva else corInativa,
@@ -135,8 +154,8 @@ fun FaixaAbasComSetas(
                         textAlign = TextAlign.Center,
                         maxLines = 1,
                         modifier = Modifier
-                            .heightIn(min = 48.dp)
-                            .padding(horizontal = 2.dp, vertical = 8.dp),
+                            .heightIn(min = if (icone.isNullOrBlank()) 48.dp else 20.dp)
+                            .padding(horizontal = 2.dp, vertical = if (icone.isNullOrBlank()) 8.dp else 0.dp),
                     )
                     if (mostrarIndicador) {
                         Box(

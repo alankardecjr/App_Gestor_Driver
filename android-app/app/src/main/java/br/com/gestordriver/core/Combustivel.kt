@@ -31,7 +31,7 @@ data class ConfiguracaoUsuario(
     val pneuTraseiroRodagem: Double = 0.0,
     val ipvaValor: Double = 0.0,
     val seguroValor: Double = 0.0,
-    val seguroRecorrencia: SeguroRecorrencia = SeguroRecorrencia.ANUAL,
+    val seguroRecorrencia: SeguroRecorrencia = SeguroRecorrencia.MENSAL,
     val kmAnual: Double = 0.0,
 ) {
     fun consumoAtivo(): Double = when (combustivel) {

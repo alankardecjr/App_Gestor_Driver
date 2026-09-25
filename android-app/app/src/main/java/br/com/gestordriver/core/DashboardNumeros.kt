@@ -1,8 +1,8 @@
 package br.com.gestordriver.core
 
 import br.com.gestordriver.model.ConfiguracaoUsuario
-import br.com.gestordriver.model.SeguroRecorrencia
 import java.time.LocalDate
+import java.time.YearMonth
 import java.time.format.DateTimeFormatter
 
 data class CorridaParaResumo(
@@ -39,7 +39,8 @@ object DashboardNumeros {
     fun de(
         corridas: List<CorridaParaResumo>,
         config: ConfiguracaoUsuario,
-        diasPeriodo: Int = 1,
+        dia: LocalDate,
+        periodo: CalendarioPeriodo,
     ): NumerosDashboard {
         val receitas = corridas.sumOf { it.valorTotal }
         val kmTotal = corridas.sumOf { it.kmTotal }
@@ -50,9 +51,9 @@ object DashboardNumeros {
         val oleo = parcelaKm(config.oleoValor, config.oleoKilometragem, kmTotal)
         val pneuD = parcelaKm(config.pneuDianteiroValor, config.pneuDianteiroRodagem, kmTotal)
         val pneuT = parcelaKm(config.pneuTraseiroValor, config.pneuTraseiroRodagem, kmTotal)
-        val seguro = rateioSeguro(config.seguroValor, config.seguroRecorrencia, diasPeriodo)
-        val ipva = rateioAnual(config.ipvaValor, diasPeriodo)
-        val despesas = listOfNotNull(combustivel, oleo, pneuD, pneuT, seguro, ipva).sum()
+        val seguro = parcelaSeguro(config.seguroValor, dia, periodo)
+        val ipva = parcelaIpva(config.ipvaValor, dia, periodo)
+        val despesas = listOfNotNull(combustivel, seguro, ipva).sum()
         val saldo = receitas - despesas
         val n = corridas.size
         return NumerosDashboard(
@@ -78,28 +79,33 @@ object DashboardNumeros {
         )
     }
 
-    /** Mensal: valor × (dias/30). Anual: valor × (dias/365). */
-    fun rateioSeguro(
-        valor: Double,
-        recorrencia: SeguroRecorrencia,
-        diasPeriodo: Int,
-    ): Double? {
-        if (valor <= 0.0 || diasPeriodo <= 0) {
+    /** Seguro mensal. Mês = valor. Ano = × 12. Dia e semana usam os dias daquele mês. */
+    fun parcelaSeguro(valor: Double, dia: LocalDate, periodo: CalendarioPeriodo): Double? {
+        if (valor <= 0.0) {
             return null
         }
-        val parcela = when (recorrencia) {
-            SeguroRecorrencia.MENSAL -> valor * (diasPeriodo / 30.0)
-            SeguroRecorrencia.ANUAL -> valor * (diasPeriodo / 365.0)
+        val diasMes = YearMonth.from(dia).lengthOfMonth().toDouble()
+        val parcela = when (periodo) {
+            CalendarioPeriodo.DIA -> valor / diasMes
+            CalendarioPeriodo.SEMANA -> valor * 7.0 / diasMes
+            CalendarioPeriodo.MES -> valor
+            CalendarioPeriodo.ANO -> valor * 12.0
         }
         return parcela.takeIf { it.isFinite() && it > 0.0 }
     }
 
-    /** IPVA é anual: valor × (dias do período / 365). */
-    fun rateioAnual(valor: Double, diasPeriodo: Int): Double? {
-        if (valor <= 0.0 || diasPeriodo <= 0) {
+    /** IPVA anual. Ano = valor. Mês = ÷ 12. Dia e semana usam os dias daquele ano. */
+    fun parcelaIpva(valor: Double, dia: LocalDate, periodo: CalendarioPeriodo): Double? {
+        if (valor <= 0.0) {
             return null
         }
-        val parcela = valor * (diasPeriodo / 365.0)
+        val diasAno = if (dia.isLeapYear) 366.0 else 365.0
+        val parcela = when (periodo) {
+            CalendarioPeriodo.DIA -> valor / diasAno
+            CalendarioPeriodo.SEMANA -> valor * 7.0 / diasAno
+            CalendarioPeriodo.MES -> valor / 12.0
+            CalendarioPeriodo.ANO -> valor
+        }
         return parcela.takeIf { it.isFinite() && it > 0.0 }
     }
 

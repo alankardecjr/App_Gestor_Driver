@@ -357,6 +357,7 @@ private fun ConteudoPrincipal(
                     onAvancarSemana = viewModel::avancarSemanaHistorico,
                     onAba = viewModel::selecionarAbaHistorico,
                     onSelecionar = viewModel::marcarItemHistorico,
+                    onCancelarMarcacao = viewModel::limparMarcacaoHistorico,
                     onLimpar = viewModel::solicitarLimparHistorico,
                 )
                 if (state.confirmacaoLimparHistoricoVisivel) {

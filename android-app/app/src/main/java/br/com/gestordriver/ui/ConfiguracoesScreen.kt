@@ -51,17 +51,16 @@ import br.com.gestordriver.core.AlertaOleo
 import br.com.gestordriver.core.Classificacao
 import br.com.gestordriver.core.ClassificacaoConstantes
 import br.com.gestordriver.core.FaixasClassificacao
+import br.com.gestordriver.core.CalcularCombustivel
 import br.com.gestordriver.core.TabelaIpvaPlaca
 import br.com.gestordriver.data.ContaVinculo
 import br.com.gestordriver.model.AppNavegacao
 import br.com.gestordriver.model.Combustivel
 import br.com.gestordriver.model.ConfiguracaoUsuario
 import br.com.gestordriver.model.PlanoAcesso
-import br.com.gestordriver.model.SeguroRecorrencia
 import br.com.gestordriver.model.TemaApp
 import br.com.gestordriver.model.TipoContaVinculada
 import br.com.gestordriver.model.TipoVeiculo
-import br.com.gestordriver.navigation.NavegacaoLauncher
 import br.com.gestordriver.permission.PermissoesMonitoramento
 import br.com.gestordriver.ui.theme.LocalPaletaApp
 
@@ -112,13 +111,25 @@ fun ConfiguracoesScreen(
         foco.clearFocus(force = true)
         teclado?.hide()
     }
-    val abas = listOf("Opções", "Semáforo", "Custos", "Veículo", "App")
+    val iconesAbas = listOf("☰", "🚦", "🧾", "👤", "⚙")
     val paleta = LocalPaletaApp.current
+    val contexto = LocalContext.current
+    fun sairDoCampo() {
+        foco.clearFocus(force = true)
+        teclado?.hide()
+    }
+    fun avisar(texto: String) {
+        android.widget.Toast.makeText(contexto, texto, android.widget.Toast.LENGTH_SHORT).show()
+    }
+    fun salvarEdicao(aplicarAbastecimento: Boolean) {
+        viewModel.salvar(aplicarAbastecimento = aplicarAbastecimento)
+        sairDoCampo()
+        avisar("Alteração salva.")
+    }
 
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .deslizeHorizontalAbas(aba, abas.size) { aba = it }
             .background(paleta.fundo),
     ) {
         Column(
@@ -126,10 +137,10 @@ fun ConfiguracoesScreen(
         ) {
             val titulosPagina = listOf(
                 "Gestor Driver" to "Menu principal",
-                "Semáforo" to "Regras de classificação",
-                "Custos" to "Controle de gastos do app",
-                "Usuário" to "Seus dados e preferências",
-                "Configurar" to "Ajustes do aplicativo",
+                "Semáforo" to "Abaixo, na média e acima da média",
+                "Despesas" to "Gastos do veículo",
+                "Usuário" to "Seu veículo",
+                "Sistema" to "Ajustes do aplicativo",
             )
             val pagina = if (aba == 0) {
                 "Gestor Driver" to subtituloMenu
@@ -139,23 +150,62 @@ fun ConfiguracoesScreen(
             CabecalhoTela(
                 titulo = pagina.first,
                 subtitulo = pagina.second,
+                icone = iconesAbas.getOrNull(aba),
+                mostrarVoltar = aba != 0,
+                inicio = if (aba == 0 && monitorando) {
+                    { BotaoSelo(onClick = onVoltar) }
+                } else {
+                    null
+                },
+                acao = when (aba) {
+                    3 -> {
+                        {
+                            BotaoCircular(
+                                simbolo = "?",
+                                onClick = {
+                                    android.widget.Toast.makeText(
+                                        contexto,
+                                        "Dados do veículo. O final da placa define o mês do IPVA. O abastecimento calcula o preço e o consumo do combustível marcado em Despesas.",
+                                        android.widget.Toast.LENGTH_LONG,
+                                    ).show()
+                                },
+                            )
+                        }
+                    }
+                    4 -> {
+                        {
+                            BotaoCircular(
+                                simbolo = "?",
+                                onClick = {
+                                    android.widget.Toast.makeText(
+                                        contexto,
+                                        "Ajustes do aplicativo. Permissões liberam o monitoramento. Tema, mapa e conta valem depois de salvar.",
+                                        android.widget.Toast.LENGTH_LONG,
+                                    ).show()
+                                },
+                            )
+                        }
+                    }
+                    else -> null
+                },
                 onVoltar = {
-                    viewModel.cancelar()
+                    sairDoCampo()
+                    when (aba) {
+                        1 -> {
+                            if (viewModel.temAlteracao()) {
+                                viewModel.salvar(aplicarAbastecimento = false)
+                                avisar("Alteração salva.")
+                            }
+                        }
+                        2, 3, 4 -> {
+                            if (viewModel.temAlteracao()) {
+                                viewModel.cancelar()
+                                avisar("Alteração não salva.")
+                            }
+                        }
+                    }
                     onVoltar()
                 },
-            )
-
-            FaixaAbasComSetas(
-                titulos = abas,
-                selecionada = aba,
-                corAtiva = DestaqueSelecionado,
-                corInativa = paleta.textoSecundario,
-                onSelecionar = { visual ->
-                    aba = visual
-                    onAbaPersistida(if (visual == 0) -1 else visual - 1)
-                },
-                mostrarIndicador = true,
-                tamanhoFonte = 11.sp,
             )
 
             Box(
@@ -215,6 +265,7 @@ fun ConfiguracoesScreen(
             ) {
                 TextButton(
                     onClick = {
+                        sairDoCampo()
                         viewModel.cancelar()
                         onVoltar()
                     },
@@ -231,11 +282,10 @@ fun ConfiguracoesScreen(
                 }
                 TextButton(
                     onClick = {
-                        if (viewModel.temCalculoAbastecimento()) {
+                        if (aba == 3 && viewModel.temCalculoAbastecimento()) {
                             dialogoAbastecimento = true
                         } else {
-                            viewModel.salvar(aplicarAbastecimento = false)
-                            onVoltar()
+                            salvarEdicao(aplicarAbastecimento = false)
                         }
                     },
                     modifier = Modifier
@@ -332,16 +382,14 @@ fun ConfiguracoesScreen(
                 )
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
                     TextButton(onClick = {
-                        viewModel.salvar(aplicarAbastecimento = false)
                         dialogoAbastecimento = false
-                        onVoltar()
+                        salvarEdicao(aplicarAbastecimento = false)
                     }) {
                         Text("Não", color = LocalPaletaApp.current.textoSecundario)
                     }
                     TextButton(onClick = {
-                        viewModel.salvar(aplicarAbastecimento = true)
                         dialogoAbastecimento = false
-                        onVoltar()
+                        salvarEdicao(aplicarAbastecimento = true)
                     }) {
                         Text("Sim", color = DestaqueSelecionado, fontWeight = FontWeight.SemiBold)
                     }
@@ -354,211 +402,301 @@ fun ConfiguracoesScreen(
 @Composable
 private fun AbaVeiculo(viewModel: ConfiguracoesViewModel, plano: PlanoAcesso) {
     val configuracao = viewModel.configuracao
+    val paleta = LocalPaletaApp.current
     val travar = plano.travaCalculadora
-    SubtituloSecao(
-        texto = "Descrição do veículo",
-        subtitulo = "Marca, modelo e placa",
-        icone = "🚗",
-        ajuda = "Final da placa (0–9) define o mês de vencimento do IPVA. O valor do IPVA entra no custo do Dashboard.",
-    )
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(16.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        OpcaoMarca(
-            texto = "Carro",
-            marcado = configuracao.tipoVeiculo == TipoVeiculo.CARRO,
-            onMarcar = { viewModel.atualizarTipoVeiculo(TipoVeiculo.CARRO) },
-        )
-        OpcaoMarca(
-            texto = "Moto",
-            marcado = configuracao.tipoVeiculo == TipoVeiculo.MOTO,
-            onMarcar = { viewModel.atualizarTipoVeiculo(TipoVeiculo.MOTO) },
-        )
-    }
-    LinhaCampos {
-        CampoCaixa("Marca", configuracao.marcaVeiculo, viewModel::atualizarMarca, Modifier.weight(1f))
-        CampoCaixa("Modelo", configuracao.modeloVeiculo, viewModel::atualizarModelo, Modifier.weight(1f))
-    }
-    LinhaCampos {
-        CampoCaixa("Versão", configuracao.versaoVeiculo, viewModel::atualizarVersao, Modifier.weight(1f))
-        CampoCaixa("Ano", configuracao.anoVeiculo, viewModel::atualizarAno, Modifier.weight(1f))
-    }
-    LinhaCampos {
-        CampoCaixa("Final da placa", configuracao.finalPlaca, viewModel::atualizarFinalPlaca, Modifier.weight(1f))
-        CampoNumericoCaixa(
-            label = if (travar) "🔒 IPVA R$" else "IPVA R$",
-            valor = configuracao.ipvaValor,
-            onValorChange = viewModel::atualizarIpvaValor,
-            modifier = Modifier.weight(1f),
-            bloqueado = travar,
-        )
-    }
-    Text(
-        text = TabelaIpvaPlaca.textoVencimento(configuracao.finalPlaca),
-        color = LocalPaletaApp.current.textoSecundario,
-        fontSize = 11.sp,
-    )
-    SubtituloSecao(
-        texto = "Consumo",
-        subtitulo = "Km/L ou km/kWh",
-        icone = "⛽",
-        ajuda = "Gasolina/etanol em km/L. Energia em km/kWh. Entra no gasto estimado da oferta.",
-    )
-    LinhaCampos {
-        CampoNumericoCaixa("Gasolina", configuracao.consumoGasolina, viewModel::atualizarConsumoGasolina, Modifier.weight(1f))
-        CampoNumericoCaixa("Etanol", configuracao.consumoEtanol, viewModel::atualizarConsumoEtanol, Modifier.weight(1f))
-        CampoNumericoCaixa("Energia", configuracao.consumoEnergia, viewModel::atualizarConsumoEnergia, Modifier.weight(1f))
-    }
-    if (travar) {
-        TituloPro("Calcular abastecimento")
-    } else {
-        Text(
-            text = "Calcular abastecimento",
-            color = LocalPaletaApp.current.textoSecundario,
-            fontSize = FonteCampo,
-            fontWeight = FontWeight.Medium,
-        )
-    }
-    LinhaCampos {
-        CampoNumericoCaixa("Valor R$", configuracao.abastecimentoValor, viewModel::atualizarAbastecimentoValor, Modifier.weight(1f), bloqueado = travar)
-        CampoNumericoCaixa("Quant. litros", configuracao.abastecimentoLitros, viewModel::atualizarAbastecimentoLitros, Modifier.weight(1f), bloqueado = travar)
-    }
-    LinhaCampos {
-        CampoNumericoCaixa("Km inicial", configuracao.abastecimentoKmInicial, viewModel::atualizarAbastecimentoKmInicial, Modifier.weight(1f), bloqueado = travar)
-        CampoNumericoCaixa("Km final", configuracao.abastecimentoKmFinal, viewModel::atualizarAbastecimentoKmFinal, Modifier.weight(1f), bloqueado = travar)
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        CartaoDespesa(
+            titulo = "Veículo",
+            subtitulo = "Marca, modelo e placa",
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                OpcaoMarca(
+                    texto = "Carro",
+                    marcado = configuracao.tipoVeiculo == TipoVeiculo.CARRO,
+                    onMarcar = { viewModel.atualizarTipoVeiculo(TipoVeiculo.CARRO) },
+                )
+                OpcaoMarca(
+                    texto = "Moto",
+                    marcado = configuracao.tipoVeiculo == TipoVeiculo.MOTO,
+                    onMarcar = { viewModel.atualizarTipoVeiculo(TipoVeiculo.MOTO) },
+                )
+            }
+            LinhaCampos {
+                CampoCaixa("Marca", configuracao.marcaVeiculo, viewModel::atualizarMarca, Modifier.weight(1f))
+                CampoCaixa("Modelo", configuracao.modeloVeiculo, viewModel::atualizarModelo, Modifier.weight(1f))
+            }
+            LinhaCampos {
+                CampoCaixa("Versão", configuracao.versaoVeiculo, viewModel::atualizarVersao, Modifier.weight(1f))
+                CampoCaixa("Ano", configuracao.anoVeiculo, viewModel::atualizarAno, Modifier.weight(1f))
+            }
+            CampoCaixa(
+                "Final da placa",
+                configuracao.finalPlaca,
+                viewModel::atualizarFinalPlaca,
+                Modifier.fillMaxWidth(),
+            )
+            Text(
+                text = TabelaIpvaPlaca.textoVencimento(configuracao.finalPlaca),
+                color = paleta.texto,
+                fontSize = 13.sp,
+                fontWeight = FontWeight.SemiBold,
+            )
+        }
+        CartaoDespesa(
+            titulo = "Abastecimento",
+            subtitulo = if (travar) "Disponível no Pro" else "Preço e consumo do tanque",
+        ) {
+            val energia = configuracao.combustivel == Combustivel.ENERGIA
+            LinhaCampos {
+                CampoNumericoCaixa("Valor R$", configuracao.abastecimentoValor, viewModel::atualizarAbastecimentoValor, Modifier.weight(1f), bloqueado = travar)
+                CampoNumericoCaixa(
+                    if (energia) "kWh" else "Litros",
+                    configuracao.abastecimentoLitros,
+                    viewModel::atualizarAbastecimentoLitros,
+                    Modifier.weight(1f),
+                    bloqueado = travar,
+                )
+            }
+            LinhaCampos {
+                CampoNumericoCaixa("Km inicial", configuracao.abastecimentoKmInicial, viewModel::atualizarAbastecimentoKmInicial, Modifier.weight(1f), bloqueado = travar)
+                CampoNumericoCaixa("Km final", configuracao.abastecimentoKmFinal, viewModel::atualizarAbastecimentoKmFinal, Modifier.weight(1f), bloqueado = travar)
+            }
+            Text(
+                text = textoCalculo(
+                    if (energia) "R$/kWh" else "R$/L",
+                    CalcularCombustivel.precoPorLitro(configuracao.abastecimentoValor, configuracao.abastecimentoLitros),
+                ),
+                color = paleta.texto,
+                fontSize = 13.sp,
+                fontWeight = FontWeight.SemiBold,
+            )
+            Text(
+                text = textoCalculo(
+                    if (energia) "km/kWh" else "km/L",
+                    CalcularCombustivel.consumoKmPorLitro(
+                        configuracao.abastecimentoKmInicial,
+                        configuracao.abastecimentoKmFinal,
+                        configuracao.abastecimentoLitros,
+                    ),
+                ),
+                color = paleta.texto,
+                fontSize = 13.sp,
+                fontWeight = FontWeight.SemiBold,
+            )
+        }
     }
 }
 
 @Composable
 private fun AbaCustos(viewModel: ConfiguracoesViewModel, plano: PlanoAcesso) {
     val configuracao = viewModel.configuracao
+    val paleta = LocalPaletaApp.current
     val travar = plano.travaCalculadora
-    SubtituloSecao(
-        texto = "Despesas do veiculo",
-        subtitulo = "Preço e tipo de energia",
-        icone = "⛽",
-        ajuda = "Preço do litro ou do kWh. Com o consumo, o app calcula gasto e lucro da oferta.",
-    )
-    LinhaCampos {
-        CampoNumericoCaixa("R$ / L Gasolina", configuracao.precoGasolina, viewModel::atualizarPrecoGasolina, Modifier.weight(1f))
-        CampoNumericoCaixa("R$ / L Etanol", configuracao.precoEtanol, viewModel::atualizarPrecoEtanol, Modifier.weight(1f))
-        CampoNumericoCaixa("R$ / kWh", configuracao.precoEnergia, viewModel::atualizarPrecoEnergia, Modifier.weight(1f))
-    }
-    SubtituloSecao(
-        texto = "Combustível atual",
-        subtitulo = "Gasolina, etanol ou energia",
-        ajuda = "Marque só um. Energia usa km/kWh × R$/kWh × 1,12 (perdas de recarga).",
-    )
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
-        verticalAlignment = Alignment.CenterVertically,
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+    CartaoDespesa(
+        titulo = "Combustível da oferta",
+        subtitulo = "Preço e consumo marcados",
+        ajuda = "Do combustível marcado. Gasolina e etanol em km/L. Energia em km/kWh, com 12% de perda na recarga. Os dois entram no gasto da oferta.",
     ) {
-        OpcaoMarca(
-            texto = "Gasolina",
-            marcado = configuracao.combustivel == Combustivel.GASOLINA,
-            onMarcar = { viewModel.selecionarCombustivel(Combustivel.GASOLINA) },
-        )
-        OpcaoMarca(
-            texto = "Etanol",
-            marcado = configuracao.combustivel == Combustivel.ETANOL,
-            onMarcar = { viewModel.selecionarCombustivel(Combustivel.ETANOL) },
-        )
-        OpcaoMarca(
-            texto = "Energia",
-            marcado = configuracao.combustivel == Combustivel.ENERGIA,
-            onMarcar = { viewModel.selecionarCombustivel(Combustivel.ENERGIA) },
-        )
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            OpcaoMarca(
+                texto = "Gasolina",
+                marcado = configuracao.combustivel == Combustivel.GASOLINA,
+                onMarcar = { viewModel.selecionarCombustivel(Combustivel.GASOLINA) },
+            )
+            OpcaoMarca(
+                texto = "Etanol",
+                marcado = configuracao.combustivel == Combustivel.ETANOL,
+                onMarcar = { viewModel.selecionarCombustivel(Combustivel.ETANOL) },
+            )
+            OpcaoMarca(
+                texto = "Energia",
+                marcado = configuracao.combustivel == Combustivel.ENERGIA,
+                onMarcar = { viewModel.selecionarCombustivel(Combustivel.ENERGIA) },
+            )
+        }
+        when (configuracao.combustivel) {
+            Combustivel.GASOLINA -> LinhaCampos {
+                CampoNumericoCaixa("R$ / L", configuracao.precoGasolina, viewModel::atualizarPrecoGasolina, Modifier.weight(1f))
+                CampoNumericoCaixa("km / L", configuracao.consumoGasolina, viewModel::atualizarConsumoGasolina, Modifier.weight(1f))
+            }
+            Combustivel.ETANOL -> LinhaCampos {
+                CampoNumericoCaixa("R$ / L", configuracao.precoEtanol, viewModel::atualizarPrecoEtanol, Modifier.weight(1f))
+                CampoNumericoCaixa("km / L", configuracao.consumoEtanol, viewModel::atualizarConsumoEtanol, Modifier.weight(1f))
+            }
+            Combustivel.ENERGIA -> LinhaCampos {
+                CampoNumericoCaixa("R$ / kWh", configuracao.precoEnergia, viewModel::atualizarPrecoEnergia, Modifier.weight(1f))
+                CampoNumericoCaixa("km / kWh", configuracao.consumoEnergia, viewModel::atualizarConsumoEnergia, Modifier.weight(1f))
+            }
+        }
+        if (!configuracao.calculadoraCombustivelPronta()) {
+            Text(
+                text = "Consumo ou preço 0: litros, gasto e lucro da oferta ficam sem valor até preencher.",
+                color = paleta.textoSecundario,
+                fontSize = 11.sp,
+            )
+        }
     }
-    if (!configuracao.calculadoraCombustivelPronta()) {
+    CartaoDespesa(
+        titulo = "Óleo",
+        subtitulo = if (travar) "Disponível no Pro" else "Estimativa por km",
+        ajuda = "Valor da troca e a cada quantos km. O dashboard mostra esse rateio. Não soma de novo na despesa do período.",
+    ) {
+        LinhaCampos {
+            CampoNumericoCaixa("Valor R$", configuracao.oleoValor, viewModel::atualizarOleoValor, Modifier.weight(1f), bloqueado = travar)
+            CampoNumericoCaixa("Km", configuracao.oleoKilometragem, viewModel::atualizarOleoKm, Modifier.weight(1f), bloqueado = travar)
+            CampoCaixa("Data", configuracao.oleoData, viewModel::atualizarOleoData, Modifier.weight(1f), bloqueado = travar)
+        }
+        AlertaOleoUi(configuracao)
+        ResultadoReaisPorKm(configuracao.oleoValor, configuracao.oleoKilometragem)
+    }
+    CartaoDespesa(
+        titulo = "Pneus",
+        subtitulo = if (travar) "Disponível no Pro" else "Estimativa por km",
+        ajuda = "Valor e km do dianteiro e do traseiro. O dashboard mostra a estimativa. Não entra de novo na despesa do período.",
+    ) {
+        Text("Dianteiro", color = paleta.texto, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+        LinhaCampos {
+            CampoNumericoCaixa("Valor R$", configuracao.pneuDianteiroValor, viewModel::atualizarPneuDianteiroValor, Modifier.weight(1f), bloqueado = travar)
+            CampoNumericoCaixa("Km", configuracao.pneuDianteiroRodagem, viewModel::atualizarPneuDianteiroRodagem, Modifier.weight(1f), bloqueado = travar)
+            CampoCaixa("Data", configuracao.pneuDianteiroData, viewModel::atualizarPneuDianteiroData, Modifier.weight(1f), bloqueado = travar)
+        }
+        ResultadoReaisPorKm(configuracao.pneuDianteiroValor, configuracao.pneuDianteiroRodagem)
+        Text("Traseiro", color = paleta.texto, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+        LinhaCampos {
+            CampoNumericoCaixa("Valor R$", configuracao.pneuTraseiroValor, viewModel::atualizarPneuTraseiroValor, Modifier.weight(1f), bloqueado = travar)
+            CampoNumericoCaixa("Km", configuracao.pneuTraseiroRodagem, viewModel::atualizarPneuTraseiroRodagem, Modifier.weight(1f), bloqueado = travar)
+            CampoCaixa("Data", configuracao.pneuTraseiroData, viewModel::atualizarPneuTraseiroData, Modifier.weight(1f), bloqueado = travar)
+        }
+        ResultadoReaisPorKm(configuracao.pneuTraseiroValor, configuracao.pneuTraseiroRodagem)
+    }
+    CartaoDespesa(
+        titulo = "IPVA",
+        subtitulo = if (travar) "Disponível no Pro" else "Valor anual",
+        ajuda = "Valor do ano. O vencimento já vem do final da placa, na aba Usuário. No dashboard, o mês leva 1/12 e o ano leva o valor inteiro.",
+    ) {
+        CampoNumericoCaixa(
+            label = "Valor R$",
+            valor = configuracao.ipvaValor,
+            onValorChange = viewModel::atualizarIpvaValor,
+            modifier = Modifier.fillMaxWidth(),
+            bloqueado = travar,
+        )
         Text(
-            text = "Consumo ou preço 0: litros/kWh, gasto e lucro da oferta ficam — até preencher.",
-            color = TextoAmareloConfig,
+            text = TabelaIpvaPlaca.textoVencimento(configuracao.finalPlaca),
+            color = paleta.textoSecundario,
             fontSize = 11.sp,
         )
     }
-    if (travar) {
-        TituloPro("Troca de óleo (óleo e filtros)")
-    } else {
-        Text(
-            text = "Troca de óleo (óleo e filtros)",
-            color = LocalPaletaApp.current.textoSecundario,
-            fontSize = FonteCampo,
-            fontWeight = FontWeight.Medium,
-        )
-    }
-    LinhaCampos {
-        CampoNumericoCaixa("Valor R$", configuracao.oleoValor, viewModel::atualizarOleoValor, Modifier.weight(1f), bloqueado = travar)
-        CampoNumericoCaixa("Km", configuracao.oleoKilometragem, viewModel::atualizarOleoKm, Modifier.weight(1f), bloqueado = travar)
-        CampoCaixa("Data", configuracao.oleoData, viewModel::atualizarOleoData, Modifier.weight(1f), bloqueado = travar)
-    }
-    AlertaOleoUi(configuracao)
-    if (travar) {
-        TituloPro("Custo estimado dos pneus")
-    } else {
-        Text(
-            text = "Custo estimado dos pneus",
-            color = LocalPaletaApp.current.textoSecundario,
-            fontSize = FonteCampo,
-            fontWeight = FontWeight.Medium,
-        )
-    }
-    Text("Dianteiro", color = LocalPaletaApp.current.texto, fontSize = FonteCampo, fontWeight = FontWeight.Medium)
-    LinhaCampos {
-        CampoNumericoCaixa("Valor R$", configuracao.pneuDianteiroValor, viewModel::atualizarPneuDianteiroValor, Modifier.weight(1f), bloqueado = travar)
-        CampoNumericoCaixa("Rodagem", configuracao.pneuDianteiroRodagem, viewModel::atualizarPneuDianteiroRodagem, Modifier.weight(1f), bloqueado = travar)
-        CampoCaixa("Data", configuracao.pneuDianteiroData, viewModel::atualizarPneuDianteiroData, Modifier.weight(1f), bloqueado = travar)
-    }
-    Text("Traseiro", color = LocalPaletaApp.current.texto, fontSize = FonteCampo, fontWeight = FontWeight.Medium)
-    LinhaCampos {
-        CampoNumericoCaixa("Valor R$", configuracao.pneuTraseiroValor, viewModel::atualizarPneuTraseiroValor, Modifier.weight(1f), bloqueado = travar)
-        CampoNumericoCaixa("Rodagem", configuracao.pneuTraseiroRodagem, viewModel::atualizarPneuTraseiroRodagem, Modifier.weight(1f), bloqueado = travar)
-        CampoCaixa("Data", configuracao.pneuTraseiroData, viewModel::atualizarPneuTraseiroData, Modifier.weight(1f), bloqueado = travar)
-    }
-    if (travar) {
-        TituloPro("Seguro")
-    } else {
-        Text(
-            text = "Seguro",
-            color = LocalPaletaApp.current.textoSecundario,
-            fontSize = FonteCampo,
-            fontWeight = FontWeight.Medium,
-        )
-    }
-    LinhaCampos {
-        CampoNumericoCaixa(
-            "Valor do seguro",
-            configuracao.seguroValor,
-            viewModel::atualizarSeguroValor,
-            Modifier.weight(1f),
-            bloqueado = travar,
-        )
-        CampoCaixa(
-            "Data de vencimento",
-            configuracao.seguroData,
-            viewModel::atualizarSeguroData,
-            Modifier.weight(1f),
-            bloqueado = travar,
-        )
-        Column(modifier = Modifier.weight(1f)) {
-            Text(
-                text = "Recorrência",
-                color = LocalPaletaApp.current.textoSecundario,
-                fontSize = 11.sp,
+    CartaoDespesa(
+        titulo = "Seguro",
+        subtitulo = if (travar) "Disponível no Pro" else "Valor mensal",
+        ajuda = "Valor de cada mês. A data de vencimento serve para controlar o pagamento. No dashboard, o mês leva o valor inteiro e o ano leva doze vezes.",
+    ) {
+        LinhaCampos {
+            CampoNumericoCaixa(
+                "Valor R$",
+                configuracao.seguroValor,
+                viewModel::atualizarSeguroValor,
+                Modifier.weight(1f),
+                bloqueado = travar,
             )
-            OpcaoMarca(
-                texto = "Mensal",
-                marcado = configuracao.seguroRecorrencia == SeguroRecorrencia.MENSAL,
-                onMarcar = { if (!travar) viewModel.atualizarSeguroRecorrencia(SeguroRecorrencia.MENSAL) },
-            )
-            OpcaoMarca(
-                texto = "Anual",
-                marcado = configuracao.seguroRecorrencia == SeguroRecorrencia.ANUAL,
-                onMarcar = { if (!travar) viewModel.atualizarSeguroRecorrencia(SeguroRecorrencia.ANUAL) },
+            CampoCaixa(
+                "Vencimento",
+                configuracao.seguroData,
+                viewModel::atualizarSeguroData,
+                Modifier.weight(1f),
+                bloqueado = travar,
             )
         }
+    }
+    }
+}
+
+@Composable
+private fun ResultadoReaisPorKm(valor: Double, km: Double) {
+    val paleta = LocalPaletaApp.current
+    Text(
+        text = textoReaisPorKm(valor, km),
+        color = paleta.texto,
+        fontSize = 13.sp,
+        fontWeight = FontWeight.SemiBold,
+    )
+}
+
+private fun textoCalculo(rotulo: String, valor: Double?): String {
+    if (valor == null || !valor.isFinite()) {
+        return "$rotulo  —"
+    }
+    return "$rotulo  ${DecimalInput.formatarFixo(valor)}"
+}
+
+private fun textoReaisPorKm(valor: Double, km: Double): String {
+    if (valor <= 0.0 || km <= 0.0) {
+        return "R$/km  —"
+    }
+    val porKm = valor / km
+    if (!porKm.isFinite()) {
+        return "R$/km  —"
+    }
+    return "R$/km  ${DecimalInput.formatarFixo(porKm)}"
+}
+
+@Composable
+private fun CartaoDespesa(
+    titulo: String,
+    subtitulo: String,
+    ajuda: String? = null,
+    conteudo: @Composable androidx.compose.foundation.layout.ColumnScope.() -> Unit,
+) {
+    val paleta = LocalPaletaApp.current
+    val contexto = LocalContext.current
+    val forma = RoundedCornerShape(16.dp)
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(paleta.fundoPainel, forma)
+            .border(1.dp, paleta.borda, forma)
+            .padding(horizontal = 12.dp, vertical = 8.dp),
+        verticalArrangement = Arrangement.spacedBy(6.dp),
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = titulo,
+                    color = paleta.texto,
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.SemiBold,
+                )
+                Text(
+                    text = subtitulo,
+                    color = paleta.textoSecundario,
+                    fontSize = 11.sp,
+                )
+            }
+            if (ajuda != null) {
+                Box(
+                    modifier = Modifier
+                        .size(28.dp)
+                        .background(paleta.pocoIcone, CircleShape)
+                        .clickable {
+                            android.widget.Toast.makeText(contexto, ajuda, android.widget.Toast.LENGTH_LONG).show()
+                        },
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Text(text = "?", color = paleta.texto, fontSize = 14.sp, fontWeight = FontWeight.Bold)
+                }
+            }
+        }
+        conteudo()
     }
 }
 
@@ -585,10 +723,10 @@ private fun AbaOpcoes(
     LinhaOpcao("📍", "Localização", "Mapa na posição atual", onLocalizacao)
     LinhaOpcao("📅", "Histórico", "Ver corridas aceitas", onHistorico)
     LinhaOpcao("👛", "Carteira", "Saldo e movimentações", onCarteira)
-    LinhaOpcao("🧾", "Despesas", "Controle de gastos do app", onDespesas)
+    LinhaOpcao("🧾", "Despesas", "Gastos do veículo", onDespesas)
     LinhaOpcao("🚦", "Semáforo", "Regras de classificação", onSemaforo)
-    LinhaOpcao("👤", "Usuário", "Seus dados e preferências", onUsuario)
-    LinhaOpcao("⚙", "Configurar", "Ajustes do aplicativo", onConfigurar)
+    LinhaOpcao("👤", "Usuário", "Seu veículo", onUsuario)
+    LinhaOpcao("⚙", "Sistema", "Ajustes do aplicativo", onConfigurar)
     LinhaOpcao("⏻", "Fechar", "Encerrar o aplicativo", onFechar, perigo = true)
 }
 
@@ -647,58 +785,139 @@ private fun LinhaOpcao(
 @Composable
 private fun AbaClassificacao(viewModel: ConfiguracoesViewModel) {
     val configuracao = viewModel.configuracao
-    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-    SubtituloSecao(
-        texto = "Calibrar a classificação",
-        subtitulo = "Cor da borda da compacta",
-        icone = "🚦",
-        ajuda = "Faixas de R$/km. A cor da borda da compacta segue esta escala. Arraste a barra ou use − e + de 0,01.",
-    )
-    BarrasSemaforo(viewModel)
-    FaixaClassificacao(
-        "Ruim",
-        ClassificacaoConstantes.CORES.getValue(Classificacao.RUIM),
-        configuracao.limiteRuimMin,
-        configuracao.limiteRuimMax,
-        "Min",
-        null,
-        viewModel::atualizarLimiteRuimMin,
-        viewModel::atualizarLimiteRuimMax,
-    )
-    FaixaClassificacao(
-        "Boa",
-        ClassificacaoConstantes.CORES.getValue(Classificacao.BOA),
-        configuracao.limiteBoaMin,
-        configuracao.limiteBoaMax,
-        null,
-        null,
-        viewModel::atualizarLimiteBoaMin,
-        viewModel::atualizarLimiteBoaMax,
-    )
-    FaixaClassificacao(
-        "Ótima",
-        ClassificacaoConstantes.CORES.getValue(Classificacao.EXCELENTE),
-        configuracao.limiteOtimaMin,
-        configuracao.limiteOtimaMax,
-        null,
-        "Max",
-        viewModel::atualizarLimiteOtimaMin,
-        viewModel::atualizarLimiteOtimaMax,
-    )
-    SubtituloSecao(
-        texto = "Meta de ganho por hora",
-        subtitulo = "Sua média-alvo de R$/hora",
-        icone = "⏱️",
-        ajuda = "Defina quanto você quer ganhar por hora (R\$/h). O app usa essa meta para indicar se a corrida atinge o seu objetivo por tempo. 0 = sem meta.",
-    )
-    Row(modifier = Modifier.fillMaxWidth()) {
-        CampoNumericoCaixa(
-            "Meta R\$/hora",
-            configuracao.metaGanhoHora,
-            viewModel::atualizarMetaGanhoHora,
-            Modifier.weight(1f),
+    val paleta = LocalPaletaApp.current
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        SubtituloSecao(
+            texto = "Cálculo de ganhos",
+            subtitulo = "Duas marcas em cada faixa",
+            icone = "🧮",
+        )
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            LegendaFaixa(Color(0xFFC62828), "abaixo da média")
+            LegendaFaixa(Color(0xFFF9A825), "na média")
+            LegendaFaixa(Color(0xFF2E7D32), "acima da média")
+        }
+        Text(
+            text = "Arraste as marcas. Zero na marca de cima não pinta.",
+            color = paleta.textoSecundario,
+            fontSize = 11.sp,
+        )
+        ReguaDuasMarcas(
+            titulo = "Ganhos por km",
+            ajuda = "Entra na borda da oferta, junto com o ganho por hora. A borda fica com a pior das duas cores.",
+            ruim = configuracao.limiteRuimMax,
+            boa = configuracao.limiteBoaMax,
+            ate = 5f,
+            sufixo = " R$/km",
+            onMarcas = viewModel::atualizarMarcasDeslizantes,
+        )
+        ReguaDuasMarcas(
+            titulo = "Ganhos por hora",
+            ajuda = "Também entra na borda da oferta. Abaixo da primeira marca é vermelho, entre as duas é amarelo, da segunda para cima é verde.",
+            ruim = configuracao.marcaHoraRuim,
+            boa = configuracao.marcaHoraBoa,
+            ate = 200f,
+            sufixo = " R$/h",
+            onMarcas = viewModel::atualizarMarcasHora,
+        )
+        ReguaDuasMarcas(
+            titulo = "Nota do passageiro",
+            ajuda = "Pinta só a nota no histórico. Não muda a borda da oferta nem o resultado.",
+            ruim = configuracao.marcaNotaRuim,
+            boa = configuracao.marcaNotaBoa,
+            ate = 5f,
+            sufixo = "",
+            onMarcas = viewModel::atualizarMarcasNota,
         )
     }
+}
+
+@Composable
+private fun LegendaFaixa(cor: Color, texto: String) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Box(
+            modifier = Modifier
+                .size(8.dp)
+                .background(cor, CircleShape),
+        )
+        Text(
+            text = texto,
+            color = LocalPaletaApp.current.texto,
+            fontSize = 11.sp,
+            modifier = Modifier.padding(start = 4.dp),
+        )
+    }
+}
+
+@Composable
+private fun ReguaDuasMarcas(
+    titulo: String,
+    ajuda: String,
+    ruim: Double,
+    boa: Double,
+    ate: Float,
+    sufixo: String,
+    onMarcas: (Double, Double) -> Unit,
+) {
+    val paleta = LocalPaletaApp.current
+    val contexto = LocalContext.current
+    val forma = RoundedCornerShape(16.dp)
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(paleta.fundoPainel, forma)
+            .border(1.dp, paleta.borda, forma)
+            .padding(horizontal = 12.dp, vertical = 8.dp),
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(
+                text = titulo,
+                color = paleta.texto,
+                fontSize = 14.sp,
+                fontWeight = FontWeight.SemiBold,
+                modifier = Modifier.weight(1f),
+            )
+            Box(
+                modifier = Modifier
+                    .size(28.dp)
+                    .background(paleta.pocoIcone, CircleShape)
+                    .clickable {
+                        android.widget.Toast.makeText(contexto, ajuda, android.widget.Toast.LENGTH_LONG).show()
+                    },
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(text = "?", color = paleta.texto, fontSize = 14.sp, fontWeight = FontWeight.Bold)
+            }
+        }
+        Text(
+            text = "Abaixo  ${FaixasClassificacao.formatar(ruim)}$sufixo    Acima  ${FaixasClassificacao.formatar(boa)}$sufixo",
+            color = paleta.textoSecundario,
+            fontSize = 11.sp,
+            modifier = Modifier.padding(top = 4.dp),
+        )
+        Slider(
+            value = ruim.toFloat().coerceIn(0f, ate),
+            onValueChange = { onMarcas(it.toDouble(), boa) },
+            valueRange = 0f..ate,
+            colors = androidx.compose.material3.SliderDefaults.colors(
+                thumbColor = Color(0xFFC62828),
+                activeTrackColor = paleta.texto,
+                inactiveTrackColor = paleta.borda,
+            ),
+        )
+        Slider(
+            value = boa.toFloat().coerceIn(0f, ate),
+            onValueChange = { onMarcas(ruim, it.toDouble()) },
+            valueRange = 0f..ate,
+            colors = androidx.compose.material3.SliderDefaults.colors(
+                thumbColor = Color(0xFF2E7D32),
+                activeTrackColor = paleta.texto,
+                inactiveTrackColor = paleta.borda,
+            ),
+        )
     }
 }
 
@@ -716,186 +935,151 @@ private fun AbaApp(
     val leituraOk = PermissoesMonitoramento.acessibilidadeAtiva(contexto)
     val bateriaOk = PermissoesMonitoramento.bateriaLiberada(contexto)
     val localizacaoOk = PermissoesMonitoramento.localizacaoConcedida(contexto)
-    SubtituloSecao(
-        texto = "Configurações do aplicativo",
-        subtitulo = "Configurar app",
-        icone = "⚙",
-    )
-    SubtituloSecao(
-        texto = "Permissões",
-        subtitulo = "Para monitorar ofertas",
-        ajuda = "Notificação, sobrepor, acessibilidade e bateria são obrigatórias. Localização ajuda o mapa. Acessibilidade: Configurações restritas → Serviços instalados.",
-    )
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-    ) {
-        StatusToque(
-            titulo = "1  Notificações",
-            dica = "Lê as ofertas da Uber e da 99",
-            ok = listenerOk,
-            destacar = destacarPermissoes && !listenerOk,
-            onClick = { contexto.startActivity(PermissoesMonitoramento.intentNotificacoes()) },
-            modifier = Modifier.weight(1f),
-        )
-        StatusToque(
-            titulo = "2  Sobrepor",
-            dica = "Mostra o card sobre o mapa",
-            ok = overlayOk,
-            destacar = destacarPermissoes && !overlayOk,
-            onClick = { contexto.startActivity(PermissoesMonitoramento.intentSobrepor(contexto)) },
-            modifier = Modifier.weight(1f),
-        )
-    }
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-    ) {
-        StatusToque(
-            titulo = "3  Acessibilidade",
-            dica = "Configurações restritas → Serviços instalados",
-            ok = leituraOk,
-            destacar = destacarPermissoes && !leituraOk,
-            onClick = {
-                br.com.gestordriver.overlay.OverlayBridge.segurarAcessibilidade()
-                contexto.startActivity(PermissoesMonitoramento.intentAcessibilidade())
-            },
-            modifier = Modifier.weight(1f),
-        )
-        StatusToque(
-            titulo = "4  Bateria",
-            dica = "Evita o overlay sumir no segundo plano",
-            ok = bateriaOk,
-            destacar = destacarPermissoes && !bateriaOk,
-            onClick = { contexto.startActivity(PermissoesMonitoramento.intentBateria(contexto)) },
-            modifier = Modifier.weight(1f),
-        )
-    }
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-    ) {
-        StatusToque(
-            titulo = "5  Localização",
-            dica = "Opcional. Ajuda o mapa",
-            ok = localizacaoOk,
-            destacar = false,
-            onClick = { (contexto as? br.com.gestordriver.MainActivity)?.pedirLocalizacao() },
-            modifier = Modifier.weight(1f),
-        )
-        Spacer(modifier = Modifier.weight(1f))
-    }
-    SubtituloSecao("App de corrida")
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.Center,
-    ) {
-        listOf(
-            br.com.gestordriver.notification.Plataforma.UBER to "Uber",
-            br.com.gestordriver.notification.Plataforma.NOVE_NOVE to "99",
-            br.com.gestordriver.notification.Plataforma.INDRIVE to "Indrive",
-        ).forEach { (plataforma, titulo) ->
-            val ok = br.com.gestordriver.notification.PlataformasMotorista.instalada(contexto, plataforma)
-            Text(
-                text = if (ok) "$titulo 🆗" else "$titulo ❎",
-                color = if (ok) DestaqueSelecionado else TextoAmareloConfig,
-                fontSize = FonteCampo,
+    val paleta = LocalPaletaApp.current
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        CartaoDespesa(
+            titulo = "Permissões",
+            subtitulo = "Toque para abrir o ajuste",
+        ) {
+            StatusToque(
+                titulo = "Notificações",
+                dica = "Lê as ofertas da Uber e da 99",
+                ok = listenerOk,
+                destacar = destacarPermissoes && !listenerOk,
+                onClick = { contexto.startActivity(PermissoesMonitoramento.intentNotificacoes()) },
+            )
+            StatusToque(
+                titulo = "Sobrepor",
+                dica = "Mostra o card sobre o mapa",
+                ok = overlayOk,
+                destacar = destacarPermissoes && !overlayOk,
+                onClick = { contexto.startActivity(PermissoesMonitoramento.intentSobrepor(contexto)) },
+            )
+            StatusToque(
+                titulo = "Acessibilidade",
+                dica = "Configurações restritas, serviços instalados",
+                ok = leituraOk,
+                destacar = destacarPermissoes && !leituraOk,
+                onClick = {
+                    br.com.gestordriver.overlay.OverlayBridge.segurarAcessibilidade()
+                    contexto.startActivity(PermissoesMonitoramento.intentAcessibilidade())
+                },
+            )
+            StatusToque(
+                titulo = "Bateria",
+                dica = "Evita o aviso sumir no segundo plano",
+                ok = bateriaOk,
+                destacar = destacarPermissoes && !bateriaOk,
+                onClick = { contexto.startActivity(PermissoesMonitoramento.intentBateria(contexto)) },
+            )
+            StatusToque(
+                titulo = "Localização",
+                dica = "Opcional. Abre o mapa na posição atual",
+                ok = localizacaoOk,
+                destacar = false,
+                onClick = { (contexto as? br.com.gestordriver.MainActivity)?.pedirLocalizacao() },
             )
         }
-    }
-    SubtituloSecao(
-        texto = "Tema",
-        subtitulo = "Escuro, claro ou do celular",
-        ajuda = "Define as cores do overlay e das telas. Celular segue o modo do aparelho.",
-    )
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceEvenly,
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        OpcaoMarca(
-            texto = "Escuro",
-            marcado = configuracao.tema == TemaApp.ESCURO,
-            onMarcar = { viewModel.selecionarTema(TemaApp.ESCURO) },
-        )
-        OpcaoMarca(
-            texto = "Claro",
-            marcado = configuracao.tema == TemaApp.CLARO,
-            onMarcar = { viewModel.selecionarTema(TemaApp.CLARO) },
-        )
-        OpcaoMarca(
-            texto = "Celular",
-            marcado = configuracao.tema == TemaApp.CELULAR,
-            onMarcar = { viewModel.selecionarTema(TemaApp.CELULAR) },
-        )
-    }
-    SubtituloSecao(
-        texto = "Navegação",
-        subtitulo = "Maps ou Waze",
-        ajuda = "App de mapa para abrir embarque e destino quando o endereço for lido.",
-    )
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.Center,
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        OpcaoMarca(
-            texto = "Google Maps",
-            marcado = configuracao.navegacao == AppNavegacao.GOOGLE_MAPS,
-            onMarcar = {
-                viewModel.selecionarNavegacao(AppNavegacao.GOOGLE_MAPS)
-                NavegacaoLauncher.abrirAplicativo(contexto, AppNavegacao.GOOGLE_MAPS)
-            },
-        )
-        OpcaoMarca(
-            texto = "Waze",
-            marcado = configuracao.navegacao == AppNavegacao.WAZE,
-            onMarcar = {
-                viewModel.selecionarNavegacao(AppNavegacao.WAZE)
-                NavegacaoLauncher.abrirAplicativo(contexto, AppNavegacao.WAZE)
-            },
-        )
-    }
-    SubtituloSecao("Conectar conta email")
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.Center,
-    ) {
-        val googleOk = configuracao.contaTipo == TipoContaVinculada.GOOGLE
-        val emailOk = configuracao.contaTipo == TipoContaVinculada.EMAIL
-        Text(
-            text = if (googleOk) "Conta google 🆗" else "Conta google",
-            color = TextoAmareloConfig,
-            fontSize = FonteCampo,
-            modifier = Modifier.clickable(onClick = onGoogle).padding(8.dp),
-        )
-        Text(
-            text = if (emailOk) "Conta email 🆗" else "Conta email",
-            color = TextoAmareloConfig,
-            fontSize = FonteCampo,
-            modifier = Modifier.clickable(onClick = onEmail).padding(8.dp),
-        )
-    }
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.Center,
-    ) {
-        Text(
-            text = "Enviar log",
-            color = TextoAmareloConfig,
-            fontSize = FonteCampo,
-            modifier = Modifier.clickable {
-                (contexto.applicationContext as? br.com.gestordriver.GestorDriverApp)
-                    ?.diagnosticLog
-                    ?.compartilhar(contexto)
-            }.padding(6.dp),
-        )
-        Text(
-            text = "v${PermissoesMonitoramento.versaoApp(contexto)}",
-            color = LocalPaletaApp.current.textoSecundario,
-            fontSize = FonteCampo,
-            modifier = Modifier.padding(6.dp),
-        )
+        CartaoDespesa(
+            titulo = "Apps de corrida",
+            subtitulo = "Instalados neste celular",
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                listOf(
+                    br.com.gestordriver.notification.Plataforma.UBER to "Uber",
+                    br.com.gestordriver.notification.Plataforma.NOVE_NOVE to "99",
+                    br.com.gestordriver.notification.Plataforma.INDRIVE to "inDrive",
+                ).forEach { (plataforma, titulo) ->
+                    val ok = br.com.gestordriver.notification.PlataformasMotorista.instalada(contexto, plataforma)
+                    StatusToque(
+                        titulo = titulo,
+                        dica = if (ok) "Instalado" else "Não instalado",
+                        ok = ok,
+                        destacar = false,
+                        onClick = {},
+                        clicavel = false,
+                        modifier = Modifier.weight(1f),
+                    )
+                }
+            }
+        }
+        CartaoDespesa(
+            titulo = "Tema",
+            subtitulo = "Escuro, claro ou do celular",
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                OpcaoMarca("Escuro", configuracao.tema == TemaApp.ESCURO) {
+                    viewModel.selecionarTema(TemaApp.ESCURO)
+                }
+                OpcaoMarca("Claro", configuracao.tema == TemaApp.CLARO) {
+                    viewModel.selecionarTema(TemaApp.CLARO)
+                }
+                OpcaoMarca("Celular", configuracao.tema == TemaApp.CELULAR) {
+                    viewModel.selecionarTema(TemaApp.CELULAR)
+                }
+            }
+        }
+        CartaoDespesa(
+            titulo = "Navegação",
+            subtitulo = "Mapa do embarque e do destino",
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                OpcaoMarca("Google Maps", configuracao.navegacao == AppNavegacao.GOOGLE_MAPS) {
+                    viewModel.selecionarNavegacao(AppNavegacao.GOOGLE_MAPS)
+                }
+                OpcaoMarca("Waze", configuracao.navegacao == AppNavegacao.WAZE) {
+                    viewModel.selecionarNavegacao(AppNavegacao.WAZE)
+                }
+            }
+        }
+        CartaoDespesa(
+            titulo = "Conta",
+            subtitulo = "Identifica o motorista",
+        ) {
+            val googleOk = configuracao.contaTipo == TipoContaVinculada.GOOGLE
+            val emailOk = configuracao.contaTipo == TipoContaVinculada.EMAIL
+            StatusToque(
+                titulo = "Google",
+                dica = if (googleOk) configuracao.contaEmail.ifBlank { "Conectado" } else "Toque para conectar",
+                ok = googleOk,
+                destacar = false,
+                onClick = onGoogle,
+            )
+            StatusToque(
+                titulo = "E-mail",
+                dica = if (emailOk) configuracao.contaEmail.ifBlank { "Conectado" } else "Toque para conectar",
+                ok = emailOk,
+                destacar = false,
+                onClick = onEmail,
+            )
+        }
+        CartaoDespesa(
+            titulo = "Sobre",
+            subtitulo = "v${PermissoesMonitoramento.versaoApp(contexto)}",
+        ) {
+            Text(
+                text = "Enviar log",
+                color = paleta.texto,
+                fontSize = 13.sp,
+                fontWeight = FontWeight.SemiBold,
+                modifier = Modifier.clickable {
+                    (contexto.applicationContext as? br.com.gestordriver.GestorDriverApp)
+                        ?.diagnosticLog
+                        ?.compartilhar(contexto)
+                },
+            )
+        }
     }
 }
 
@@ -1051,24 +1235,6 @@ private fun SubtituloSecao(
                     .padding(start = 8.dp, top = 4.dp, bottom = 4.dp),
             )
         }
-    }
-}
-
-@Composable
-private fun TituloPro(texto: String) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Text(
-            text = "🔒 $texto",
-            color = LocalPaletaApp.current.textoSecundario,
-            fontSize = FonteCampo,
-            fontWeight = FontWeight.Medium,
-            modifier = Modifier.weight(1f),
-        )
-        Text(text = "versão pro", color = TextoAmareloConfig, fontSize = 10.sp)
     }
 }
 
@@ -1369,28 +1535,41 @@ private fun StatusToque(
     ok: Boolean,
     destacar: Boolean,
     onClick: () -> Unit,
+    clicavel: Boolean = true,
     modifier: Modifier = Modifier,
 ) {
-    Column(
+    val paleta = LocalPaletaApp.current
+    val corMarca = when {
+        ok -> Color(0xFF2E7D32)
+        destacar -> Color(0xFFC62828)
+        else -> paleta.borda
+    }
+    Row(
         modifier = modifier
+            .fillMaxWidth()
             .heightIn(min = AlturaToque)
-            .clickable(onClick = onClick)
-            .padding(vertical = 6.dp),
+            .then(if (clicavel) Modifier.clickable(onClick = onClick) else Modifier)
+            .padding(vertical = 4.dp),
+        verticalAlignment = Alignment.CenterVertically,
     ) {
-        Text(
-            text = if (ok) "$titulo  🆗" else "$titulo  ❎",
-            color = when {
-                ok -> DestaqueSelecionado
-                destacar -> Color(0xFFFFCDD2)
-                else -> TextoAmareloConfig
-            },
-            fontSize = FonteCampo,
-            fontWeight = FontWeight.SemiBold,
+        Box(
+            modifier = Modifier
+                .size(8.dp)
+                .background(corMarca, CircleShape),
         )
-        Text(
-            text = dica,
-            color = LocalPaletaApp.current.textoSecundario,
-            fontSize = FonteAjuda,
-        )
+        Column(modifier = Modifier.padding(start = 10.dp)) {
+            Text(
+                text = titulo,
+                color = paleta.texto,
+                fontSize = 13.sp,
+                fontWeight = FontWeight.SemiBold,
+            )
+            Text(
+                text = dica,
+                color = paleta.textoSecundario,
+                fontSize = 11.sp,
+                maxLines = 2,
+            )
+        }
     }
 }

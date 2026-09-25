@@ -43,7 +43,7 @@ A partir desta versão:
 
 > **A janela principal do app é o menu, na aba Opções.** Ela abre em tela cheia ao iniciar o app (onboarding já feito) e cobre as demais telas do aplicativo.
 
-Por cima de outros apps só existem três overlays: **selo**, **tela de atalhos** e **compacta**. Histórico, Carteira, Semáforo, Usuário e Configurar abrem dentro da janela do app. O selo só aparece com o monitoramento ligado, quando o app não está na frente.
+Por cima de outros apps só existem três overlays: **selo**, **tela de atalhos** e **compacta**. Histórico, Carteira, Semáforo, Usuário e Sistema abrem dentro da janela do app. O selo só aparece com o monitoramento ligado, quando o app não está na frente.
 
 O aplicativo não deve permanecer permanentemente exibindo a tela compacta nem a tela de atalhos.
 
@@ -491,12 +491,12 @@ O monitoramento continua ativo.
 
 23. Configurações
 
-A configuração abre **dentro da janela do app**, não como overlay. Título da aba Opções: **Gestor Driver**; o subtítulo mostra se o monitoramento está ligado e quantas corridas houve hoje. Ordem dos atalhos: Monitorar, Localização, Histórico, Carteira, Despesas, Semáforo, Usuário, Configurar, Fechar. Monitorar pede confirmação e fica verde com **Monitorar (on)** quando ligado. Localização abre o mapa na posição atual. Nas outras abas, Cancelar e Salvar permanecem; na Opções essa barra não aparece. Troca de aba por **deslize horizontal**, **setas** ou **clique no rótulo** (Opções / Semáforo / Custos / Veículo / App).
+A configuração abre **dentro da janela do app**, não como overlay. Título da aba Opções: **Gestor Driver**; o subtítulo mostra se o monitoramento está ligado e quantas corridas houve hoje. Ordem: Monitorar, Localização, Histórico, Carteira, Despesas, Semáforo, Usuário, Sistema, Fechar. Monitorar pede confirmação e fica verde com **Monitorar (on)** quando ligado. Localização abre o mapa na posição atual. Não há faixa de abas nem deslize: o toque em Opções abre a tela, e a seta ou Cancelar voltam para Opções. Salvar grava, avisa e permanece na tela. Com o monitoramento ligado, Opções mostra o selo no lugar da seta. O botão de recentes exibe Opções.
 
-- **VEÍCULO** — descrição (marca, modelo, versão, ano, **final da placa**), consumo km/L gasolina e etanol. Pro: vencimento do IPVA e **calcular abastecimento**.
-- **CUSTOS** — preços **R$ / L Gasolina** e **R$ / L Etanol**, **combustível atual** (marca exclusiva Gasolina/Etanol). Pro (estruturado, bloqueado): troca de óleo (Valor R$, km, data) e pneus dianteiro/traseiro (Valor R$, rodagem, data).
-- **CALIBRAR** — título interno **Calibrar classificações**. Faixas R$/km encadeadas. Botões **−** e **+** mudam o valor daquele campo em 0,01. Ruim MIN e Ótima MAX são rótulos fixos. Ao **SALVAR**, se min/max vizinhos se cruzarem, o app **normaliza** a cadeia automaticamente.
-- **APP** — título interno **Configurar aplicativo**, depois permissões (🆗/❎), apps de motorista instalados (🆗/❎), Maps ou Waze, **conectar conta** (Google ou e-mail). Campo de e-mail com título **E-mail**.
+- **Usuário** — veículo (carro ou moto, marca, modelo, versão, ano, final da placa e o mês do IPVA) e abastecimento (preço e consumo; em energia, R$/kWh e km/kWh).
+- **Despesas** — combustível marcado, óleo, pneus, IPVA anual e seguro mensal. Óleo e pneus entram na estimativa. Seguro e IPVA rateiam o período.
+- **Semáforo** — duas marcas em R$/km, R$/hora e nota. A seta volta salvando.
+- **Sistema** — permissões, apps instalados, tema, Maps ou Waze, conta e Sobre (versão e enviar log).
 
 Permissão **obrigatória** para monitorar: notificações, sobrepor e acessibilidade (leitura do card). Bateria (ignorar otimização) evita o overlay sumir. Localização é opcional e **não** trava o monitoramento. Permissão faltando: abrir a aba APP e destacar o que falta. **ENVIAR LOG** compartilha `notificacoes_diagnostico.txt` (não entra no backup da nuvem).
 
@@ -974,9 +974,9 @@ A **Beta** passou a ser a linha **Pro**. Não há três produtos em loja nesta f
 
 O motor calcula sempre. No Free a UI esconde os números da calculadora e do dashboard.
 
-**Lucro da oferta** = valor − (combustível do combustível marcado + óleo + pneus + IPVA + seguro). Cada parcela só entra se tiver valor e base de km. Óleo/pneu: `(valor ÷ km) × km corrida`. IPVA/seguro: `(valor ÷ km/ano) × km corrida`. Consumo ou preço 0 → litros/gasto/lucro = —. Semáforo: **3** faixas (Ruim / Boa / Ótima); padrão Ruim até 1,59 · Boa 1,60–1,99 · Ótima a partir de 2,00.
+**Resultado da oferta** = valor − (combustível do combustível marcado + óleo + pneus por km). Óleo e pneus: `(valor ÷ km) × km da corrida`. IPVA e seguro não entram na oferta: ficam no dashboard. Seguro é mensal (mês inteiro, ano × 12). IPVA é anual (ano inteiro, mês ÷ 12). Dia e semana usam os dias daquele mês ou daquele ano. Consumo ou preço 0 → litros, gasto e resultado ficam sem valor. Semáforo: duas marcas em R$/km, R$/hora e nota. A borda da oferta usa a pior cor entre R$/km e R$/hora.
 
-**Abastecimento:** ao Salvar, se valor+litros (+km) permitem cálculo, o app **pergunta** se deve preencher R$/L e km/L do combustível atual.
+**Abastecimento:** ao Salvar em Usuário, se valor e quantidade (e os km) permitem cálculo, o app **pergunta** se deve preencher o preço e o consumo do combustível marcado. Em energia, a unidade é kWh.
 
 **Óleo:** aviso em vermelho a partir de **500 km** antes do vencimento da troca (intervalo informado); após o vencimento o aviso fica de “vencida”.
 
@@ -984,9 +984,9 @@ O motor calcula sempre. No Free a UI esconde os números da calculadora e do das
 
 **Histórico:** abas Todos/Uber/99/inDrive; semana DOM–SÁB com setas; sem resumo faturamento/dia-mês. Card: Ganhos · R$/Km · R$/Lucro · R$/gasto · Nota; Consumo (L); Embarque/Destino. Lixeira só selecionadas.
 
-**Menu overlay:** Histórico · Semáforo · Custos · Veículo · Dashboard · Configurações · Fechar.
+**Menu:** Monitorar, Localização, Histórico, Carteira, Despesas, Semáforo, Usuário, Sistema, Fechar. Sem faixa de abas.
 
-**Notificação:** sem oferta = “Monitorando ofertas”; com oferta = resumo; expirou/recusou = limpa e volta a monitorar; aceite = mantém resumo até a próxima oferta.
+**Notificação:** sem oferta = “Monitorando ofertas”. Com oferta, o título é valor, tempo e km. A linha fechada mostra R$/km, resultado, litros e nota. O aceite mantém o resumo até a próxima oferta.
 
 39. Custo estimado (combustível + operacionais)
 
@@ -995,11 +995,11 @@ Gasto de combustível = litros × **preço do litro** desse combustível.
 Gasto total da oferta = combustível + óleo + pneus + IPVA + seguro (ver §38).  
 Lucro estimado = valor da corrida − gasto total.
 
-Gasolina: litro mais caro, mais km/L. Etanol: litro mais barato, menos km/L. Os dois entram na conta via combustível marcado + preços da aba **CUSTOS**. Snapshot no momento da oferta; mudar preço depois não recalcula histórico.
+Gasolina: litro mais caro, mais km/L. Etanol: litro mais barato, menos km/L. Energia usa kWh. Os três entram na conta pelo combustível marcado e pelos preços da aba **Despesas**. O valor fica gravado na corrida; mudar o preço depois não recalcula o histórico.
 
 40. Faixas padrão de classificação (R$/km) — Pro 2.0
 
-Três faixas visíveis (Ruim / Boa / Ótima). Sem sobreposição, passo 0,01. Na aba **CALIBRAR** (Semáforo), deslizantes “Ruim até” e “Boa até”.
+Três faixas visíveis (abaixo, na média, acima). Na aba **Semáforo**, duas marcas em R$/km, R$/hora e nota. Zero na marca de cima não pinta.
 
 | Faixa | MIN | MAX | Borda |
 | --- | --- | --- | --- |

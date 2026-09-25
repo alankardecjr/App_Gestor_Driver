@@ -12,6 +12,7 @@ import android.graphics.PixelFormat
 import android.graphics.drawable.GradientDrawable
 import android.text.TextUtils
 import android.service.notification.NotificationListenerService
+import android.util.Log
 import android.util.TypedValue
 import android.os.Build
 import android.os.Handler
@@ -360,7 +361,7 @@ class OverlayService : Service() {
             params.y = snapshot.offsetY.toInt()
         }
         val view = seloView ?: criarSelo().also { nova ->
-            val adicionou = runCatching { windowManager.addView(nova, params) }.isSuccess
+            val adicionou = abrirJanela(nova, params)
             if (!adicionou) {
                 return
             }
@@ -384,7 +385,7 @@ class OverlayService : Service() {
         }
         aplicarFlagsJanela(params, focavel = false)
         val view = compactaView ?: criarCompacta().also { nova ->
-            val adicionou = runCatching { windowManager.addView(nova, params) }.isSuccess
+            val adicionou = abrirJanela(nova, params)
             if (!adicionou) {
                 return
             }
@@ -413,7 +414,7 @@ class OverlayService : Service() {
         params.gravity = Gravity.TOP or Gravity.START
         aplicarFlagsJanela(params, focavel = false)
         val view = expandidaView ?: criarExpandida(snapshot).also { nova ->
-            val adicionou = runCatching { windowManager.addView(nova, params) }.isSuccess
+            val adicionou = abrirJanela(nova, params)
             if (!adicionou) {
                 return
             }
@@ -440,7 +441,7 @@ class OverlayService : Service() {
         params.y = insets.top + dp(8)
         aplicarFlagsJanela(params, focavel = false)
         val view = historicoView ?: OverlayPaineis.criarHistorico(this).also { nova ->
-            val adicionou = runCatching { windowManager.addView(nova, params) }.isSuccess
+            val adicionou = abrirJanela(nova, params)
             if (!adicionou) {
                 return
             }
@@ -478,7 +479,7 @@ class OverlayService : Service() {
             configView = null
         }
         val view = configView ?: OverlayPaineis.criarConfig(this).also { nova ->
-            val adicionou = runCatching { windowManager.addView(nova, params) }.isSuccess
+            val adicionou = abrirJanela(nova, params)
             if (!adicionou) {
                 return
             }
@@ -506,7 +507,7 @@ class OverlayService : Service() {
         params.y = insets.top + dp(8)
         aplicarFlagsJanela(params, focavel = false)
         val view = dashboardView ?: OverlayPaineis.criarDashboard(this).also { nova ->
-            val adicionou = runCatching { windowManager.addView(nova, params) }.isSuccess
+            val adicionou = abrirJanela(nova, params)
             if (!adicionou) {
                 return
             }
@@ -547,7 +548,7 @@ class OverlayService : Service() {
         params.y = insets.top + dp(8) + (alturaPainel / 3)
         aplicarFlagsJanela(params, focavel = false)
         val view = confirmacaoView ?: OverlayPaineis.criarConfirmacaoFechar(this).also { nova ->
-            val adicionou = runCatching { windowManager.addView(nova, params) }.isSuccess
+            val adicionou = abrirJanela(nova, params)
             if (!adicionou) {
                 return
             }
@@ -760,16 +761,16 @@ class OverlayService : Service() {
             ItemMenuAtalho("👛", "Carteira", if (snapshot.planoPro) "Saldo e movimentações" else "Disponível no Pro") {
                 OverlayBridge.emitir(OverlayAcao.DashboardPro)
             },
-            ItemMenuAtalho("🧾", "Despesas", "Controle de gastos do app") {
+            ItemMenuAtalho("🧾", "Despesas", "Gastos do veículo") {
                 OverlayBridge.emitir(OverlayAcao.AbrirAtalhoConfig(1))
             },
             ItemMenuAtalho("🚦", "Semáforo", "Regras de classificação") {
                 OverlayBridge.emitir(OverlayAcao.AbrirAtalhoConfig(0))
             },
-            ItemMenuAtalho("👤", "Usuário", "Seus dados e preferências") {
+            ItemMenuAtalho("👤", "Usuário", "Seu veículo") {
                 OverlayBridge.emitir(OverlayAcao.AbrirAtalhoConfig(2))
             },
-            ItemMenuAtalho("⚙", "Configurar", "Ajustes do aplicativo") {
+            ItemMenuAtalho("⚙", "Sistema", "Ajustes do aplicativo") {
                 OverlayBridge.emitir(OverlayAcao.AbrirAtalhoConfig(3))
             },
             ItemMenuAtalho("⏻", "Fechar", "Encerrar o aplicativo", perigo = true) {
@@ -1634,7 +1635,7 @@ class OverlayService : Service() {
                 setStroke(dp(2), Color.WHITE)
             }
         }.also { nova ->
-            val adicionou = runCatching { windowManager.addView(nova, params) }.isSuccess
+            val adicionou = abrirJanela(nova, params)
             if (!adicionou) {
                 return
             }
@@ -1821,6 +1822,12 @@ class OverlayService : Service() {
         )
     }
 
+    private fun abrirJanela(view: View, params: WindowManager.LayoutParams): Boolean {
+        return runCatching { windowManager.addView(view, params) }
+            .onFailure { Log.w("GestorOverlay", "Janela não abriu", it) }
+            .isSuccess
+    }
+
     private fun removerView(view: View?) {
         if (view != null) {
             runCatching { windowManager.removeView(view) }
@@ -1870,9 +1877,10 @@ class OverlayService : Service() {
         val detalhe: String
         if (!snapshot.aguardandoOferta && snapshot.valorTotal != "—") {
             titulo = "${snapshot.valorTotal} · ${snapshot.tempoHm} · ${snapshot.kmTotal}"
-            texto = "R$/km · Resultado · Consumo · Nota"
-            detalhe = "$titulo\n$texto\n${soNumero(snapshot.valorPorKm)} · " +
+            val numeros = "${soNumero(snapshot.valorPorKm)} · " +
                 "${soNumero(snapshot.lucroEstimado)} · ${snapshot.litrosEstimados} · ${snapshot.nota}"
+            texto = numeros
+            detalhe = "$titulo\nR$/km · Resultado · Consumo · Nota\n$numeros"
         } else {
             titulo = "Gestor Driver"
             texto = "Monitorando ofertas"

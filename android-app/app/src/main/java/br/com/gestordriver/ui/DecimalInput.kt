@@ -20,6 +20,19 @@ object DecimalInput {
         return normalizado.toDoubleOrNull()
     }
 
+    /** Duas casas e vírgula, sem depender do idioma do aparelho. */
+    fun formatarFixo(valor: Double): String {
+        if (!valor.isFinite()) {
+            return "—"
+        }
+        val negativo = valor < 0.0
+        val centavos = kotlin.math.round(kotlin.math.abs(valor) * 100.0).toLong()
+        val inteiro = centavos / 100
+        val frac = (centavos % 100).toString().padStart(2, '0')
+        val texto = "$inteiro,$frac"
+        return if (negativo) "-$texto" else texto
+    }
+
     fun formatar(valor: Double): String {
         if (valor == 0.0) {
             return ""

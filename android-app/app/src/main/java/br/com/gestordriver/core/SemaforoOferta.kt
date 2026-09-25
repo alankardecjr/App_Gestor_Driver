@@ -9,6 +9,19 @@ object SemaforoOferta {
      * Três faixas a partir da meta: ótima >= meta, boa >= 80% da meta, ruim abaixo.
      * Meta 0 ou hora ausente não pinta.
      */
+    /** Abaixo da primeira marca vermelho, entre as duas amarelo, da segunda para cima verde. Marca boa em 0 não pinta. */
+    fun corPorDuasMarcas(valor: Double?, abaixo: Double, acima: Double): String {
+        if (acima <= 0.0 || valor == null) {
+            return ClassificacaoConstantes.COR_BORDA_NEUTRA
+        }
+        val piso = abaixo.coerceAtMost(acima)
+        return when {
+            valor >= acima -> ClassificacaoConstantes.CORES.getValue(Classificacao.EXCELENTE)
+            valor > piso -> ClassificacaoConstantes.CORES.getValue(Classificacao.BOA)
+            else -> ClassificacaoConstantes.CORES.getValue(Classificacao.RUIM)
+        }
+    }
+
     fun corPorFaixaHora(valorPorHora: Double?, meta: Double): String {
         if (meta <= 0.0 || valorPorHora == null) {
             return ClassificacaoConstantes.COR_BORDA_NEUTRA

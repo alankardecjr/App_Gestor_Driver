@@ -219,6 +219,18 @@ class ConfiguracoesViewModel(
         aplicar(FaixasClassificacao.aplicar(configuracao, FaixasClassificacao.Campo.OTIMA_MAX, valor))
     }
 
+    fun atualizarMarcasHora(ruim: Double, boa: Double) {
+        val piso = ruim.coerceAtLeast(0.0)
+        val teto = boa.coerceAtLeast(piso)
+        aplicar(configuracao.copy(marcaHoraRuim = piso, marcaHoraBoa = teto, metaGanhoHora = teto))
+    }
+
+    fun atualizarMarcasNota(ruim: Double, boa: Double) {
+        val piso = ruim.coerceIn(0.0, 5.0)
+        val teto = boa.coerceIn(piso, 5.0)
+        aplicar(configuracao.copy(marcaNotaRuim = piso, marcaNotaBoa = teto))
+    }
+
     fun atualizarMetaGanhoHora(valor: Double) {
         aplicar(configuracao.copy(metaGanhoHora = valor.coerceAtLeast(0.0)))
     }
@@ -233,7 +245,9 @@ class ConfiguracoesViewModel(
         } else {
             configuracao
         }
-        val normalizada = FaixasClassificacao.normalizar(comAbastecimento)
+        val normalizada = FaixasClassificacao.normalizar(
+            comAbastecimento.copy(seguroRecorrencia = SeguroRecorrencia.MENSAL),
+        )
         store.salvar(normalizada)
         configuracao = normalizada
     }
@@ -253,6 +267,8 @@ class ConfiguracoesViewModel(
     private fun aplicar(nova: ConfiguracaoUsuario) {
         configuracao = nova
     }
+
+    fun temAlteracao(): Boolean = configuracao != store.carregar()
 
     fun cancelar() {
         configuracao = store.carregar()

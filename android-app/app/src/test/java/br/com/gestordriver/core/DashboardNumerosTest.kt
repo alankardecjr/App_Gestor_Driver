@@ -1,40 +1,43 @@
 package br.com.gestordriver.core
 
 import br.com.gestordriver.model.ConfiguracaoUsuario
-import br.com.gestordriver.model.SeguroRecorrencia
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Test
+import java.time.LocalDate
 
 class DashboardNumerosTest {
+    private val abril = LocalDate.of(2026, 4, 15)
+    private val bissexto = LocalDate.of(2024, 2, 15)
+
     @Test
-    fun seguro_mensal_rateia_por_dias_do_periodo() {
+    fun seguro_mensal_na_semana_usa_os_dias_do_mes() {
         val config = ConfiguracaoUsuario.padrao().copy(
             seguroValor = 300.0,
-            seguroRecorrencia = SeguroRecorrencia.MENSAL,
             oleoValor = 0.0,
         )
         val numeros = DashboardNumeros.de(
             listOf(CorridaParaResumo(100.0, 10.0, 30, 5.0)),
             config,
-            diasPeriodo = 7,
+            dia = abril,
+            periodo = CalendarioPeriodo.SEMANA,
         )
         assertEquals(5.0, numeros.combustivel!!, 0.001)
-        assertEquals(70.0, numeros.seguro!!, 0.001) // 300 * 7/30
+        assertEquals(70.0, numeros.seguro!!, 0.001) // abril tem 30 dias: 300 * 7/30
         assertNull(numeros.oleo)
         assertEquals(75.0, numeros.despesas, 0.001)
     }
 
     @Test
-    fun seguro_anual_rateia_por_dias_do_ano() {
-        val config = ConfiguracaoUsuario.padrao().copy(
-            seguroValor = 3650.0,
-            seguroRecorrencia = SeguroRecorrencia.ANUAL,
-        )
-        assertEquals(10.0, DashboardNumeros.rateioSeguro(3650.0, SeguroRecorrencia.ANUAL, 1)!!, 0.001)
-        assertEquals(70.0, DashboardNumeros.rateioSeguro(300.0, SeguroRecorrencia.MENSAL, 7)!!, 0.001)
-        assertNull(DashboardNumeros.rateioSeguro(0.0, SeguroRecorrencia.ANUAL, 30))
-        assertEquals(10.0, DashboardNumeros.rateioAnual(3650.0, 1)!!, 0.001)
+    fun seguro_e_ipva_fecham_no_mes_e_no_ano() {
+        assertEquals(300.0, DashboardNumeros.parcelaSeguro(300.0, abril, CalendarioPeriodo.MES)!!, 0.001)
+        assertEquals(3600.0, DashboardNumeros.parcelaSeguro(300.0, abril, CalendarioPeriodo.ANO)!!, 0.001)
+        assertEquals(10.0, DashboardNumeros.parcelaSeguro(300.0, abril, CalendarioPeriodo.DIA)!!, 0.001)
+        assertNull(DashboardNumeros.parcelaSeguro(0.0, abril, CalendarioPeriodo.MES))
+        assertEquals(100.0, DashboardNumeros.parcelaIpva(1200.0, abril, CalendarioPeriodo.MES)!!, 0.001)
+        assertEquals(1200.0, DashboardNumeros.parcelaIpva(1200.0, abril, CalendarioPeriodo.ANO)!!, 0.001)
+        assertEquals(1200.0 / 365.0, DashboardNumeros.parcelaIpva(1200.0, abril, CalendarioPeriodo.DIA)!!, 0.001)
+        assertEquals(1200.0 / 366.0, DashboardNumeros.parcelaIpva(1200.0, bissexto, CalendarioPeriodo.DIA)!!, 0.001)
     }
 
     @Test

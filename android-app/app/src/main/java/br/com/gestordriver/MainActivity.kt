@@ -33,7 +33,9 @@ import br.com.gestordriver.ui.theme.GestorDriverTheme
 class MainActivity : ComponentActivity() {
 
     private lateinit var appViewModel: AppViewModel
+    private lateinit var configuracoesViewModel: ConfiguracoesViewModel
     private var retomadaInicial = true
+    private var deixouPelosRecentes = false
 
     private val seletorGoogle = registerForActivityResult(
         ActivityResultContracts.StartActivityForResult(),
@@ -98,7 +100,7 @@ class MainActivity : ComponentActivity() {
             },
         )[AppViewModel::class.java]
 
-        val configuracoesViewModel = ViewModelProvider(
+        configuracoesViewModel = ViewModelProvider(
             this,
             object : ViewModelProvider.Factory {
                 @Suppress("UNCHECKED_CAST")
@@ -234,13 +236,17 @@ class MainActivity : ComponentActivity() {
     override fun onUserLeaveHint() {
         super.onUserLeaveHint()
         if (::appViewModel.isInitialized) {
-            appViewModel.recolherAoSairDoApp()
+            deixouPelosRecentes = true
+            if (::configuracoesViewModel.isInitialized) {
+                configuracoesViewModel.cancelar()
+            }
+            appViewModel.exibirOpcoesNosRecentes()
         }
     }
 
     override fun onStop() {
         super.onStop()
-        if (::appViewModel.isInitialized && !isChangingConfigurations) {
+        if (::appViewModel.isInitialized && !isChangingConfigurations && !deixouPelosRecentes) {
             appViewModel.recolherAoSairDoApp()
         }
     }
@@ -249,7 +255,10 @@ class MainActivity : ComponentActivity() {
         super.onResume()
         if (::appViewModel.isInitialized) {
             val atalho = tratarIntent(intent, appViewModel)
-            if (retomadaInicial) {
+            if (deixouPelosRecentes) {
+                deixouPelosRecentes = false
+                appViewModel.abrirMenuOpcoes()
+            } else if (retomadaInicial) {
                 retomadaInicial = false
             } else if (
                 !atalho &&

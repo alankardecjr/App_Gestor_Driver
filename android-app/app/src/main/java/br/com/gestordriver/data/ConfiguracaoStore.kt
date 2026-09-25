@@ -72,6 +72,10 @@ fun ConfiguracaoUsuario.paraPreferencias(): Map<String, String> = mapOf(
     "limiteOtimaMin" to limiteOtimaMin.toString(),
     "limiteOtimaMax" to limiteOtimaMax.toString(),
     "metaGanhoHora" to metaGanhoHora.toString(),
+    "marcaHoraRuim" to marcaHoraRuim.toString(),
+    "marcaHoraBoa" to marcaHoraBoa.toString(),
+    "marcaNotaRuim" to marcaNotaRuim.toString(),
+    "marcaNotaBoa" to marcaNotaBoa.toString(),
     "anunciarVoz" to anunciarVoz.toString(),
 )
 
@@ -135,6 +139,10 @@ fun Map<String, String>.paraConfiguracaoUsuario(): ConfiguracaoUsuario {
         limiteOtimaMin = this["limiteOtimaMin"]?.toDoubleOrNull() ?: padrao.limiteOtimaMin,
         limiteOtimaMax = this["limiteOtimaMax"]?.toDoubleOrNull() ?: padrao.limiteOtimaMax,
         metaGanhoHora = this["metaGanhoHora"]?.toDoubleOrNull() ?: padrao.metaGanhoHora,
+        marcaHoraRuim = this["marcaHoraRuim"]?.toDoubleOrNull() ?: padrao.marcaHoraRuim,
+        marcaHoraBoa = this["marcaHoraBoa"]?.toDoubleOrNull() ?: padrao.marcaHoraBoa,
+        marcaNotaRuim = this["marcaNotaRuim"]?.toDoubleOrNull() ?: padrao.marcaNotaRuim,
+        marcaNotaBoa = this["marcaNotaBoa"]?.toDoubleOrNull() ?: padrao.marcaNotaBoa,
         anunciarVoz = this["anunciarVoz"]?.toBooleanStrictOrNull() ?: padrao.anunciarVoz,
     )
 }

@@ -37,7 +37,7 @@ data class ConfiguracaoUsuario(
     val ipvaValor: Double = 0.0,
     val seguroValor: Double = 0.0,
     val seguroData: String = "",
-    val seguroRecorrencia: SeguroRecorrencia = SeguroRecorrencia.ANUAL,
+    val seguroRecorrencia: SeguroRecorrencia = SeguroRecorrencia.MENSAL,
     val kmAnual: Double = 0.0,
 
     val navegacao: AppNavegacao = AppNavegacao.GOOGLE_MAPS,
@@ -60,6 +60,10 @@ data class ConfiguracaoUsuario(
 
     // Meta de ganho por hora (R$/h) do motorista. 0 = não definida.
     val metaGanhoHora: Double = 0.0,
+    val marcaHoraRuim: Double = 0.0,
+    val marcaHoraBoa: Double = 0.0,
+    val marcaNotaRuim: Double = 0.0,
+    val marcaNotaBoa: Double = 0.0,
     val anunciarVoz: Boolean = true,
 ) {
     fun metaGanhoHoraDefinida(): Boolean = metaGanhoHora > 0.0
@@ -109,7 +113,10 @@ data class ConfiguracaoUsuario(
                 precoEtanol = preco ?: precoEtanol,
                 consumoEtanol = consumo ?: consumoEtanol,
             )
-            Combustivel.ENERGIA -> this
+            Combustivel.ENERGIA -> copy(
+                precoEnergia = preco ?: precoEnergia,
+                consumoEnergia = consumo ?: consumoEnergia,
+            )
         }
     }
 

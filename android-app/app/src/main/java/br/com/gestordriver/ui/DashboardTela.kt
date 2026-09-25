@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
@@ -26,6 +27,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -55,6 +57,7 @@ fun DashboardTela(
     onPeriodo: (String) -> Unit,
 ) {
     val paleta  = LocalPaletaApp.current
+    val contexto = LocalContext.current
     val forma   = RoundedCornerShape(16.dp)
     val periodo = state.calendarioPeriodo
     val selecionado = state.historicoDia
@@ -76,7 +79,8 @@ fun DashboardTela(
             )
         },
         configuracao,
-        diasPeriodo = CalendarioApp.diasDoPeriodo(selecionado, periodo),
+        dia = selecionado,
+        periodo = periodo,
     )
     val receitas = numeros.receitas
     val despesas = numeros.despesas
@@ -108,24 +112,40 @@ fun DashboardTela(
         CabecalhoTela(
             titulo = "Dashboard",
             subtitulo = "Resultado do período",
+            icone = "👛",
             onVoltar = onVoltar,
             acao = {
-                BotaoCircular(
-                    simbolo = "📅",
-                    onClick = {
-                        if (!calendarioAberto) {
-                            mesCalendario = CalendarioApp.mesDe(selecionado)
-                        }
-                        calendarioAberto = !calendarioAberto
-                    },
-                )
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    BotaoCircular(
+                        simbolo = "?",
+                        onClick = {
+                            android.widget.Toast.makeText(
+                                contexto,
+                                "Dia, semana, mês ou ano mostram as corridas aceitas desse período. Receitas são a soma dos valores. Despesas são o custo gravado nas corridas, mais seguro e IPVA. Óleo e pneus aparecem só na estimativa.",
+                                android.widget.Toast.LENGTH_LONG,
+                            ).show()
+                        },
+                    )
+                    Spacer(modifier = Modifier.size(8.dp))
+                    BotaoCircular(
+                        simbolo = "📆",
+                        onClick = {
+                            if (!calendarioAberto) {
+                                mesCalendario = CalendarioApp.mesDe(selecionado)
+                            }
+                            calendarioAberto = !calendarioAberto
+                        },
+                    )
+                }
             },
         )
 
         // ── Abas Diário / Semanal / Mensal ─────────────────────────
         FaixaAbasComSetas(
             titulos = AbasModoDash,
+            icones = listOf("D", "S", "M", "A"),
             selecionada = periodo.ordinal.coerceIn(0, AbasModoDash.lastIndex),
+            tamanhoFonte = 11.sp,
             corAtiva = paleta.texto,
             corInativa = paleta.textoSecundario,
             onSelecionar = { onPeriodo(CalendarioPeriodo.entries[it].name) },
@@ -135,7 +155,7 @@ fun DashboardTela(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 12.dp, vertical = 4.dp),
+                .padding(horizontal = 12.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             TituloComSetas(
@@ -179,10 +199,10 @@ fun DashboardTela(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(6.dp),
             ) {
-                CartaoTopo("⏱", "Tempo em corridas", fmtTempo(numeros.minutos))
-                CartaoTopo("↔", "Km em corridas", fmtKm(numeros.kmTotal))
+                CartaoTopo("h", "Tempo em corridas", fmtTempo(numeros.minutos))
+                CartaoTopo("km", "Km em corridas", fmtKm(numeros.kmTotal))
                 CartaoTopo(
-                    "⛽",
+                    "L",
                     "Consumo estimado",
                     numeros.litros?.let { "${fmtDecimal(it)} L" } ?: "—",
                 )
@@ -264,7 +284,7 @@ private fun RowScope.CartaoTopo(icone: String, titulo: String, valor: String) {
                 .background(paleta.pocoIcone, RoundedCornerShape(10.dp)),
             contentAlignment = Alignment.Center,
         ) {
-            Text(icone, fontSize = 14.sp)
+            Text(icone, color = paleta.texto, fontSize = 12.sp, fontWeight = FontWeight.Bold)
         }
         Text(
             titulo,
@@ -370,7 +390,7 @@ private fun LinhaCusto(icone: String, rotulo: String, valor: Double?) {
                 .background(paleta.pocoIcone, RoundedCornerShape(10.dp)),
             contentAlignment = Alignment.Center,
         ) {
-            Text(icone, fontSize = 13.sp)
+            Text(icone, color = paleta.texto, fontSize = 13.sp)
         }
         Text(
             rotulo,
@@ -418,7 +438,7 @@ private fun CalendarioMesDash(
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 8.dp, vertical = 4.dp),
+            .padding(horizontal = 8.dp),
     ) {
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -454,6 +474,7 @@ private fun CalendarioMesDash(
                     text = rotulo,
                     color = paleta.textoSecundario,
                     fontSize = 10.sp,
+                    lineHeight = 12.sp,
                     textAlign = TextAlign.Center,
                     modifier = Modifier.weight(1f),
                 )
@@ -468,14 +489,13 @@ private fun CalendarioMesDash(
                     Box(
                         modifier = Modifier
                             .weight(1f)
-                            .heightIn(min = 36.dp)
                             .clickable { onDia(dia.toEpochDay()) },
                         contentAlignment = Alignment.Center,
                     ) {
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
                             Box(
                                 modifier = Modifier
-                                    .size(28.dp)
+                                    .size(24.dp)
                                     .then(
                                         if (ativo) {
                                             Modifier.background(paleta.texto, CircleShape)
@@ -500,8 +520,7 @@ private fun CalendarioMesDash(
                             if (temCorrida && noMes) {
                                 Box(
                                     modifier = Modifier
-                                        .padding(top = 1.dp)
-                                        .size(4.dp)
+                                        .size(3.dp)
                                         .background(
                                             if (ativo) paleta.texto else paleta.textoSecundario,
                                             CircleShape,
