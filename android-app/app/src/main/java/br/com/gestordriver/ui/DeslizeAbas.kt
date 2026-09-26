@@ -107,19 +107,22 @@ fun FaixaAbasComSetas(
     mostrarIndicador: Boolean = false,
     tamanhoFonte: TextUnit = 14.sp,
     icones: List<String> = emptyList(),
+    mostrarSetas: Boolean = true,
 ) {
     val ultima = titulos.lastIndex.coerceAtLeast(0)
     Row(
         modifier = Modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Text(
-            text = "⬅️",
-            fontSize = 14.sp,
-            modifier = Modifier
-                .clickable { onSelecionar((selecionada - 1).coerceAtLeast(0)) }
-                .padding(horizontal = 4.dp, vertical = 2.dp),
-        )
+        if (mostrarSetas) {
+            Text(
+                text = "⬅️",
+                fontSize = 14.sp,
+                modifier = Modifier
+                    .clickable { onSelecionar((selecionada - 1).coerceAtLeast(0)) }
+                    .padding(horizontal = 4.dp, vertical = 2.dp),
+            )
+        }
         Row(
             modifier = Modifier.weight(1f),
             horizontalArrangement = Arrangement.SpaceEvenly,
@@ -168,13 +171,15 @@ fun FaixaAbasComSetas(
                 }
             }
         }
-        Text(
-            text = "➡️",
-            fontSize = 14.sp,
-            modifier = Modifier
-                .clickable { onSelecionar((selecionada + 1).coerceAtMost(ultima)) }
-                .padding(horizontal = 4.dp, vertical = 2.dp),
-        )
+        if (mostrarSetas) {
+            Text(
+                text = "➡️",
+                fontSize = 14.sp,
+                modifier = Modifier
+                    .clickable { onSelecionar((selecionada + 1).coerceAtMost(ultima)) }
+                    .padding(horizontal = 4.dp, vertical = 2.dp),
+            )
+        }
     }
 }
 

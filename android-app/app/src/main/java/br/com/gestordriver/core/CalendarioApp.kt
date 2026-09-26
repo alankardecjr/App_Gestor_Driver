@@ -119,7 +119,7 @@ object CalendarioApp {
 
     fun rotuloPeriodoCabecalho(dia: LocalDate, periodo: CalendarioPeriodo): String =
         when (periodo) {
-            CalendarioPeriodo.DIA -> "${rotuloDiaCurto(dia)} ${dia.year}"
+            CalendarioPeriodo.DIA -> rotuloDiaCabecalho(dia)
             CalendarioPeriodo.SEMANA -> {
                 val inicio = domingoDaSemana(dia)
                 val fim = sabadoDaSemana(dia)
@@ -187,6 +187,18 @@ object CalendarioApp {
         dia.month.getDisplayName(TextStyle.SHORT, localePtBr)
             .replaceFirstChar { it.titlecase(localePtBr) }
             .trimEnd('.')
+
+    private fun rotuloDiaCabecalho(dia: LocalDate): String {
+        val semana = SemanasCurtas[dia.dayOfWeek.value % 7]
+        val mes = MesesCurtos[dia.monthValue - 1]
+        return "$semana ${dia.dayOfMonth} $mes ${dia.year}"
+    }
+
+    private val SemanasCurtas = listOf("Dom.", "Seg.", "Ter.", "Qua.", "Qui.", "Sex.", "Sáb.")
+    private val MesesCurtos = listOf(
+        "Jan.", "Fev.", "Mar.", "Abr.", "Mai.", "Jun.",
+        "Jul.", "Ago.", "Set.", "Out.", "Nov.", "Dez.",
+    )
 }
 
 enum class CalendarioPeriodo {

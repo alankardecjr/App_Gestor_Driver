@@ -30,6 +30,15 @@ class SemaforoOfertaTest {
     }
 
     @Test
+    fun duas_marcas_mudam_a_cada_centavo() {
+        assertEquals("#C62828", SemaforoOferta.corPorDuasMarcas(1.70, 1.70, 2.10))
+        assertEquals("#F9A825", SemaforoOferta.corPorDuasMarcas(1.71, 1.70, 2.10))
+        assertEquals("#F9A825", SemaforoOferta.corPorDuasMarcas(2.10, 1.70, 2.10))
+        assertEquals("#2E7D32", SemaforoOferta.corPorDuasMarcas(2.11, 1.70, 2.10))
+        assertEquals(ClassificacaoConstantes.COR_BORDA_NEUTRA, SemaforoOferta.corPorDuasMarcas(3.0, 1.70, 0.0))
+    }
+
+    @Test
     fun borda_usa_a_pior_das_duas_faixas() {
         val verde = "#2E7D32"
         val vermelho = "#C62828"

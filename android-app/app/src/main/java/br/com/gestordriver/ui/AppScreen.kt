@@ -138,7 +138,6 @@ fun AppScreen(
                         confirmacaoMonitorVisivel = state.confirmacaoDesativarVisivel,
                         onCancelarMonitor = viewModel::cancelarDesativarMonitoramento,
                         onConfirmarMonitor = viewModel::confirmarAlternarMonitoramento,
-                        subtituloMenu = subtituloMenu(state),
                     )
                 }
             }
@@ -345,7 +344,6 @@ private fun ConteudoPrincipal(
                 confirmacaoMonitorVisivel = state.confirmacaoDesativarVisivel,
                 onCancelarMonitor = viewModel::cancelarDesativarMonitoramento,
                 onConfirmarMonitor = viewModel::confirmarAlternarMonitoramento,
-                subtituloMenu = subtituloMenu(state),
             )
         }
         if (state.historicoVisivel) {
@@ -359,6 +357,7 @@ private fun ConteudoPrincipal(
                     onSelecionar = viewModel::marcarItemHistorico,
                     onCancelarMarcacao = viewModel::limparMarcacaoHistorico,
                     onLimpar = viewModel::solicitarLimparHistorico,
+                    onExcluir = viewModel::excluirCorridaHistorico,
                 )
                 if (state.confirmacaoLimparHistoricoVisivel) {
                     Box(
@@ -413,15 +412,6 @@ private fun ConteudoPrincipal(
             }
         }
         }
-}
-
-private fun subtituloMenu(state: AppState): String {
-    val hoje = state.historico.count {
-        it.dataHoraRegistro?.toLocalDate() == br.com.gestordriver.core.CalendarioApp.hoje()
-    }
-    val status = if (state.monitorando) "Monitorando" else "Desligado"
-    val corridas = if (hoje == 1) "1 corrida hoje" else "$hoje corridas hoje"
-    return "$status · $corridas"
 }
 
 @Composable

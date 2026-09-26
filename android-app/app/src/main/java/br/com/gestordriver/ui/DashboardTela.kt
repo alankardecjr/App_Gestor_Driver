@@ -27,6 +27,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -42,6 +43,7 @@ import java.time.LocalDate
 import java.time.YearMonth
 
 private val AbasModoDash = listOf("Dia", "Semana", "Mês", "Ano")
+private val VerdeIcone = Color(0xFF2E7D32)
 
 // ─────────────────────────────────────────────────────────────────────────────
 // TELA DASHBOARD
@@ -111,22 +113,9 @@ fun DashboardTela(
     ) {
         CabecalhoTela(
             titulo = "Dashboard",
-            subtitulo = "Resultado do período",
-            icone = "👛",
             onVoltar = onVoltar,
             acao = {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    BotaoCircular(
-                        simbolo = "?",
-                        onClick = {
-                            android.widget.Toast.makeText(
-                                contexto,
-                                "Dia, semana, mês ou ano mostram as corridas aceitas desse período. Receitas são a soma dos valores. Despesas são o custo gravado nas corridas, mais seguro e IPVA. Óleo e pneus aparecem só na estimativa.",
-                                android.widget.Toast.LENGTH_LONG,
-                            ).show()
-                        },
-                    )
-                    Spacer(modifier = Modifier.size(8.dp))
                     BotaoCircular(
                         simbolo = "📆",
                         onClick = {
@@ -136,18 +125,24 @@ fun DashboardTela(
                             calendarioAberto = !calendarioAberto
                         },
                     )
+                    Spacer(modifier = Modifier.size(8.dp))
+                    BotaoCircular(
+                        simbolo = "?",
+                        onClick = {
+                            android.widget.Toast.makeText(
+                                contexto,
+                                "O Dashboard resume as corridas aceitas do período. Dia, Semana, Mês e Ano filtram o intervalo. As setas trocam o dia, a semana, o mês ou o ano. Hoje aparece quando o dia escolhido é o atual. O calendário abre o mês e pinta o dia de hoje de verde. Receitas são a soma dos valores. Despesas são o custo gravado nas corridas, mais seguro e IPVA. Óleo e pneus aparecem só na estimativa.",
+                                android.widget.Toast.LENGTH_LONG,
+                            ).show()
+                        },
+                    )
                 }
             },
         )
 
         // ── Abas Diário / Semanal / Mensal ─────────────────────────
-        FaixaAbasComSetas(
-            titulos = AbasModoDash,
-            icones = listOf("D", "S", "M", "A"),
+        FaixaPeriodoDashboard(
             selecionada = periodo.ordinal.coerceIn(0, AbasModoDash.lastIndex),
-            tamanhoFonte = 11.sp,
-            corAtiva = paleta.texto,
-            corInativa = paleta.textoSecundario,
             onSelecionar = { onPeriodo(CalendarioPeriodo.entries[it].name) },
         )
 
@@ -284,7 +279,7 @@ private fun RowScope.CartaoTopo(icone: String, titulo: String, valor: String) {
                 .background(paleta.pocoIcone, RoundedCornerShape(10.dp)),
             contentAlignment = Alignment.Center,
         ) {
-            Text(icone, color = paleta.texto, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+            Text(icone, color = paleta.textoSecundario, fontSize = 12.sp, fontWeight = FontWeight.Bold)
         }
         Text(
             titulo,
@@ -390,7 +385,11 @@ private fun LinhaCusto(icone: String, rotulo: String, valor: Double?) {
                 .background(paleta.pocoIcone, RoundedCornerShape(10.dp)),
             contentAlignment = Alignment.Center,
         ) {
-            Text(icone, color = paleta.texto, fontSize = 13.sp)
+            Text(
+                text = iconeCinza(icone),
+                color = paleta.textoSecundario,
+                fontSize = 13.sp,
+            )
         }
         Text(
             rotulo,
@@ -411,6 +410,45 @@ private fun LinhaCusto(icone: String, rotulo: String, valor: Double?) {
         )
     }
 }
+
+@Composable
+private fun FaixaPeriodoDashboard(
+    selecionada: Int,
+    onSelecionar: (Int) -> Unit,
+) {
+    val paleta = LocalPaletaApp.current
+    val forma = RoundedCornerShape(10.dp)
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 8.dp, vertical = 4.dp),
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
+    ) {
+        AbasModoDash.forEachIndexed { indice, nome ->
+            val ativa = indice == selecionada
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .background(if (ativa) paleta.texto else paleta.fundoPainel, forma)
+                    .border(1.dp, if (ativa) paleta.texto else paleta.borda, forma)
+                    .clickable { onSelecionar(indice) }
+                    .padding(vertical = 10.dp),
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(
+                    text = nome,
+                    color = if (ativa) paleta.fundo else paleta.texto,
+                    fontSize = 13.sp,
+                    fontWeight = if (ativa) FontWeight.Bold else FontWeight.Medium,
+                    maxLines = 1,
+                    textAlign = TextAlign.Center,
+                )
+            }
+        }
+    }
+}
+
+private fun iconeCinza(icone: String): String = icone + "\uFE0E"
 
 @Composable
 private fun SecaoTitulo(texto: String) {
@@ -485,6 +523,7 @@ private fun CalendarioMesDash(
                 semana.forEach { dia ->
                     val noMes = CalendarioApp.noMes(dia, ancora)
                     val ativo = dia == selecionado
+                    val ehHoje = dia == hoje
                     val temCorrida = marcados.contains(dia)
                     Box(
                         modifier = Modifier
@@ -495,22 +534,23 @@ private fun CalendarioMesDash(
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
                             Box(
                                 modifier = Modifier
-                                    .size(24.dp)
-                                    .then(
-                                        if (ativo) {
-                                            Modifier.background(paleta.texto, CircleShape)
-                                        } else {
-                                            Modifier
+                                    .size(28.dp)
+                                    .background(
+                                        when {
+                                            ehHoje -> VerdeIcone
+                                            ativo -> paleta.texto
+                                            else -> Color.Transparent
                                         },
+                                        CircleShape,
                                     ),
                                 contentAlignment = Alignment.Center,
                             ) {
                                 Text(
                                     text = "${dia.dayOfMonth}",
                                     color = when {
+                                        ehHoje -> Color.White
                                         ativo -> paleta.fundoPainel
                                         !noMes -> paleta.textoSecundario.copy(alpha = 0.45f)
-                                        dia == hoje -> paleta.texto
                                         else -> paleta.texto
                                     },
                                     fontSize = 12.sp,

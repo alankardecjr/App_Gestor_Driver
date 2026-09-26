@@ -9,18 +9,25 @@ object SemaforoOferta {
      * Três faixas a partir da meta: ótima >= meta, boa >= 80% da meta, ruim abaixo.
      * Meta 0 ou hora ausente não pinta.
      */
-    /** Abaixo da primeira marca vermelho, entre as duas amarelo, da segunda para cima verde. Marca boa em 0 não pinta. */
+    /**
+     * Até a primeira marca, vermelho. Da primeira + R$ 0,01 até a segunda, amarelo.
+     * Da segunda + R$ 0,01 em diante, verde. Marca de cima em 0 não pinta.
+     */
     fun corPorDuasMarcas(valor: Double?, abaixo: Double, acima: Double): String {
         if (acima <= 0.0 || valor == null) {
             return ClassificacaoConstantes.COR_BORDA_NEUTRA
         }
-        val piso = abaixo.coerceAtMost(acima)
+        val v = centavos(valor)
+        val piso = centavos(abaixo.coerceAtMost(acima))
+        val teto = centavos(acima)
         return when {
-            valor >= acima -> ClassificacaoConstantes.CORES.getValue(Classificacao.EXCELENTE)
-            valor > piso -> ClassificacaoConstantes.CORES.getValue(Classificacao.BOA)
+            v >= teto + 1 -> ClassificacaoConstantes.CORES.getValue(Classificacao.EXCELENTE)
+            v >= piso + 1 -> ClassificacaoConstantes.CORES.getValue(Classificacao.BOA)
             else -> ClassificacaoConstantes.CORES.getValue(Classificacao.RUIM)
         }
     }
+
+    private fun centavos(valor: Double): Int = kotlin.math.round(valor * 100.0).toInt()
 
     fun corPorFaixaHora(valorPorHora: Double?, meta: Double): String {
         if (meta <= 0.0 || valorPorHora == null) {

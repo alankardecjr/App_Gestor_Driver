@@ -15,6 +15,10 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.core.view.WindowCompat
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
@@ -175,12 +179,15 @@ class MainActivity : ComponentActivity() {
                     }
                 }
 
+                var monitoramentoJaVisto by remember { mutableStateOf(false) }
                 LaunchedEffect(appViewModel.state.monitorando) {
+                    val ligouAgora = monitoramentoJaVisto && appViewModel.state.monitorando
+                    monitoramentoJaVisto = true
                     if (appViewModel.state.monitorando &&
                         PermissoesMonitoramento.overlayConcedida(this@MainActivity)
                     ) {
                         OverlayService.iniciar(this@MainActivity)
-                        if (!PermissoesMonitoramento.acessibilidadeAtiva(this@MainActivity)) {
+                        if (ligouAgora && !PermissoesMonitoramento.acessibilidadeAtiva(this@MainActivity)) {
                             OverlayBridge.segurarAcessibilidade()
                             startActivity(PermissoesMonitoramento.intentAcessibilidade())
                         }

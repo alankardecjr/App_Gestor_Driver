@@ -6,9 +6,9 @@ FLUXOGRAMA_REGRAS_NEGOCIO.
 >
 > **Esta especificação deve ser utilizada como regra-base para as próximas etapas de desenvolvimento.**
 >
-> **Versão em foco: Pro (fechamento na branch `vs-2.0`, 2.0.0 / versionCode 13).** Produto: **Free** (demo, calculadora oculta) e **Pro** (paga, tudo liberado). Não misturar com o Beta congelado em `main` (1.1.10). Ver seção 38.
+> **Versão em foco: VS 2.3** (`2.3` / versionCode 15). Produto: **Free** (demo, calculadora oculta) e **Pro** (paga, tudo liberado). O Beta `1.1.10` permanece histórico. Ver seção 38 e `docs/ROTEIRO_VS_2.3.md`.
 >
-> **Roteiro de fechamento:** `docs/ROTEIRO_PRO.md`. UI Beta congelada em 02/09/2026 (seção 43) permanece como referência histórica; a linha ativa de desenvolvimento é a Pro.
+> **Roteiro atual:** `docs/ROTEIRO_VS_2.3.md`. O Pro 2.0 (`docs/ROTEIRO_PRO.md`) e a UI Beta congelada em 02/09/2026 (seção 43) permanecem como referência histórica.
 
 ---
 
@@ -491,7 +491,7 @@ O monitoramento continua ativo.
 
 23. Configurações
 
-A configuração abre **dentro da janela do app**, não como overlay. Título da aba Opções: **Gestor Driver**; o subtítulo mostra se o monitoramento está ligado e quantas corridas houve hoje. Ordem: Monitorar, Localização, Histórico, Carteira, Despesas, Semáforo, Usuário, Sistema, Fechar. Monitorar pede confirmação e fica verde com **Monitorar (on)** quando ligado. Localização abre o mapa na posição atual. Não há faixa de abas nem deslize: o toque em Opções abre a tela, e a seta ou Cancelar voltam para Opções. Salvar grava, avisa e permanece na tela. Com o monitoramento ligado, Opções mostra o selo no lugar da seta. O botão de recentes exibe Opções.
+A configuração abre **dentro da janela do app**, não como overlay. Os cabeçalhos trazem a seta e o título, sem ícone e sem subtítulo. Opções mostra só **Gestor Driver**. Ordem: Monitorar, Localização, Histórico, Carteira, Despesas, Semáforo, Usuário, Sistema, Fechar. Os botões de Atalhos e de Opções têm o mesmo tamanho, com ícone de traço cinza. Fechar é o símbolo de desligar, em vermelho. Monitorar pede confirmação. Ligado, o botão fica verde translúcido e o título passa a **Monitorar On**, com a fonte um pouco menor. Desligado, volta ao cinza e ao título **Monitorar**. Localização abre o mapa na posição atual. Não há faixa de abas nem deslize: o toque em Opções abre a tela, e a seta ou Cancelar voltam para Opções. Salvar grava, avisa e permanece na tela. Com o monitoramento ligado, Opções mostra o selo do ícone do app no lugar da seta. O botão de recentes exibe Opções.
 
 - **Usuário** — veículo (carro ou moto, marca, modelo, versão, ano, final da placa e o mês do IPVA) e abastecimento (preço e consumo; em energia, R$/kWh e km/kWh).
 - **Despesas** — combustível marcado, óleo, pneus, IPVA anual e seguro mensal. Óleo e pneus entram na estimativa. Seguro e IPVA rateiam o período.
@@ -974,7 +974,7 @@ A **Beta** passou a ser a linha **Pro**. Não há três produtos em loja nesta f
 
 O motor calcula sempre. No Free a UI esconde os números da calculadora e do dashboard.
 
-**Resultado da oferta** = valor − (combustível do combustível marcado + óleo + pneus por km). Óleo e pneus: `(valor ÷ km) × km da corrida`. IPVA e seguro não entram na oferta: ficam no dashboard. Seguro é mensal (mês inteiro, ano × 12). IPVA é anual (ano inteiro, mês ÷ 12). Dia e semana usam os dias daquele mês ou daquele ano. Consumo ou preço 0 → litros, gasto e resultado ficam sem valor. Semáforo: duas marcas em R$/km, R$/hora e nota. A borda da oferta usa a pior cor entre R$/km e R$/hora.
+**Resultado da oferta** = valor − (combustível do combustível marcado + óleo + pneus por km). Óleo e pneus: `(valor ÷ km) × km da corrida`. IPVA e seguro não entram na oferta: ficam no dashboard. Seguro é mensal (mês inteiro, ano × 12). IPVA é anual (ano inteiro, mês ÷ 12). Dia e semana usam os dias daquele mês ou daquele ano. Consumo ou preço 0 → litros, gasto e resultado ficam sem valor. Semáforo: R$/km e R$/hora de 0 a 99, com duas marcas; a nota também tem duas marcas. A borda da oferta usa a pior cor entre R$/km e R$/hora.
 
 **Abastecimento:** ao Salvar em Usuário, se valor e quantidade (e os km) permitem cálculo, o app **pergunta** se deve preencher o preço e o consumo do combustível marcado. Em energia, a unidade é kWh.
 
@@ -999,7 +999,7 @@ Gasolina: litro mais caro, mais km/L. Etanol: litro mais barato, menos km/L. Ene
 
 40. Faixas padrão de classificação (R$/km) — Pro 2.0
 
-Três faixas visíveis (abaixo, na média, acima). Na aba **Semáforo**, duas marcas em R$/km, R$/hora e nota. Zero na marca de cima não pinta.
+Três faixas visíveis. Na aba **Semáforo**, R$/km e R$/hora vão de 0 a 99: até a primeira marca é ruim, da primeira mais R$ 0,01 até a segunda é boa, da segunda mais R$ 0,01 é ótima. A nota usa duas marcas de 0 a 5. Zero na marca de cima não pinta.
 
 | Faixa | MIN | MAX | Borda |
 | --- | --- | --- | --- |

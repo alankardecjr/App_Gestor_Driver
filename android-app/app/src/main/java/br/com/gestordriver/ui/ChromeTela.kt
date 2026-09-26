@@ -1,5 +1,6 @@
 package br.com.gestordriver.ui
 
+import android.graphics.Bitmap
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -13,14 +14,18 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.content.ContextCompat
+import androidx.core.graphics.drawable.toBitmap
 import br.com.gestordriver.R
 import br.com.gestordriver.ui.theme.LocalPaletaApp
 
@@ -86,14 +91,25 @@ fun CabecalhoTela(
 
 @Composable
 fun BotaoSelo(onClick: () -> Unit) {
-    Image(
-        painter = painterResource(R.mipmap.ic_launcher_round),
-        contentDescription = "Selo",
-        modifier = Modifier
-            .size(36.dp)
-            .clip(CircleShape)
-            .clickable(onClick = onClick),
-    )
+    val contexto = LocalContext.current
+    val imagem = remember(contexto) {
+        val drawable = ContextCompat.getDrawable(contexto, R.mipmap.ic_launcher_round) ?: return@remember null
+        drawable.toBitmap(
+            width = drawable.intrinsicWidth.coerceAtLeast(1),
+            height = drawable.intrinsicHeight.coerceAtLeast(1),
+            config = Bitmap.Config.ARGB_8888,
+        ).asImageBitmap()
+    }
+    if (imagem != null) {
+        Image(
+            bitmap = imagem,
+            contentDescription = "Selo",
+            modifier = Modifier
+                .size(36.dp)
+                .clip(CircleShape)
+                .clickable(onClick = onClick),
+        )
+    }
 }
 
 @Composable

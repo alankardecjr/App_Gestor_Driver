@@ -3,11 +3,15 @@ package br.com.gestordriver.ui
 import android.app.Activity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxScope
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
@@ -16,14 +20,17 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -33,20 +40,32 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.RoundRect
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import br.com.gestordriver.R
 import br.com.gestordriver.core.AlertaOleo
 import br.com.gestordriver.core.Classificacao
 import br.com.gestordriver.core.ClassificacaoConstantes
@@ -63,6 +82,8 @@ import br.com.gestordriver.model.TipoContaVinculada
 import br.com.gestordriver.model.TipoVeiculo
 import br.com.gestordriver.permission.PermissoesMonitoramento
 import br.com.gestordriver.ui.theme.LocalPaletaApp
+import kotlin.math.abs
+import kotlin.math.round
 
 private val TextoAmareloConfig = Color(0xFFFFD54F)
 private val DestaqueSelecionado = Color(0xFF7CB342)
@@ -93,7 +114,6 @@ fun ConfiguracoesScreen(
     confirmacaoMonitorVisivel: Boolean = false,
     onCancelarMonitor: () -> Unit = {},
     onConfirmarMonitor: () -> Unit = {},
-    subtituloMenu: String = "Menu principal",
 ) {
     val configuracao = viewModel.configuracao
     var aba by remember { mutableIntStateOf(if (abaInicial < 0) 0 else abaInicial + 1) }
@@ -111,7 +131,6 @@ fun ConfiguracoesScreen(
         foco.clearFocus(force = true)
         teclado?.hide()
     }
-    val iconesAbas = listOf("☰", "🚦", "🧾", "👤", "⚙")
     val paleta = LocalPaletaApp.current
     val contexto = LocalContext.current
     fun sairDoCampo() {
@@ -136,21 +155,14 @@ fun ConfiguracoesScreen(
             modifier = Modifier.fillMaxSize(),
         ) {
             val titulosPagina = listOf(
-                "Gestor Driver" to "Menu principal",
-                "Semáforo" to "Abaixo, na média e acima da média",
-                "Despesas" to "Gastos do veículo",
-                "Usuário" to "Seu veículo",
-                "Sistema" to "Ajustes do aplicativo",
+                "Gestor Driver",
+                "Semáforo",
+                "Despesas",
+                "Usuário",
+                "Sistema",
             )
-            val pagina = if (aba == 0) {
-                "Gestor Driver" to subtituloMenu
-            } else {
-                titulosPagina.getOrElse(aba) { "Menu" to "" }
-            }
             CabecalhoTela(
-                titulo = pagina.first,
-                subtitulo = pagina.second,
-                icone = iconesAbas.getOrNull(aba),
+                titulo = titulosPagina.getOrElse(aba) { "Menu" },
                 mostrarVoltar = aba != 0,
                 inicio = if (aba == 0 && monitorando) {
                     { BotaoSelo(onClick = onVoltar) }
@@ -158,6 +170,41 @@ fun ConfiguracoesScreen(
                     null
                 },
                 acao = when (aba) {
+                    1 -> {
+                        {
+                            BotaoCircular(
+                                simbolo = "?",
+                                onClick = {
+                                    android.widget.Toast.makeText(
+                                        contexto,
+                                        "Arraste as marcas para calibrar. Até a primeira é ruim, abaixo da média, vermelho. Da primeira mais 0,01 até a segunda é boa, na média, amarelo. Da segunda mais 0,01 é ótima, acima da média, verde. R$/km e R$/hora vão de 0 a 99 e a borda da oferta fica com a pior cor. A nota vai de 0 a 5 e pinta só a nota. Salvar grava e permanece nesta tela.",
+                                        android.widget.Toast.LENGTH_LONG,
+                                    ).show()
+                                },
+                            )
+                        }
+                    }
+                    2 -> {
+                        {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                BotaoCircular(
+                                    simbolo = "🔢",
+                                    onClick = { abrirCalculadora(contexto) },
+                                )
+                                Spacer(modifier = Modifier.size(8.dp))
+                                BotaoCircular(
+                                    simbolo = "?",
+                                    onClick = {
+                                        android.widget.Toast.makeText(
+                                            contexto,
+                                            "Combustível atual: ajuste o preço e o consumo do combustível marcado. Ele entra na oferta. Óleo e pneus são estimativa por km. IPVA é o valor anual, no mês do final da placa. Seguro é o valor mensal. A calculadora abre a do celular. Salvar grava e permanece nesta tela.",
+                                            android.widget.Toast.LENGTH_LONG,
+                                        ).show()
+                                    },
+                                )
+                            }
+                        }
+                    }
                     3 -> {
                         {
                             BotaoCircular(
@@ -165,7 +212,7 @@ fun ConfiguracoesScreen(
                                 onClick = {
                                     android.widget.Toast.makeText(
                                         contexto,
-                                        "Dados do veículo. O final da placa define o mês do IPVA. O abastecimento calcula o preço e o consumo do combustível marcado em Despesas.",
+                                        "Seu veículo: carro ou moto, marca, modelo, versão, ano e o final da placa. O final define o mês do IPVA. Abastecimento calcula o preço e o consumo do combustível marcado em Despesas. Salvar grava e permanece nesta tela.",
                                         android.widget.Toast.LENGTH_LONG,
                                     ).show()
                                 },
@@ -179,7 +226,7 @@ fun ConfiguracoesScreen(
                                 onClick = {
                                     android.widget.Toast.makeText(
                                         contexto,
-                                        "Ajustes do aplicativo. Permissões liberam o monitoramento. Tema, mapa e conta valem depois de salvar.",
+                                        "Permissões: toque para abrir o ajuste do celular. Apps de corrida mostra o que está instalado. Tema, mapa e conta valem depois de salvar. Salvar grava e permanece nesta tela. Sobre envia o log.",
                                         android.widget.Toast.LENGTH_LONG,
                                     ).show()
                                 },
@@ -491,6 +538,32 @@ private fun AbaVeiculo(viewModel: ConfiguracoesViewModel, plano: PlanoAcesso) {
     }
 }
 
+private fun abrirCalculadora(contexto: android.content.Context) {
+    val intent = android.content.Intent(android.content.Intent.ACTION_MAIN).apply {
+        addCategory(android.content.Intent.CATEGORY_APP_CALCULATOR)
+        flags = android.content.Intent.FLAG_ACTIVITY_NEW_TASK
+    }
+    if (contexto.packageManager.resolveActivity(intent, 0) != null) {
+        contexto.startActivity(intent)
+        return
+    }
+    val alternativas = listOf(
+        "com.google.android.calculator",
+        "com.sec.android.app.popupcalculator",
+        "com.android.calculator2",
+    )
+    for (pacote in alternativas) {
+        val especifico = contexto.packageManager.getLaunchIntentForPackage(pacote) ?: continue
+        contexto.startActivity(especifico.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK))
+        return
+    }
+    android.widget.Toast.makeText(
+        contexto,
+        "Calculadora não encontrada neste celular.",
+        android.widget.Toast.LENGTH_SHORT,
+    ).show()
+}
+
 @Composable
 private fun AbaCustos(viewModel: ConfiguracoesViewModel, plano: PlanoAcesso) {
     val configuracao = viewModel.configuracao
@@ -498,8 +571,8 @@ private fun AbaCustos(viewModel: ConfiguracoesViewModel, plano: PlanoAcesso) {
     val travar = plano.travaCalculadora
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
     CartaoDespesa(
-        titulo = "Combustível da oferta",
-        subtitulo = "Preço e consumo marcados",
+        titulo = "Combustível atual",
+        subtitulo = "Ajustar preço e consumo",
         ajuda = "Do combustível marcado. Gasolina e etanol em km/L. Energia em km/kWh, com 12% de perda na recarga. Os dois entram no gasto da oferta.",
     ) {
         Row(
@@ -713,26 +786,64 @@ private fun AbaOpcoes(
     onLocalizacao: () -> Unit,
     onFechar: () -> Unit,
 ) {
-    LinhaOpcao(
-        "📡",
-        if (monitorando) "Monitorar (on)" else "Monitorar",
-        if (monitorando) "Ligado. Toque para confirmar." else "Desligado. Toque para ligar.",
-        onMonitoramento,
-        ligado = monitorando,
-    )
-    LinhaOpcao("📍", "Localização", "Mapa na posição atual", onLocalizacao)
-    LinhaOpcao("📅", "Histórico", "Ver corridas aceitas", onHistorico)
-    LinhaOpcao("👛", "Carteira", "Saldo e movimentações", onCarteira)
-    LinhaOpcao("🧾", "Despesas", "Gastos do veículo", onDespesas)
-    LinhaOpcao("🚦", "Semáforo", "Regras de classificação", onSemaforo)
-    LinhaOpcao("👤", "Usuário", "Seu veículo", onUsuario)
-    LinhaOpcao("⚙", "Sistema", "Ajustes do aplicativo", onConfigurar)
-    LinhaOpcao("⏻", "Fechar", "Encerrar o aplicativo", onFechar, perigo = true)
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        LinhaOpcao(
+            R.drawable.ic_menu_monitorar,
+            if (monitorando) "Monitorar On" else "Monitorar",
+            if (monitorando) "Ligado. Toque para confirmar." else "Desligado. Toque para ligar.",
+            onMonitoramento,
+            ligado = monitorando,
+        )
+        LinhaOpcao(
+            R.drawable.ic_menu_localizacao,
+            "Localização",
+            "Mapa na posição atual",
+            onLocalizacao,
+        )
+        LinhaOpcao(
+            R.drawable.ic_menu_historico,
+            "Histórico",
+            "Ver corridas aceitas",
+            onHistorico,
+        )
+        LinhaOpcao(
+            R.drawable.ic_menu_carteira,
+            "Carteira",
+            "Saldo e movimentações",
+            onCarteira,
+        )
+        LinhaOpcao(
+            R.drawable.ic_menu_despesas,
+            "Despesas",
+            "Controle de gastos do app",
+            onDespesas,
+        )
+        LinhaOpcao(
+            R.drawable.ic_menu_semaforo,
+            "Semáforo",
+            "Regras de classificação",
+            onSemaforo,
+        )
+        LinhaOpcao(
+            R.drawable.ic_menu_usuario,
+            "Usuário",
+            "Seu veículo",
+            onUsuario,
+        )
+        LinhaOpcao(
+            R.drawable.ic_menu_sistema,
+            "Sistema",
+            "Ajustes do aplicativo",
+            onConfigurar,
+        )
+        LinhaOpcao(R.drawable.ic_menu_fechar, "Fechar", "Encerrar o aplicativo", onFechar, perigo = true)
+        Spacer(modifier = Modifier.height(64.dp))
+    }
 }
 
 @Composable
 private fun LinhaOpcao(
-    icone: String,
+    icone: Int,
     titulo: String,
     subtitulo: String,
     onClick: () -> Unit,
@@ -741,16 +852,24 @@ private fun LinhaOpcao(
 ) {
     val paleta = LocalPaletaApp.current
     val verde = Color(0xFF2E7D32)
-    val cor = when {
-        perigo -> Color(0xFFE53935)
+    val cor = if (perigo) Color(0xFFE53935) else paleta.texto
+    val fundoLinha = if (ligado) verde.copy(alpha = 0.20f) else paleta.fundoPainel
+    val borda = if (ligado) verde.copy(alpha = 0.45f) else paleta.borda
+    val fundoIcone = when {
+        perigo -> Color(0x33E53935)
+        ligado -> verde.copy(alpha = 0.28f)
+        else -> paleta.pocoIcone
+    }
+    val tintaIcone = when {
+        perigo -> cor
         ligado -> verde
-        else -> paleta.texto
+        else -> paleta.textoSecundario
     }
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .border(1.dp, paleta.borda, RoundedCornerShape(16.dp))
-            .background(paleta.fundoPainel, RoundedCornerShape(16.dp))
+            .border(1.dp, borda, RoundedCornerShape(16.dp))
+            .background(fundoLinha, RoundedCornerShape(16.dp))
             .clickable(onClick = onClick)
             .padding(horizontal = 12.dp, vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -758,24 +877,28 @@ private fun LinhaOpcao(
         Box(
             modifier = Modifier
                 .size(40.dp)
-                .background(
-                    when {
-                        perigo -> Color(0x33E53935)
-                        ligado -> Color(0x332E7D32)
-                        else -> paleta.pocoIcone
-                    },
-                    RoundedCornerShape(12.dp),
-                ),
+                .background(fundoIcone, RoundedCornerShape(12.dp)),
             contentAlignment = Alignment.Center,
         ) {
-            Text(text = icone, fontSize = 16.sp)
+            Icon(
+                painter = painterResource(icone),
+                contentDescription = null,
+                tint = tintaIcone,
+                modifier = Modifier.size(22.dp),
+            )
         }
         Column(
             modifier = Modifier
                 .weight(1f)
                 .padding(horizontal = 10.dp),
         ) {
-            Text(text = titulo, color = cor, fontSize = 14.sp, fontWeight = FontWeight.Bold)
+            Text(
+                text = titulo,
+                color = cor,
+                fontSize = if (ligado) 12.sp else 14.sp,
+                fontWeight = FontWeight.Bold,
+                maxLines = 1,
+            )
             Text(text = subtitulo, color = paleta.textoSecundario, fontSize = 11.sp, maxLines = 1)
         }
         Text(text = "›", color = paleta.textoSecundario, fontSize = 18.sp)
@@ -787,49 +910,53 @@ private fun AbaClassificacao(viewModel: ConfiguracoesViewModel) {
     val configuracao = viewModel.configuracao
     val paleta = LocalPaletaApp.current
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        SubtituloSecao(
-            texto = "Cálculo de ganhos",
-            subtitulo = "Duas marcas em cada faixa",
-            icone = "🧮",
-        )
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(10.dp),
-        ) {
-            LegendaFaixa(Color(0xFFC62828), "abaixo da média")
-            LegendaFaixa(Color(0xFFF9A825), "na média")
-            LegendaFaixa(Color(0xFF2E7D32), "acima da média")
-        }
         Text(
-            text = "Arraste as marcas. Zero na marca de cima não pinta.",
-            color = paleta.textoSecundario,
-            fontSize = 11.sp,
+            text = "Calibrar classificações",
+            color = paleta.texto,
+            fontSize = 16.sp,
+            fontWeight = FontWeight.SemiBold,
         )
+        Text(
+            text = "Arraste as marcações para ajustar",
+            color = paleta.textoSecundario,
+            fontSize = 13.sp,
+        )
+        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            LegendaFaixa(Color(0xFFC62828), "Ruim = abaixo da média")
+            LegendaFaixa(Color(0xFFF9A825), "Boa = na média")
+            LegendaFaixa(Color(0xFF2E7D32), "Ótima = acima da média")
+        }
         ReguaDuasMarcas(
-            titulo = "Ganhos por km",
-            ajuda = "Entra na borda da oferta, junto com o ganho por hora. A borda fica com a pior das duas cores.",
+            titulo = "Ganhos por Km",
+            ajuda = "Até a marca de baixo é ruim, vermelho. Da marca de baixo mais R$ 0,01 até a de cima é boa, amarelo. Da de cima mais R$ 0,01 até 99 é ótima, verde. A barra muda de cor junto com as marcas. Entra na borda da oferta.",
             ruim = configuracao.limiteRuimMax,
             boa = configuracao.limiteBoaMax,
-            ate = 5f,
-            sufixo = " R$/km",
+            ate = 99f,
+            escalaInicio = "Ruim",
+            escalaFim = "Bom",
+            rotulo = { "R$ ${FaixasClassificacao.formatar(it)}/km" },
             onMarcas = viewModel::atualizarMarcasDeslizantes,
         )
         ReguaDuasMarcas(
-            titulo = "Ganhos por hora",
-            ajuda = "Também entra na borda da oferta. Abaixo da primeira marca é vermelho, entre as duas é amarelo, da segunda para cima é verde.",
+            titulo = "Ganhos por Hora",
+            ajuda = "Até a marca de baixo é ruim, vermelho. Da marca de baixo mais R$ 0,01 até a de cima é boa, amarelo. Da de cima mais R$ 0,01 até 99 é ótima, verde. A barra muda de cor junto com as marcas. Entra na borda da oferta, com a pior cor entre km e hora.",
             ruim = configuracao.marcaHoraRuim,
             boa = configuracao.marcaHoraBoa,
-            ate = 200f,
-            sufixo = " R$/h",
+            ate = 99f,
+            escalaInicio = "Ruim",
+            escalaFim = "Bom",
+            rotulo = { "R$ ${FaixasClassificacao.formatar(it)}/h" },
             onMarcas = viewModel::atualizarMarcasHora,
         )
         ReguaDuasMarcas(
             titulo = "Nota do passageiro",
-            ajuda = "Pinta só a nota no histórico. Não muda a borda da oferta nem o resultado.",
+            ajuda = "Até a marca de baixo é ruim, vermelho. Da marca de baixo mais 0,01 até a de cima é boa, amarelo. Da de cima mais 0,01 até 5 é ótima, verde. A barra muda de cor junto com as marcas. Pinta só a nota.",
             ruim = configuracao.marcaNotaRuim,
             boa = configuracao.marcaNotaBoa,
             ate = 5f,
-            sufixo = "",
+            escalaInicio = "Ruim",
+            escalaFim = "Bom",
+            rotulo = { FaixasClassificacao.formatar(it) },
             onMarcas = viewModel::atualizarMarcasNota,
         )
     }
@@ -840,14 +967,14 @@ private fun LegendaFaixa(cor: Color, texto: String) {
     Row(verticalAlignment = Alignment.CenterVertically) {
         Box(
             modifier = Modifier
-                .size(8.dp)
+                .size(10.dp)
                 .background(cor, CircleShape),
         )
         Text(
             text = texto,
             color = LocalPaletaApp.current.texto,
-            fontSize = 11.sp,
-            modifier = Modifier.padding(start = 4.dp),
+            fontSize = 13.sp,
+            modifier = Modifier.padding(start = 8.dp),
         )
     }
 }
@@ -859,12 +986,21 @@ private fun ReguaDuasMarcas(
     ruim: Double,
     boa: Double,
     ate: Float,
-    sufixo: String,
+    rotulo: (Double) -> String,
     onMarcas: (Double, Double) -> Unit,
+    escalaInicio: String = "Ruim",
+    escalaFim: String = "Bom",
+    passo: Float = 0.01f,
 ) {
     val paleta = LocalPaletaApp.current
     val contexto = LocalContext.current
     val forma = RoundedCornerShape(16.dp)
+    val vermelho = Color(0xFFC62828)
+    val amarelo = Color(0xFFF9A825)
+    val verde = Color(0xFF2E7D32)
+    val ruimAtual by rememberUpdatedState(ruim.toFloat().coerceIn(0f, ate))
+    val boaAtual by rememberUpdatedState(boa.toFloat().coerceIn(0f, ate))
+    val aoMudar by rememberUpdatedState(onMarcas)
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -892,32 +1028,168 @@ private fun ReguaDuasMarcas(
                 Text(text = "?", color = paleta.texto, fontSize = 14.sp, fontWeight = FontWeight.Bold)
             }
         }
-        Text(
-            text = "Abaixo  ${FaixasClassificacao.formatar(ruim)}$sufixo    Acima  ${FaixasClassificacao.formatar(boa)}$sufixo",
-            color = paleta.textoSecundario,
-            fontSize = 11.sp,
-            modifier = Modifier.padding(top = 4.dp),
+        BoxWithConstraints(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 6.dp),
+        ) {
+            val margem = 44.dp
+            val raio = 9.dp
+            val meio = maxWidth - margem * 2
+            val util = (meio - raio * 2).coerceAtLeast(1.dp)
+            val fracRuim = (if (ate <= 0f) 0f else ruimAtual / ate).coerceIn(0f, 1f)
+            val fracBoa = (if (ate <= 0f) 0f else boaAtual / ate).coerceIn(fracRuim, 1f)
+            fun centro(fracao: Float): Dp = margem + raio + util * fracao
+            Column {
+                Box(modifier = Modifier.fillMaxWidth().height(30.dp)) {
+                    MarcaAlinhada(centro(fracBoa)) {
+                        BolhaMarca(rotulo(boaAtual.toDouble()), verde)
+                    }
+                }
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        text = escalaInicio,
+                        color = paleta.textoSecundario,
+                        fontSize = 12.sp,
+                        modifier = Modifier.width(margem),
+                    )
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(28.dp)
+                            .pointerInput(ate) {
+                                var noInicio = true
+                                fun valorEm(x: Float): Float {
+                                    val raioPx = raio.toPx()
+                                    val utilPx = (size.width - raioPx * 2f).coerceAtLeast(1f)
+                                    val fracao = ((x - raioPx) / utilPx).coerceIn(0f, 1f)
+                                    return (round(fracao * ate * 100f) / 100f).coerceIn(0f, ate)
+                                }
+                                fun aplicar(inicio: Boolean, valor: Float) {
+                                    val piso = ruimAtual
+                                    val teto = boaAtual
+                                    val folga = passo.coerceAtLeast(0.01f)
+                                    if (inicio) {
+                                        val limite = (teto - folga).coerceAtLeast(0f)
+                                        aoMudar(valor.coerceIn(0f, limite).toDouble(), teto.toDouble())
+                                    } else {
+                                        val limite = (piso + folga).coerceAtMost(ate)
+                                        aoMudar(piso.toDouble(), valor.coerceIn(limite, ate).toDouble())
+                                    }
+                                }
+                                detectDragGestures(
+                                    onDragStart = { posicao ->
+                                        val valor = valorEm(posicao.x)
+                                        noInicio = abs(valor - ruimAtual) <= abs(valor - boaAtual)
+                                        aplicar(noInicio, valor)
+                                    },
+                                    onDrag = { change, _ ->
+                                        aplicar(noInicio, valorEm(change.position.x))
+                                    },
+                                )
+                            },
+                    ) {
+                        Canvas(
+                            modifier = Modifier
+                                .align(Alignment.Center)
+                                .fillMaxWidth()
+                                .height(12.dp),
+                        ) {
+                            val raioPx = 9.dp.toPx()
+                            val esquerda = raioPx
+                            val direita = size.width - raioPx
+                            val largura = (direita - esquerda).coerceAtLeast(1f)
+                            val altura = size.height
+                            val xRuim = esquerda + largura * fracRuim
+                            val xBoa = esquerda + largura * fracBoa
+                            val trilha = Path().apply {
+                                addRoundRect(
+                                    RoundRect(
+                                        left = esquerda,
+                                        top = 0f,
+                                        right = direita,
+                                        bottom = altura,
+                                        cornerRadius = CornerRadius(altura / 2f, altura / 2f),
+                                    ),
+                                )
+                            }
+                            drawContext.canvas.save()
+                            drawContext.canvas.clipPath(trilha)
+                            if (boaAtual <= 0f) {
+                                drawRect(paleta.borda, Offset(esquerda, 0f), Size(direita - esquerda, altura))
+                            } else {
+                                if (xRuim - esquerda > 0.5f) {
+                                    drawRect(vermelho, Offset(esquerda, 0f), Size(xRuim - esquerda, altura))
+                                }
+                                if (xBoa - xRuim > 0.5f) {
+                                    drawRect(amarelo, Offset(xRuim, 0f), Size(xBoa - xRuim, altura))
+                                }
+                                if (direita - xBoa > 0.5f) {
+                                    drawRect(verde, Offset(xBoa, 0f), Size(direita - xBoa, altura))
+                                }
+                            }
+                            drawContext.canvas.restore()
+                        }
+                        PoloMarca(util * fracRuim, paleta.borda)
+                        PoloMarca(util * fracBoa, paleta.borda)
+                    }
+                    Text(
+                        text = escalaFim,
+                        color = paleta.textoSecundario,
+                        fontSize = 12.sp,
+                        textAlign = TextAlign.End,
+                        modifier = Modifier.width(margem),
+                    )
+                }
+                Box(modifier = Modifier.fillMaxWidth().height(30.dp)) {
+                    MarcaAlinhada(centro(fracRuim)) {
+                        BolhaMarca(rotulo(ruimAtual.toDouble()), vermelho)
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun BoxScope.PoloMarca(deslocamento: Dp, borda: Color) {
+    Box(
+        modifier = Modifier
+            .align(Alignment.CenterStart)
+            .offset(x = deslocamento)
+            .size(18.dp)
+            .border(1.dp, borda, CircleShape)
+            .background(Color.White, CircleShape),
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(text = "↔", color = Color(0xFF607D8B), fontSize = 11.sp)
+    }
+}
+
+@Composable
+private fun BolhaMarca(texto: String, cor: Color) {
+    Text(
+        text = texto,
+        color = Color.White,
+        fontSize = 12.sp,
+        fontWeight = FontWeight.Bold,
+        modifier = Modifier
+            .background(cor, RoundedCornerShape(8.dp))
+            .padding(horizontal = 8.dp, vertical = 4.dp),
+    )
+}
+
+@Composable
+private fun MarcaAlinhada(centro: Dp, conteudo: @Composable () -> Unit) {
+    Layout(content = conteudo, modifier = Modifier.fillMaxWidth()) { measurables, constraints ->
+        val placeable = measurables.first().measure(
+            constraints.copy(minWidth = 0, minHeight = 0),
         )
-        Slider(
-            value = ruim.toFloat().coerceIn(0f, ate),
-            onValueChange = { onMarcas(it.toDouble(), boa) },
-            valueRange = 0f..ate,
-            colors = androidx.compose.material3.SliderDefaults.colors(
-                thumbColor = Color(0xFFC62828),
-                activeTrackColor = paleta.texto,
-                inactiveTrackColor = paleta.borda,
-            ),
-        )
-        Slider(
-            value = boa.toFloat().coerceIn(0f, ate),
-            onValueChange = { onMarcas(ruim, it.toDouble()) },
-            valueRange = 0f..ate,
-            colors = androidx.compose.material3.SliderDefaults.colors(
-                thumbColor = Color(0xFF2E7D32),
-                activeTrackColor = paleta.texto,
-                inactiveTrackColor = paleta.borda,
-            ),
-        )
+        val x = (centro.roundToPx() - placeable.width / 2)
+            .coerceIn(0, (constraints.maxWidth - placeable.width).coerceAtLeast(0))
+        layout(constraints.maxWidth, placeable.height) {
+            placeable.place(x, 0)
+        }
     }
 }
 
@@ -1175,65 +1447,6 @@ private fun CaixaDialogo(
         ) {
             Text(titulo, color = LocalPaletaApp.current.texto, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
             conteudo()
-        }
-    }
-}
-
-@Composable
-private fun SubtituloSecao(
-    texto: String,
-    ajuda: String? = null,
-    icone: String? = null,
-    subtitulo: String? = null,
-) {
-    val contexto = LocalContext.current
-    val paleta = LocalPaletaApp.current
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(top = 6.dp, bottom = 4.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        if (icone != null) {
-            Box(
-                modifier = Modifier
-                    .padding(end = 8.dp)
-                    .size(32.dp)
-                    .background(paleta.pocoIcone, RoundedCornerShape(10.dp)),
-                contentAlignment = Alignment.Center,
-            ) {
-                Text(text = icone, fontSize = 13.sp)
-            }
-        }
-        Column(modifier = Modifier.weight(1f)) {
-            Text(
-                text = texto,
-                color = paleta.texto,
-                fontSize = 13.sp,
-                fontWeight = FontWeight.SemiBold,
-            )
-            if (subtitulo != null) {
-                Text(
-                    text = subtitulo,
-                    color = paleta.textoSecundario,
-                    fontSize = 10.sp,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-            }
-        }
-        if (ajuda != null) {
-            Text(
-                text = "AJUDA",
-                color = TextoAmareloConfig,
-                fontSize = 11.sp,
-                fontWeight = FontWeight.SemiBold,
-                modifier = Modifier
-                    .clickable {
-                        android.widget.Toast.makeText(contexto, ajuda, android.widget.Toast.LENGTH_LONG).show()
-                    }
-                    .padding(start = 8.dp, top = 4.dp, bottom = 4.dp),
-            )
         }
     }
 }

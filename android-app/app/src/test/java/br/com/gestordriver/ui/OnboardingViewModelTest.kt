@@ -63,6 +63,14 @@ class OnboardingViewModelTest {
     }
 
     @Test
+    fun abrir_app_com_onboarding_feito_nao_pede_permissao_de_novo() {
+        val viewModel = novo(concluido = true)
+        viewModel.avaliarInicio(permissoesOk = false, temConta = true)
+        assertEquals(OnboardingEtapa.NENHUMA, viewModel.state.onboardingEtapa)
+        assertFalse(viewModel.state.monitorando)
+    }
+
+    @Test
     fun abrir_app_nao_liga_monitoramento_sozinho() {
         // Cold start sempre OFF: o usuário decide quando ligar.
         val viewModel = novo(concluido = true)

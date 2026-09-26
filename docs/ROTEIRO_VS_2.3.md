@@ -55,7 +55,8 @@ R$/hora online real (`SessaoTrabalho`), Design System / tokens, depreciação.
 
 - **Cold start sempre OFF**: abrir o app não liga o monitoramento; o usuário decide.
 - **Botão na aba Opções** com legenda que muda conforme o estado.
-  Ligado: verde, **Monitorar (on)**. Desligado: **Monitorar**.
+  Ligado: fundo verde translúcido e título **Monitorar On** em fonte menor.
+  Desligado: cinza, título **Monitorar**. O mesmo vale na tela de atalhos.
 - **Separar** "Desligar monitoramento" (some selo e aviso; o app continua) de
   "Fechar app" (encerra). A notificação persistente tem **Abrir App**.
   Dispensar o aviso não desliga o monitoramento.
@@ -81,11 +82,13 @@ R$/hora online real (`SessaoTrabalho`), Design System / tokens, depreciação.
 - [x] Recentes e Home mostram Opções. Selo no cabeçalho só com monitoramento ligado.
 - [x] Dashboard: seguro mensal e IPVA anual fecham no mês e no ano.
 - [x] Notificação fechada mostra os números da oferta (R$/km, resultado, litros, nota).
+- [x] Atalhos e Opções no mesmo tamanho, ícones de traço cinza. Fechar vermelho. Monitorar ligado: verde translúcido, **Monitorar On**.
+- [x] Selo do cabeçalho desenha o ícone do app como bitmap. O ícone adaptativo derrubava o processo ao ligar o monitoramento, e selo e aviso não subiam.
 
 ## Janela principal e overlays
 
 - Ao iniciar o app, a janela principal é o **menu na aba Opções** (tela cheia).
-  Título **Gestor Driver**. Subtítulo: monitoramento e corridas de hoje.
+  Título **Gestor Driver**, sem subtítulo.
 - Histórico, Carteira, Semáforo, Usuário e Sistema abrem **dentro do app**.
 - Por cima de outros apps: **selo**, **tela de atalhos** e **compacta**.
 - Selo e aviso da barra só com monitoramento ligado. Fechar um ou os dois não

@@ -42,6 +42,17 @@ class CalendarioAppTest {
     }
 
     @Test
+    fun cabecalho_do_dia_traz_semana_data_mes_e_ano() {
+        val sexta = LocalDate.of(2026, 9, 25)
+        assertEquals(
+            "Sex. 25 Set. 2026",
+            CalendarioApp.rotuloPeriodoCabecalho(sexta, CalendarioPeriodo.DIA),
+        )
+        assertEquals("Hoje", CalendarioApp.subtituloPeriodo(CalendarioApp.hoje(), CalendarioPeriodo.DIA))
+        assertEquals("", CalendarioApp.subtituloPeriodo(CalendarioApp.hoje().plusDays(3), CalendarioPeriodo.DIA))
+    }
+
+    @Test
     fun cabecalho_do_historico_mostra_semana_completa() {
         val dia = LocalDate.of(2026, 9, 2)
         val titulo = CalendarioApp.rotuloPeriodoCabecalho(dia, CalendarioPeriodo.SEMANA)

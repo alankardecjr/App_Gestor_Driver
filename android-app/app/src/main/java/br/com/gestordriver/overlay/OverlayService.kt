@@ -725,7 +725,7 @@ class OverlayService : Service() {
     }
 
     private data class ItemMenuAtalho(
-        val icone: String,
+        val icone: Int,
         val titulo: String,
         val subtitulo: String,
         val perigo: Boolean = false,
@@ -737,14 +737,18 @@ class OverlayService : Service() {
         val ligado = snapshot.monitorando
         return listOf(
             ItemMenuAtalho(
-                "📡",
-                if (ligado) "Monitorar (on)" else "Monitorar",
+                R.drawable.ic_menu_monitorar,
+                if (ligado) "Monitorar On" else "Monitorar",
                 if (ligado) "Ligado. Toque para confirmar." else "Desligado. Toque para ligar.",
                 ligado = ligado,
             ) {
                 OverlayBridge.emitir(OverlayAcao.SolicitarMonitoramento)
             },
-            ItemMenuAtalho("📍", "Localização", "Mapa na posição atual") {
+            ItemMenuAtalho(
+                R.drawable.ic_menu_localizacao,
+                "Localização",
+                "Mapa na posição atual",
+            ) {
                 val fina = checkSelfPermission(android.Manifest.permission.ACCESS_FINE_LOCATION)
                 val grossa = checkSelfPermission(android.Manifest.permission.ACCESS_COARSE_LOCATION)
                 val concedida = fina == android.content.pm.PackageManager.PERMISSION_GRANTED ||
@@ -755,25 +759,49 @@ class OverlayService : Service() {
                     OverlayBridge.emitir(OverlayAcao.PedirLocalizacao)
                 }
             },
-            ItemMenuAtalho("📅", "Histórico", "Ver corridas aceitas") {
+            ItemMenuAtalho(
+                R.drawable.ic_menu_historico,
+                "Histórico",
+                "Ver corridas aceitas",
+            ) {
                 OverlayBridge.emitir(OverlayAcao.AbrirHistorico)
             },
-            ItemMenuAtalho("👛", "Carteira", if (snapshot.planoPro) "Saldo e movimentações" else "Disponível no Pro") {
+            ItemMenuAtalho(
+                R.drawable.ic_menu_carteira,
+                "Carteira",
+                if (snapshot.planoPro) "Saldo e movimentações" else "Disponível no Pro",
+            ) {
                 OverlayBridge.emitir(OverlayAcao.DashboardPro)
             },
-            ItemMenuAtalho("🧾", "Despesas", "Gastos do veículo") {
+            ItemMenuAtalho(
+                R.drawable.ic_menu_despesas,
+                "Despesas",
+                "Controle de gastos do app",
+            ) {
                 OverlayBridge.emitir(OverlayAcao.AbrirAtalhoConfig(1))
             },
-            ItemMenuAtalho("🚦", "Semáforo", "Regras de classificação") {
+            ItemMenuAtalho(
+                R.drawable.ic_menu_semaforo,
+                "Semáforo",
+                "Regras de classificação",
+            ) {
                 OverlayBridge.emitir(OverlayAcao.AbrirAtalhoConfig(0))
             },
-            ItemMenuAtalho("👤", "Usuário", "Seu veículo") {
+            ItemMenuAtalho(
+                R.drawable.ic_menu_usuario,
+                "Usuário",
+                "Seu veículo",
+            ) {
                 OverlayBridge.emitir(OverlayAcao.AbrirAtalhoConfig(2))
             },
-            ItemMenuAtalho("⚙", "Sistema", "Ajustes do aplicativo") {
+            ItemMenuAtalho(
+                R.drawable.ic_menu_sistema,
+                "Sistema",
+                "Ajustes do aplicativo",
+            ) {
                 OverlayBridge.emitir(OverlayAcao.AbrirAtalhoConfig(3))
             },
-            ItemMenuAtalho("⏻", "Fechar", "Encerrar o aplicativo", perigo = true) {
+            ItemMenuAtalho(R.drawable.ic_menu_fechar, "Fechar", "Encerrar o aplicativo", perigo = true) {
                 OverlayBridge.emitir(OverlayAcao.Fechar)
             },
         )
@@ -781,22 +809,37 @@ class OverlayService : Service() {
 
     private fun montarListaAtalhos(card: LinearLayout, snapshot: OverlaySnapshot) {
         card.setPadding(dp(16), dp(14), dp(16), dp(14))
-        card.addView(botaoCircular("✕") { OverlayBridge.emitir(OverlayAcao.RecolherParaSelo) })
+        val temaCabecalho = OverlayTema.de(this)
         card.addView(
-            TextView(this).apply {
-                text = "Atalhos"
-                setTextColor(OverlayTema.de(this@OverlayService).menuTexto)
-                textSize = 22f
-                typeface = android.graphics.Typeface.DEFAULT_BOLD
-                setPadding(dp(4), dp(2), 0, 0)
-            },
-        )
-        card.addView(
-            TextView(this).apply {
-                text = "Acesse rapidamente as principais funções"
-                setTextColor(OverlayTema.de(this@OverlayService).secundario)
-                textSize = 12f
-                setPadding(dp(4), dp(2), 0, dp(10))
+            LinearLayout(this).apply {
+                orientation = LinearLayout.HORIZONTAL
+                gravity = Gravity.CENTER_VERTICAL
+                layoutParams = LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT,
+                    LinearLayout.LayoutParams.WRAP_CONTENT,
+                ).apply { bottomMargin = dp(8) }
+                addView(
+                    LinearLayout(this@OverlayService).apply {
+                        orientation = LinearLayout.VERTICAL
+                        layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+                        addView(
+                            TextView(this@OverlayService).apply {
+                                text = "Atalhos"
+                                setTextColor(temaCabecalho.menuTexto)
+                                textSize = 22f
+                                typeface = android.graphics.Typeface.DEFAULT_BOLD
+                            },
+                        )
+                        addView(
+                            TextView(this@OverlayService).apply {
+                                text = "Acesse rapidamente as principais funções"
+                                setTextColor(temaCabecalho.secundario)
+                                textSize = 12f
+                            },
+                        )
+                    },
+                )
+                addView(botaoCircular("✕") { OverlayBridge.emitir(OverlayAcao.RecolherParaSelo) })
             },
         )
         itensAtalho(snapshot).forEach { item ->
@@ -828,14 +871,15 @@ class OverlayService : Service() {
 
     private fun linhaMenuAtalho(item: ItemMenuAtalho): LinearLayout {
         val tema = OverlayTema.de(this)
+        val verde = Color.parseColor("#2E7D32")
         val corIcone = when {
             item.perigo -> Color.parseColor("#E53935")
-            item.ligado -> Color.parseColor("#2E7D32")
-            else -> tema.menuTexto
+            item.ligado -> verde
+            else -> tema.secundario
         }
         val fundoIcone = when {
             item.perigo -> Color.parseColor("#33E53935")
-            item.ligado -> Color.parseColor("#332E7D32")
+            item.ligado -> Color.parseColor("#472E7D32")
             else -> tema.pocoIcone
         }
         return LinearLayout(this).apply {
@@ -846,8 +890,8 @@ class OverlayService : Service() {
             isClickable = true
             isFocusable = true
             background = GradientDrawable().apply {
-                setColor(tema.card)
-                setStroke(dp(1), tema.borda)
+                setColor(if (item.ligado) Color.parseColor("#332E7D32") else tema.card)
+                setStroke(dp(1), if (item.ligado) Color.parseColor("#732E7D32") else tema.borda)
                 cornerRadius = dp(16).toFloat()
             }
             layoutParams = LinearLayout.LayoutParams(
@@ -856,17 +900,15 @@ class OverlayService : Service() {
             ).apply { bottomMargin = dp(8) }
             setOnClickListener { item.acao() }
             addView(
-                TextView(this@OverlayService).apply {
-                    text = item.icone
-                    textSize = 16f
-                    gravity = Gravity.CENTER
-                    setTextColor(corIcone)
+                ImageView(this@OverlayService).apply {
+                    setImageResource(item.icone)
+                    setColorFilter(corIcone, android.graphics.PorterDuff.Mode.SRC_IN)
+                    scaleType = ImageView.ScaleType.CENTER_INSIDE
+                    setPadding(dp(9), dp(9), dp(9), dp(9))
                     background = GradientDrawable().apply {
                         setColor(fundoIcone)
-                        cornerRadius = dp(10).toFloat()
+                        cornerRadius = dp(12).toFloat()
                     }
-                    minWidth = dp(40)
-                    minHeight = dp(40)
                     layoutParams = LinearLayout.LayoutParams(dp(40), dp(40))
                 },
             )
@@ -880,13 +922,8 @@ class OverlayService : Service() {
                     addView(
                         TextView(this@OverlayService).apply {
                             text = item.titulo
-                            setTextColor(
-                                when {
-                                    item.perigo || item.ligado -> corIcone
-                                    else -> tema.menuTexto
-                                },
-                            )
-                            textSize = 14f
+                            setTextColor(if (item.perigo) corIcone else tema.menuTexto)
+                            textSize = if (item.ligado) 12f else 14f
                             typeface = android.graphics.Typeface.DEFAULT_BOLD
                             maxLines = 1
                         },
@@ -1203,9 +1240,7 @@ class OverlayService : Service() {
                 shape = GradientDrawable.OVAL
                 setColor(tema.pocoIcone)
             }
-            layoutParams = LinearLayout.LayoutParams(dp(36), dp(36)).apply {
-                bottomMargin = dp(8)
-            }
+            layoutParams = LinearLayout.LayoutParams(dp(36), dp(36))
             setOnClickListener { onClick() }
         }
     }

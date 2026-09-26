@@ -245,16 +245,6 @@ class AppViewModel(
 
     fun avaliarInicio(permissoesOk: Boolean, temConta: Boolean) {
         if (onboardingStore.concluido()) {
-            if (!permissoesOk) {
-                state = state.copy(
-                    onboardingEtapa = OnboardingEtapa.PERMISSOES,
-                    tutorialPasso = 0,
-                    interfaceOculta = false,
-                    destacarPermissoes = true,
-                    monitorando = false,
-                )
-                return
-            }
             if (state.onboardingEtapa != OnboardingEtapa.NENHUMA) {
                 concluirOnboarding()
                 return
@@ -1301,6 +1291,14 @@ class AppViewModel(
 
         _fecharApp.tryEmit(Unit)
         publicarOverlay()
+    }
+
+    fun excluirCorridaHistorico(item: HistoricoItemPresentation) {
+        state = state.copy(
+            historicoChavesSelecionadas = setOf(item.chaveHistorico()),
+            historicoSelecionado = item,
+        )
+        solicitarLimparHistorico()
     }
 
     fun solicitarLimparHistorico() {

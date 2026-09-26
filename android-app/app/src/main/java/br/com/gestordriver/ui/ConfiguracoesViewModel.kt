@@ -220,8 +220,8 @@ class ConfiguracoesViewModel(
     }
 
     fun atualizarMarcasHora(ruim: Double, boa: Double) {
-        val piso = ruim.coerceAtLeast(0.0)
-        val teto = boa.coerceAtLeast(piso)
+        val piso = (kotlin.math.round(ruim * 100.0) / 100.0).coerceIn(0.0, 98.99)
+        val teto = (kotlin.math.round(boa * 100.0) / 100.0).coerceIn(piso + 0.01, 99.0)
         aplicar(configuracao.copy(marcaHoraRuim = piso, marcaHoraBoa = teto, metaGanhoHora = teto))
     }
 

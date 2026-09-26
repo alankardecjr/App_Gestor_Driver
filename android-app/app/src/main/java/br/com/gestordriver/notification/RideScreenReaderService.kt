@@ -85,16 +85,6 @@ class RideScreenReaderService : AccessibilityService() {
         }
         handler.removeCallbacks(poll)
         handler.post(poll)
-        avaliarPresenca()
-    }
-
-    private fun avaliarPresenca() {
-        val monitorando = OverlayBridge.snapshot.value.monitorando
-        if (!monitorando && !OverlayBridge.acessibilidadeSegurada()) {
-            disableSelf()
-            return
-        }
-        handler.postDelayed({ avaliarPresenca() }, 5_000L)
     }
 
     override fun onKeyEvent(event: KeyEvent): Boolean {
