@@ -27,12 +27,20 @@ class CalendarioAppTest {
     }
 
     @Test
-    fun grade_do_mes_tem_seis_semanas_reais() {
+    fun grade_do_mes_completa_so_a_semana_do_ultimo_dia() {
         val grade = CalendarioApp.gradeMes(LocalDate.of(2026, 9, 2))
-        assertEquals(42, grade.size)
+        assertEquals(35, grade.size)
         assertEquals(DayOfWeek.SUNDAY, grade.first().dayOfWeek)
+        assertEquals(DayOfWeek.SATURDAY, grade.last().dayOfWeek)
+        assertEquals(LocalDate.of(2026, 8, 30), grade.first())
+        assertEquals(LocalDate.of(2026, 10, 3), grade.last())
         assertTrue(grade.contains(LocalDate.of(2026, 9, 1)))
         assertTrue(grade.contains(LocalDate.of(2026, 9, 30)))
+        assertFalse(grade.contains(LocalDate.of(2026, 10, 4)))
+        val fevereiro = CalendarioApp.gradeMes(LocalDate.of(2026, 2, 1))
+        assertEquals(28, fevereiro.size)
+        assertEquals(LocalDate.of(2026, 2, 1), fevereiro.first())
+        assertEquals(LocalDate.of(2026, 2, 28), fevereiro.last())
     }
 
     @Test
@@ -65,7 +73,7 @@ class CalendarioAppTest {
             assertEquals("", sub)
         }
         assertEquals(7, CalendarioApp.faixaDiasVisivel(dia, CalendarioPeriodo.SEMANA).size)
-        assertEquals(42, CalendarioApp.faixaDiasVisivel(dia, CalendarioPeriodo.MES).size)
+        assertEquals(35, CalendarioApp.faixaDiasVisivel(dia, CalendarioPeriodo.MES).size)
     }
 
     @Test

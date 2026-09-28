@@ -42,6 +42,25 @@ class ConfiguracaoPersistenciaTest {
     }
 
     @Test
+    fun configuracao_ja_gravada_mantem_os_limites_do_motorista() {
+        val gravada = ConfiguracaoUsuario.padrao().copy(
+            limiteRuimMax = 1.59,
+            limiteRegularMin = 1.60,
+            limiteRegularMax = 1.99,
+            limiteBoaMin = 1.60,
+            limiteBoaMax = 1.99,
+            limiteOtimaMin = 2.00,
+            metaGanhoHora = 0.0,
+            marcaHoraRuim = 0.0,
+            marcaHoraBoa = 0.0,
+            marcaNotaRuim = 0.0,
+            marcaNotaBoa = 0.0,
+        )
+        val restaurado = gravada.paraPreferencias().paraConfiguracaoUsuario()
+        assertEquals(gravada, restaurado)
+    }
+
+    @Test
     fun mapa_de_preferencias_volta_aos_mesmos_valores() {
         val original = ConfiguracaoUsuario.padrao().copy(
             marcaVeiculo = "Fiat",
@@ -95,8 +114,8 @@ class ConfiguracaoPersistenciaTest {
         // 95 R$/h >= meta 25 -> atinge; 20 R$/h < 25 -> não atinge.
         assertEquals(true, depois.configuracao.atingeMetaGanhoHora(95.0))
         assertEquals(false, depois.configuracao.atingeMetaGanhoHora(20.0))
-        // Sem meta -> null (indefinido).
-        assertEquals(null, ConfiguracaoUsuario.padrao().atingeMetaGanhoHora(95.0))
+        assertEquals(true, ConfiguracaoUsuario.padrao().atingeMetaGanhoHora(50.0))
+        assertEquals(null, ConfiguracaoUsuario().atingeMetaGanhoHora(95.0))
     }
 
     @Test

@@ -175,8 +175,17 @@ class AppViewModelTest {
     // =====================================================================
 
     @Test
-    fun estado_inicial_e_pro() {
-        assertEquals(PlanoAcesso.PRO, novoViewModel().state.plano)
+    fun estado_inicial_sem_chave_e_free() {
+        assertEquals(PlanoAcesso.FREE, novoViewModel().state.plano)
+    }
+
+    @Test
+    fun chave_pro_libera_a_instalacao() {
+        val viewModel = novoViewModel()
+        assertFalse(viewModel.liberarComChave("outra"))
+        assertEquals(PlanoAcesso.FREE, viewModel.state.plano)
+        assertTrue(viewModel.liberarComChave("GestorDrivePro"))
+        assertEquals(PlanoAcesso.PRO, viewModel.state.plano)
     }
 
     @Test
@@ -710,7 +719,7 @@ class AppViewModelTest {
         OverlayBridge.emitir(OverlayAcao.VoltarBarra)
         assertFalse(viewModel.state.historicoVisivel)
         assertEquals(ModoApresentacao.DETALHES, viewModel.state.corrida.modo)
-        assertFalse(viewModel.state.seloFlutuante)
+        assertTrue(viewModel.state.seloFlutuante)
         OverlayBridge.emitir(OverlayAcao.VoltarBarra)
         assertTrue(viewModel.state.seloFlutuante)
     }
@@ -724,7 +733,7 @@ class AppViewModelTest {
         OverlayBridge.emitir(OverlayAcao.VoltarBarra)
         assertTrue(viewModel.state.configuracoesVisivel)
         assertEquals(-1, viewModel.state.abaConfiguracao)
-        assertFalse(viewModel.state.seloFlutuante)
+        assertTrue(viewModel.state.seloFlutuante)
         OverlayBridge.emitir(OverlayAcao.VoltarBarra)
         assertTrue(viewModel.state.seloFlutuante)
     }
@@ -862,15 +871,79 @@ class AppViewModelTest {
         assertTrue(OverlayBridge.snapshot.value.seloVisivel)
         assertFalse(OverlayBridge.snapshot.value.expandidaVisivel)
 
-        viewModel.reabrirInterface()
+        viewModel.alternarAtalhosPeloSelo()
+        assertTrue(viewModel.state.atalhosAbertos)
         assertTrue(OverlayBridge.snapshot.value.expandidaVisivel)
         assertTrue(OverlayBridge.snapshot.value.seloVisivel)
-        assertEquals(ModoApresentacao.DETALHES, viewModel.state.corrida.modo)
+        assertEquals(ModoApresentacao.COMPACTA, viewModel.state.corrida.modo)
 
-        viewModel.reabrirInterface()
+        viewModel.alternarAtalhosPeloSelo()
+        assertFalse(viewModel.state.atalhosAbertos)
         assertFalse(OverlayBridge.snapshot.value.expandidaVisivel)
         assertTrue(OverlayBridge.snapshot.value.seloVisivel)
         assertTrue(viewModel.state.seloFlutuante)
+    }
+
+    @Test
+    fun selo_some_com_o_app_na_frente_e_volta_ao_sair() {
+        val viewModel = novoViewModel()
+        viewModel.iniciarMonitoramento()
+        viewModel.alternarAtalhosPeloSelo()
+        assertTrue(OverlayBridge.snapshot.value.expandidaVisivel)
+
+        viewModel.menuEntrouNaFrente()
+        assertFalse(OverlayBridge.snapshot.value.seloVisivel)
+        assertFalse(OverlayBridge.snapshot.value.expandidaVisivel)
+        assertFalse(viewModel.state.atalhosAbertos)
+        assertTrue(viewModel.state.monitorando)
+
+        viewModel.menuSaiuDaFrente()
+        assertTrue(OverlayBridge.snapshot.value.seloVisivel)
+        assertFalse(OverlayBridge.snapshot.value.expandidaVisivel)
+        assertTrue(viewModel.state.monitorando)
+    }
+
+    @Test
+    fun home_mantem_selo_escondido_e_desliga_se_o_aviso_tambem_fechou() {
+        val viewModel = novoViewModel()
+        viewModel.iniciarMonitoramento()
+        viewModel.esconderSeloManterMonitor()
+        viewModel.exibirOpcoesNosRecentes()
+        assertTrue(viewModel.state.monitorando)
+        assertTrue(viewModel.state.seloEscondido)
+        assertFalse(OverlayBridge.snapshot.value.seloVisivel)
+        assertTrue(viewModel.state.configuracoesVisivel)
+
+        viewModel.fecharNotificacao()
+        assertFalse(viewModel.state.monitorando)
+    }
+
+    @Test
+    fun home_com_aviso_e_selo_fechados_desliga_monitoramento() {
+        val viewModel = novoViewModel()
+        viewModel.iniciarMonitoramento()
+        viewModel.fecharNotificacao()
+        viewModel.esconderSeloManterMonitor()
+        assertTrue(viewModel.state.monitorando)
+
+        viewModel.exibirOpcoesNosRecentes()
+        assertFalse(viewModel.state.monitorando)
+        assertTrue(viewModel.state.configuracoesVisivel)
+        assertEquals(-1, viewModel.state.abaConfiguracao)
+    }
+
+    @Test
+    fun home_com_monitoramento_ligado_mostra_o_selo() {
+        val viewModel = novoViewModel()
+        viewModel.iniciarMonitoramento()
+        viewModel.menuEntrouNaFrente()
+        assertFalse(OverlayBridge.snapshot.value.seloVisivel)
+
+        viewModel.exibirOpcoesNosRecentes()
+        assertTrue(viewModel.state.monitorando)
+        assertTrue(OverlayBridge.snapshot.value.seloVisivel)
+        assertTrue(viewModel.state.configuracoesVisivel)
+        assertEquals(-1, viewModel.state.abaConfiguracao)
     }
 
     @Test

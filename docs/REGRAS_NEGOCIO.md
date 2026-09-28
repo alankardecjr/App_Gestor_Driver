@@ -27,7 +27,7 @@ Sua função principal é:
 - permitir acesso às configurações e ao histórico;
 - manter uma interface principal mínima através do **selo flutuante**.
 
-**Primeira abertura:** conferir permissões obrigatórias (notificações, sobrepor, acessibilidade, bateria) → se for o primeiro uso, pedir conta Google ou e-mail → tutorial em janelas curtas (SEGUIR ou PULAR) → iniciar monitoramento no selo. Sem as permissões obrigatórias o monitoramento não sobe. Conta no primeiro uso é exigida para seguir. Pular o tutorial equivale a concluir o onboarding.
+**Primeira abertura:** permissões obrigatórias, cada uma com o motivo. Notificações do próprio app e bateria abrem a caixa do Android (Permitir ou Não permitir). Leitura de notificações e sobrepor pedem confirmação no app e abrem o interruptor só do Gestor. A acessibilidade não fica ligada nessa etapa: ela só entra quando o motorista toca em Monitorar e se desliga quando o monitoramento para, para o app de banco abrir. Depois: e-mail do motorista e, se tiver, a chave da versão Pro → tutorial explicando selo, oferta, menu, aviso, semáforo e histórico. Sem as permissões o fluxo não segue. O e-mail é exigido. A chave vazia deixa o app em Free; a chave GestorDrivePro libera o Pro. Pular o tutorial conclui o primeiro uso e abre Opções com o monitoramento desligado. Esse fluxo só aparece quando o app ainda não foi concluído naquele celular.
 
 Plataformas iniciais consideradas:
 
@@ -43,7 +43,9 @@ A partir desta versão:
 
 > **A janela principal do app é o menu, na aba Opções.** Ela abre em tela cheia ao iniciar o app (onboarding já feito) e cobre as demais telas do aplicativo.
 
-Por cima de outros apps só existem três overlays: **selo**, **tela de atalhos** e **compacta**. Histórico, Carteira, Semáforo, Usuário e Sistema abrem dentro da janela do app. O selo só aparece com o monitoramento ligado, quando o app não está na frente.
+Por cima de outros apps só existem três overlays: **selo**, **tela de atalhos** e **compacta**. Histórico, Dashboard, Despesas, Semáforo, Usuário e Sistema abrem dentro da janela do app. O selo aparece quando o monitoramento liga e o app sai da frente. Com o menu aberto, o selo fica oculto e a notificação continua. Ao sair do app, o selo volta ao mesmo lugar, salvo se o usuário o jogou na lixeira. O toque no selo abre os atalhos, não o menu. O menu só abre pelo ícone do app. Fechar, nos atalhos ou no aviso, abre o app em Opções e pede confirmação.
+
+A tela de atalhos repete os botões de Opções, com o título **Atalhos** e o **X** à direita, em tamanho menor e sem rolagem. Ela cresce a partir do selo para o lado da tela em que há espaço, e o selo fica na quina do cartão. O toque em Histórico, Dashboard, Despesas, Semáforo, Usuário ou Sistema abre essa tela no app, não a lista de Opções.
 
 O aplicativo não deve permanecer permanentemente exibindo a tela compacta nem a tela de atalhos.
 
@@ -57,6 +59,10 @@ Permissões verificadas
 Menu na aba Opções (monitoramento desligado)
        ↓
 Usuário liga o monitoramento
+       ↓
+Aviso na barra (selo oculto enquanto o menu está aberto)
+       ↓
+Usuário sai do app
        ↓
 ◉ Selo flutuante
 
@@ -299,7 +305,7 @@ O histórico contém exclusivamente:
 
 CORRIDAS ACEITAS
 
-Abre como **painel overlay abaixo da expandida** (não tela cheia). Título **⬅️ HISTÓRICO** (seta volta aos atalhos). Abas **Todos | Uber | 99 | inDrive**. Navegação **só por semana** (DOM–SÁB): mês/ano no cabeçalho, setas saltam 7 dias, grade com dias da semana. Ao abrir: **domingo da semana atual** + aba **Todos**. Sem cards de faturamento/distância/gasto/lucro e sem seletor Dia/Semana/Mês (isso fica no Dashboard).
+Abre **dentro da janela do app**, em tela cheia. Título **Histórico**. A seta volta para Opções. Faixa **Todos | Uber | 99 | inDrive**. A lista e o resumo são do dia selecionado e da aba escolhida. As setas trocam um dia. O calendário mostra o mês, da semana do dia 1 até o sábado da última semana necessária. O resumo do dia mostra quantidade de corridas, distância em km e tempo em horas decimais (soma dos minutos ÷ 60). O dinheiro fica no Dashboard. Segurar um card marca; a lixeira pede confirmação para apagar. O resultado no detalhe fica verde.
 
 Card da corrida (borda **2 dp** na cor da classificação): selo da plataforma + dia/data/hora; linha Ganhos (negrito) · R$/Km · R$/Lucro · R$/gasto · Nota; linha 🛞 km · 🕐 tempo · ⛽ Consumo L; endereços ●/■ se houver; botões Embarque / Destino. Lucro/gasto incluem todos os custos da corrida.
 
@@ -475,7 +481,7 @@ monitoramento = ativo
 
 O Gestor Driver continua podendo receber e processar novas notificações.
 
-22. Reabrir pelo selo
+22. Toque no selo
 
 Quando o usuário tocar no selo:
 
@@ -483,22 +489,22 @@ Quando o usuário tocar no selo:
  ↓
 TOQUE
  ↓
-ABRIR INTERFACE
- ↓
-TELA EXPANDIDA
+TELA DE ATALHOS
 
-O monitoramento continua ativo.
+O cartão sai do selo para o lado livre e o selo continua na quina, tocável. Outro toque fecha os atalhos. O monitoramento continua ativo. O menu do app não abre pelo selo.
+
+Fechar a notificação, o selo e o menu, os três, desliga o monitoramento. Fechar só um ou dois não desliga. Home e Recentes contam como sair do menu: se o aviso e o selo já estavam fechados, o monitoramento desliga. Se só o selo estava na lixeira, ele continua oculto e o monitoramento segue.
 
 23. Configurações
 
-A configuração abre **dentro da janela do app**, não como overlay. Os cabeçalhos trazem a seta e o título, sem ícone e sem subtítulo. Opções mostra só **Gestor Driver**. Ordem: Monitorar, Localização, Histórico, Carteira, Despesas, Semáforo, Usuário, Sistema, Fechar. Os botões de Atalhos e de Opções têm o mesmo tamanho, com ícone de traço cinza. Fechar é o símbolo de desligar, em vermelho. Monitorar pede confirmação. Ligado, o botão fica verde translúcido e o título passa a **Monitorar On**, com a fonte um pouco menor. Desligado, volta ao cinza e ao título **Monitorar**. Localização abre o mapa na posição atual. Não há faixa de abas nem deslize: o toque em Opções abre a tela, e a seta ou Cancelar voltam para Opções. Salvar grava, avisa e permanece na tela. Com o monitoramento ligado, Opções mostra o selo do ícone do app no lugar da seta. O botão de recentes exibe Opções.
+A configuração abre **dentro da janela do app**, não como overlay. Os cabeçalhos trazem a seta e o título, sem subtítulo. Opções mostra **Gestor Driver** e o ícone do app fixo antes do título; esse ícone não abre o selo. A lista de Opções não rola. Ordem: Monitorar, Localização, Histórico, Dashboard, Despesas, Semáforo, Usuário, Sistema, Fechar. Os ícones são de traço cinza. Fechar é o símbolo de desligar, em vermelho. Monitorar pede confirmação. Ligado, o botão fica verde translúcido e o título é **Monitorar (ON)**. Desligado, volta ao cinza e ao título **Monitorar (Off)**. O subtítulo de Monitorar é **Calculadora de ganhos**. A tela de atalhos usa os mesmos títulos e subtítulos, em cartão menor. Localização abre o mapa na posição atual. Não há faixa de abas nem deslize. Em Semáforo, Despesas e Usuário, Salvar grava, avisa e permanece na tela. A seta, se houver edição, pergunta se deseja salvar: **Não** descarta e volta para Opções; **Sim** grava e volta. Em Sistema não há Cancelar nem Salvar: a seta grava e volta para Opções. A seta voltar tem cinza mais forte. O aviso da barra tem **Abrir App** (abre o menu) e **Fechar App** (confirma, para o monitoramento e fecha o app). Fechar e desligar o monitoramento confirmam em Opções, sem a tela expandida antiga. O botão de recentes exibe Opções.
 
 - **Usuário** — veículo (carro ou moto, marca, modelo, versão, ano, final da placa e o mês do IPVA) e abastecimento (preço e consumo; em energia, R$/kWh e km/kWh).
 - **Despesas** — combustível marcado, óleo, pneus, IPVA anual e seguro mensal. Óleo e pneus entram na estimativa. Seguro e IPVA rateiam o período.
-- **Semáforo** — duas marcas em R$/km, R$/hora e nota. A seta volta salvando.
+- **Semáforo** — duas marcas em R$/km, R$/hora e nota. Em cada barra, ruim, boa e ótima ocupam um terço. O número da marca é o limite; a largura da cor não muda. R$/km vai de 0 a 4. A seta volta salvando.
 - **Sistema** — permissões, apps instalados, tema, Maps ou Waze, conta e Sobre (versão e enviar log).
 
-Permissão **obrigatória** para monitorar: notificações, sobrepor e acessibilidade (leitura do card). Bateria (ignorar otimização) evita o overlay sumir. Localização é opcional e **não** trava o monitoramento. Permissão faltando: abrir a aba APP e destacar o que falta. **ENVIAR LOG** compartilha `notificacoes_diagnostico.txt` (não entra no backup da nuvem).
+Permissão **obrigatória** para monitorar: notificações, sobrepor e acessibilidade (leitura do card). A acessibilidade fica ligada só com o monitoramento ativo e se desliga sozinha quando ele para ou quando o app fecha. Se o processo recomeçar com o Monitorar ainda ligado, a leitura continua. Cada vez que o Monitorar liga e o interruptor está desligado, o motorista precisa ativá-lo de novo: o app não religa a acessibilidade sozinho. Com ela desligada, o app de banco abre. Com o Monitorar ligado, o banco ainda pode recusar. Ao ligar o monitoramento sem permissão de sobrepor, o app abre essa configuração; ao voltar com ela concedida, o aviso sobe e, se a acessibilidade ainda faltar, abre a tela dela. Bateria (ignorar otimização) evita o overlay sumir. Localização é opcional e **não** trava o monitoramento. Permissão faltando: abrir a aba APP e destacar o que falta. **ENVIAR LOG** compartilha `notificacoes_diagnostico.txt` (não entra no backup da nuvem).
 
 Custo da corrida usa **combustível atual + km/L desse combustível + preço do litro na aba CUSTOS**. Não misturar gasolina e etanol na mesma conta.
 
@@ -532,9 +538,7 @@ painel CONFIGURAÇÃO (abaixo)
 
 24. Histórico e configuração
 
-Histórico e configuração abrem **na janela do app**, um por vez, por cima do menu. A seta volta para a aba Opções. Não são overlay.
-
-Com histórico aberto, o botão vira **⤴️ Histórico** (recolhe o painel).
+Histórico e configuração abrem **na janela do app**, um por vez. A seta volta para Opções. Não são overlay.
 
 HISTÓRICO ABERTO
       ↓
@@ -974,17 +978,19 @@ A **Beta** passou a ser a linha **Pro**. Não há três produtos em loja nesta f
 
 O motor calcula sempre. No Free a UI esconde os números da calculadora e do dashboard.
 
-**Resultado da oferta** = valor − (combustível do combustível marcado + óleo + pneus por km). Óleo e pneus: `(valor ÷ km) × km da corrida`. IPVA e seguro não entram na oferta: ficam no dashboard. Seguro é mensal (mês inteiro, ano × 12). IPVA é anual (ano inteiro, mês ÷ 12). Dia e semana usam os dias daquele mês ou daquele ano. Consumo ou preço 0 → litros, gasto e resultado ficam sem valor. Semáforo: R$/km e R$/hora de 0 a 99, com duas marcas; a nota também tem duas marcas. A borda da oferta usa a pior cor entre R$/km e R$/hora.
+Sem a chave, o app abre em **Free**. Em **Sistema**, o card **Versão Pro** aceita a chave `GestorDrivePro` e libera o Pro naquele celular. A liberação fica gravada na instalação. A assinatura da Play, quando existir, usa o mesmo ponto: chave válida ou assinatura ativa deixa o plano em Pro.
 
-**Abastecimento:** ao Salvar em Usuário, se valor e quantidade (e os km) permitem cálculo, o app **pergunta** se deve preencher o preço e o consumo do combustível marcado. Em energia, a unidade é kWh.
+**Resultado da oferta** = valor − (combustível do combustível marcado + óleo + pneus por km). Óleo e pneus: `(valor ÷ km) × km da corrida`. IPVA e seguro não entram na oferta: ficam no dashboard. Seguro é mensal (mês inteiro, ano × 12). IPVA é anual (ano inteiro, mês ÷ 12). Dia e semana usam os dias daquele mês ou daquele ano. Consumo ou preço 0 → litros, gasto e resultado ficam sem valor. Semáforo: R$/km de 0 a 4 e R$/hora de 0 a 99, com duas marcas; a nota vai de 3,00 a 5,00. Em cada barra, ruim, boa e ótima têm o mesmo tamanho. A borda da oferta usa a pior cor entre R$/km e R$/hora.
+
+**Abastecimento:** o card em Usuário se chama “Calcular preço e consumo”. Ao Salvar, se valor e quantidade (e os km) permitem cálculo, o app pergunta se usa esses números como preço e consumo do combustível marcado. Sim grava essa referência e zera a calculadora. Não não grava a referência e zera a calculadora. Cancelar volta para Opções e mantém os números da calculadora. Em energia, a unidade é kWh.
 
 **Óleo:** aviso em vermelho a partir de **500 km** antes do vencimento da troca (intervalo informado); após o vencimento o aviso fica de “vencida”.
 
 **Dashboard (Pro):** abas Diário / Semanal / Mensal; setas de período; cards Faturamento / Gastos / Lucro líquido; ganho e custo por km e por hora; custo e lucro médio por corrida; estimativas rateadas (combustível, óleo, pneus, seguro, IPVA). Só corridas **aceitas**. Sem gráficos nesta entrega.
 
-**Histórico:** abas Todos/Uber/99/inDrive; semana DOM–SÁB com setas; sem resumo faturamento/dia-mês. Card: Ganhos · R$/Km · R$/Lucro · R$/gasto · Nota; Consumo (L); Embarque/Destino. Lixeira só selecionadas.
+**Histórico:** abre dentro do app. Abas Todos/Uber/99/inDrive. Dia selecionado, com setas de um dia e calendário do mês. Resumo do dia: quantidade, km e tempo em horas. Dinheiro no Dashboard. Lixeira só nas corridas marcadas.
 
-**Menu:** Monitorar, Localização, Histórico, Carteira, Despesas, Semáforo, Usuário, Sistema, Fechar. Sem faixa de abas.
+**Menu:** Monitorar (ON/Off), Localização, Histórico, Dashboard, Despesas, Semáforo, Usuário, Sistema, Fechar. Sem faixa de abas.
 
 **Notificação:** sem oferta = “Monitorando ofertas”. Com oferta, o título é valor, tempo e km. A linha fechada mostra R$/km, resultado, litros e nota. O aceite mantém o resumo até a próxima oferta.
 
@@ -999,13 +1005,15 @@ Gasolina: litro mais caro, mais km/L. Etanol: litro mais barato, menos km/L. Ene
 
 40. Faixas padrão de classificação (R$/km) — Pro 2.0
 
-Três faixas visíveis. Na aba **Semáforo**, R$/km e R$/hora vão de 0 a 99: até a primeira marca é ruim, da primeira mais R$ 0,01 até a segunda é boa, da segunda mais R$ 0,01 é ótima. A nota usa duas marcas de 0 a 5. Zero na marca de cima não pinta.
+Três faixas visíveis, cada uma com um terço da barra. Na aba **Semáforo**, R$/km vai de 0 a 4 e R$/hora de 0 a 99: até a primeira marca é ruim, da primeira mais R$ 0,01 até a segunda é boa, da segunda mais R$ 0,01 é ótima. A nota usa duas marcas de 3,00 a 5,00. Toque numa marca para destacá-la; − e + ajustam essa marca. Segurar o botão continua o ajuste, centavo a centavo no começo e mais rápido depois. Zero na marca de cima da hora não pinta.
+
+Na primeira abertura no celular, R$/km começa em ruim até **1,50**, boa de **1,51** a **2,00** e ótima a partir de **2,01**. R$/hora começa em ruim até **30,00**, boa de **30,01** a **50,00** e ótima de **50,01** a **99**. A nota começa em **4,70** e **4,90**. Uma configuração já gravada permanece como o motorista deixou.
 
 | Faixa | MIN | MAX | Borda |
 | --- | --- | --- | --- |
-| Ruim | MIN | 1,59 | vermelha |
-| Boa | 1,60 | 1,99 | amarela |
-| Ótima | 2,00 | MAX | verde |
+| Ruim | MIN | 1,50 | vermelha |
+| Boa | 1,51 | 2,00 | amarela |
+| Ótima | 2,01 | MAX | verde |
 
 O motorista altera as faixas na aba **Semáforo**. CANCELAR descarta o rascunho; SALVAR persiste.
 

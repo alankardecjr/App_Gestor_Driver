@@ -226,8 +226,8 @@ class ConfiguracoesViewModel(
     }
 
     fun atualizarMarcasNota(ruim: Double, boa: Double) {
-        val piso = ruim.coerceIn(0.0, 5.0)
-        val teto = boa.coerceIn(piso, 5.0)
+        val piso = (kotlin.math.round(ruim * 100.0) / 100.0).coerceIn(3.0, 4.99)
+        val teto = (kotlin.math.round(boa * 100.0) / 100.0).coerceIn(piso + 0.01, 5.0)
         aplicar(configuracao.copy(marcaNotaRuim = piso, marcaNotaBoa = teto))
     }
 
@@ -239,17 +239,33 @@ class ConfiguracoesViewModel(
         aplicar(configuracao.copy(anunciarVoz = ligado))
     }
 
-    fun salvar(aplicarAbastecimento: Boolean = true) {
+    fun salvar(aplicarAbastecimento: Boolean = true, limparCalculadora: Boolean = false) {
         val comAbastecimento = if (aplicarAbastecimento) {
             configuracao.aplicarCalculoAbastecimento()
         } else {
             configuracao
         }
+        val calculadora = if (limparCalculadora) {
+            comAbastecimento.limparCalculadoraAbastecimento()
+        } else {
+            comAbastecimento
+        }
         val normalizada = FaixasClassificacao.normalizar(
-            comAbastecimento.copy(seguroRecorrencia = SeguroRecorrencia.MENSAL),
+            calculadora.copy(seguroRecorrencia = SeguroRecorrencia.MENSAL),
         )
         store.salvar(normalizada)
         configuracao = normalizada
+    }
+
+    /** Cancelar em Usuário: descarta o resto do rascunho e mantém a calculadora. */
+    fun descartarMantendoCalculadora() {
+        val atual = configuracao
+        configuracao = store.carregar().copy(
+            abastecimentoValor = atual.abastecimentoValor,
+            abastecimentoLitros = atual.abastecimentoLitros,
+            abastecimentoKmInicial = atual.abastecimentoKmInicial,
+            abastecimentoKmFinal = atual.abastecimentoKmFinal,
+        )
     }
 
     fun temCalculoAbastecimento(): Boolean {

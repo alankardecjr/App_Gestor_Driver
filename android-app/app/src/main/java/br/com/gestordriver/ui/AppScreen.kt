@@ -138,6 +138,7 @@ fun AppScreen(
                         confirmacaoMonitorVisivel = state.confirmacaoDesativarVisivel,
                         onCancelarMonitor = viewModel::cancelarDesativarMonitoramento,
                         onConfirmarMonitor = viewModel::confirmarAlternarMonitoramento,
+                        onLiberarChave = viewModel::liberarComChave,
                     )
                 }
             }
@@ -158,6 +159,7 @@ fun AppScreen(
                         configuracoesViewModel = configuracoesViewModel,
                         onAvancarPermissoes = viewModel::avaliarInicio,
                         onContaPronta = viewModel::onboardingContaPronta,
+                        onLiberarChave = viewModel::liberarComChave,
                         onSeguirTutorial = viewModel::tutorialSeguir,
                         onPularTutorial = viewModel::tutorialPular,
                     )
@@ -182,143 +184,7 @@ private fun ConteudoPrincipal(
 ) {
         val activity = LocalContext.current as? br.com.gestordriver.MainActivity
         Box(modifier = Modifier.fillMaxSize()) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(LocalPaletaApp.current.fundo)
-                .verticalScroll(rememberScrollState())
-                .padding(
-                    horizontal = 12.dp,
-                    vertical = 8.dp,
-                ),
-            verticalArrangement = Arrangement.spacedBy(6.dp),
-        ) {
-
-            // =========================================================
-            // TÍTULO
-            // =========================================================
-
-            Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 4.dp)) {
-                Text(
-                    text = "Gestor Driver",
-                    color = LocalPaletaApp.current.texto,
-                    fontSize = 22.sp,
-                    fontWeight = FontWeight.Bold,
-                )
-                Text(
-                    text = "Oferta, resultado e atalhos",
-                    color = LocalPaletaApp.current.textoSecundario,
-                    fontSize = 12.sp,
-                )
-            }
-
-            // =========================================================
-            // MONITORAMENTO ON/OFF (o usuário decide quando ligar)
-            // =========================================================
-
-            MonitoramentoToggle(
-                monitorando = state.monitorando,
-                onAtivar = viewModel::solicitarAlternarMonitoramento,
-                onDesativar = viewModel::solicitarAlternarMonitoramento,
-            )
-
-            Column(
-                modifier = Modifier.fillMaxWidth(),
-                verticalArrangement = Arrangement.spacedBy(0.dp),
-            ) {
-
-            // =========================================================
-            // CORRIDA ATUAL
-            //
-            // BORDA GROSSA = CLASSIFICAÇÃO DA CORRIDA ATUAL
-            // =========================================================
-
-            Card(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .border(
-                        width = 5.dp,
-                        color = parseColor(
-                            state.corrida.corClassificacao,
-                        ),
-                        shape = RoundedCornerShape(16.dp),
-                    ),
-                shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(
-                    containerColor = LocalPaletaApp.current.fundoPainel,
-                ),
-            ) {
-
-                Column(
-                    modifier = Modifier.padding(
-                        horizontal = 8.dp,
-                        vertical = 6.dp,
-                    ),
-                    verticalArrangement = Arrangement.spacedBy(4.dp),
-                ) {
-
-                    // =================================================
-                    // CABEÇALHO
-                    // =================================================
-
-                    CabecalhoCorrida(
-                        campos = state.corrida.camposCompactos,
-                        modo = state.corrida.modo,
-                        onInformacao = viewModel::alternarDetalhes,
-                        onAlternarDetalhes = viewModel::alternarDetalhes,
-                    )
-
-                    // =================================================
-                    // DETALHES
-                    //
-                    // SOMENTE NA TELA EXPANDIDA
-                    // =================================================
-
-                    if (
-                        state.corrida.modo ==
-                        ModoApresentacao.DETALHES
-                    ) {
-
-                        DetalhesCorrida(
-                            campos = state.corrida.camposDetalhes,
-                        )
-
-                        ControlesInterface(
-                            historicoVisivel = state.historicoVisivel,
-                            configuracoesVisivel = state.configuracoesVisivel,
-                            onConfig = viewModel::alternarConfiguracoes,
-                            onOcultar = viewModel::ocultarInterface,
-                            onFechar = viewModel::solicitarFecharApp,
-                            onAlternarHistorico = viewModel::alternarHistorico,
-                        )
-                    }
-                }
-            }
-
-            // =========================================================
-            // HISTÓRICO
-            //
-            // SOMENTE NA TELA EXPANDIDA
-            // =========================================================
-
-            AnimatedVisibility(
-                visible = state.confirmacaoFecharVisivel &&
-                    state.corrida.modo == ModoApresentacao.DETALHES,
-                enter = slideInVertically(animationSpec = tween(220)) { -it },
-                exit = slideOutVertically(animationSpec = tween(180)) { -it },
-            ) {
-                ConfirmacaoFecharSection(
-                    titulo = "gestor driver",
-                    mensagem = "Deseja encerrar o aplicativo e parar o monitoramento de corridas?",
-                    textoConfirmar = "Fechar",
-                    onCancelar = viewModel::cancelarFecharApp,
-                    onConfirmar = viewModel::confirmarFecharApp,
-                )
-            }
-
-            }
-        }
-        if (state.configuracoesVisivel) {
+        if (!state.historicoVisivel && !state.dashboardVisivel) {
             ConfiguracoesScreen(
                 viewModel = configuracoesViewModel,
                 onVoltar = {
@@ -344,6 +210,7 @@ private fun ConteudoPrincipal(
                 confirmacaoMonitorVisivel = state.confirmacaoDesativarVisivel,
                 onCancelarMonitor = viewModel::cancelarDesativarMonitoramento,
                 onConfirmarMonitor = viewModel::confirmarAlternarMonitoramento,
+                onLiberarChave = viewModel::liberarComChave,
             )
         }
         if (state.historicoVisivel) {
@@ -408,6 +275,24 @@ private fun ConteudoPrincipal(
                     textoConfirmar = if (state.monitorando) "Desligar" else "Ligar",
                     onCancelar = viewModel::cancelarDesativarMonitoramento,
                     onConfirmar = viewModel::confirmarAlternarMonitoramento,
+                )
+            }
+        }
+        if (state.confirmacaoFecharVisivel) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.Black.copy(alpha = 0.45f))
+                    .clickable(enabled = false, onClick = {})
+                    .padding(horizontal = 16.dp, vertical = 24.dp),
+                contentAlignment = Alignment.Center,
+            ) {
+                ConfirmacaoFecharSection(
+                    titulo = "Gestor Driver",
+                    mensagem = "Deseja encerrar o aplicativo e parar o monitoramento de corridas?",
+                    textoConfirmar = "Fechar",
+                    onCancelar = viewModel::cancelarFecharApp,
+                    onConfirmar = viewModel::confirmarFecharApp,
                 )
             }
         }
@@ -500,21 +385,13 @@ private fun ConfirmacaoFecharSection(
             style = MaterialTheme.typography.bodySmall,
             textAlign = TextAlign.Center,
         )
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceEvenly,
-        ) {
-            TextButton(onClick = onCancelar) {
-                Text(text = "Cancelar", color = paleta.textoSecundario)
-            }
-            TextButton(onClick = onConfirmar) {
-                Text(
-                    text = textoConfirmar,
-                    color = Color(0xFFE53935),
-                    fontWeight = FontWeight.SemiBold,
-                )
-            }
-        }
+        BotoesMensagem(
+            textoEsquerda = "Cancelar",
+            onEsquerda = onCancelar,
+            textoDireita = textoConfirmar,
+            onDireita = onConfirmar,
+            direitaPerigo = true,
+        )
     }
 }
 

@@ -54,14 +54,14 @@ R$/hora online real (`SessaoTrabalho`), Design System / tokens, depreciação.
 ## Bloco F — Monitoramento ON/OFF (decisões confirmadas)
 
 - **Cold start sempre OFF**: abrir o app não liga o monitoramento; o usuário decide.
-- **Botão na aba Opções** com legenda que muda conforme o estado.
-  Ligado: fundo verde translúcido e título **Monitorar On** em fonte menor.
-  Desligado: cinza, título **Monitorar**. O mesmo vale na tela de atalhos.
+- **Botão na aba Opções** com título **Monitorar (ON)** ou **Monitorar (Off)** e subtítulo **Calculadora de ganhos**.
+  Ligado: fundo verde translúcido. Desligado: cinza. O mesmo vale na tela de atalhos.
 - **Separar** "Desligar monitoramento" (some selo e aviso; o app continua) de
-  "Fechar app" (encerra). A notificação persistente tem **Abrir App**.
-  Dispensar o aviso não desliga o monitoramento.
+  "Fechar app" (encerra). A notificação tem **Abrir App** (abre o menu) e **Fechar App**
+  (confirma, para o monitoramento e fecha o app). Dispensar só o aviso não desliga.
 - **Ligar e desligar pedem confirmação.**
-- Regra de ouro (já respeitada): fechar o selo ≠ desligar o monitoramento.
+- Fechar só o selo ou só o aviso não desliga. Fechar aviso, selo e menu, os três, desliga. Home e Recentes também fecham o menu: com aviso e selo já fechados, o monitoramento desliga. O selo jogado na lixeira não volta no Home.
+- Ao ligar, a notificação sobe na hora. O selo fica oculto enquanto o app está aberto e volta quando o usuário sai para o mapa. O toque no selo abre os atalhos.
 - Base já existente: `AppState.monitorando`, start/stop reativo do `OverlayService`
   em `MainActivity`, foreground service + notificação persistente, overlays escondem
   quando `!monitorando`, `avaliarInicio()` já inicia OFF.
@@ -77,22 +77,26 @@ R$/hora online real (`SessaoTrabalho`), Design System / tokens, depreciação.
 - [x] Bloco D — Terminologia "Lucro" → "Resultado".
 - [x] Bloco F — Monitoramento ON/OFF explícito (cold start OFF, confirmação nos dois sentidos, aviso sem ação Desativar).
 - [x] Janela principal — menu na aba Opções, tela cheia. Overlay só selo, atalhos e compacta.
-- [x] Menu sem faixa nem deslize. Ordem: Monitorar, Localização, Histórico, Carteira, Despesas, Semáforo, Usuário, Sistema, Fechar.
-- [x] Salvar grava e avisa na tela. Cancelar e a seta voltam para Opções. Semáforo salva pela seta.
-- [x] Recentes e Home mostram Opções. Selo no cabeçalho só com monitoramento ligado.
-- [x] Dashboard: seguro mensal e IPVA anual fecham no mês e no ano.
-- [x] Notificação fechada mostra os números da oferta (R$/km, resultado, litros, nota).
-- [x] Atalhos e Opções no mesmo tamanho, ícones de traço cinza. Fechar vermelho. Monitorar ligado: verde translúcido, **Monitorar On**.
+- [x] Menu sem faixa nem deslize. Ordem: Monitorar (ON/Off), Localização, Histórico, Dashboard, Despesas, Semáforo, Usuário, Sistema, Fechar.
+- [x] Semáforo, Despesas e Usuário: Salvar grava e permanece. A seta, com edição, pergunta se salva. Sistema: sem Cancelar/Salvar; a seta grava e volta para Opções.
+- [x] Recentes e Home mostram Opções. O ícone do app fica fixo antes do título e não abre o selo.
+- [x] Dashboard: seguro mensal e IPVA anual fecham no mês e no ano. Óleo e pneu em ícone cinza.
+- [x] Notificação com **Abrir App** e **Fechar App**. Oferta ativa mostra R$/km, resultado, litros e nota.
+- [x] Atalhos espelham Opções, menores, sem rolagem, saindo do selo para o lado livre. Fechar vermelho. Monitorar ligado: verde translúcido, **Monitorar (ON)**. Histórico, Dashboard, Despesas, Semáforo, Usuário e Sistema abrem essa tela no app.
+- [x] Acessibilidade só com o Monitorar. Desliga ao parar ou ao fechar o app. Se o processo recomeçar com o Monitorar ligado, a leitura continua. Com ela desligada, o banco abre. Com o Monitorar ligado, o banco pode recusar.
 - [x] Selo do cabeçalho desenha o ícone do app como bitmap. O ícone adaptativo derrubava o processo ao ligar o monitoramento, e selo e aviso não subiam.
+- [x] Semáforo: R$/km de 0 a 4, nota de 3,00 a 5,00, marcas com − e +. R$/hora continua de 0 a 99. Ruim, boa e ótima ocupam um terço cada na barra.
+- [x] Fechar e desligar confirmam em Opções. A tela expandida antiga não entra nesse caminho.
+- [x] Histórico: quantidade de corridas com dois dígitos e Qt alinhado aos outros campos.
 
 ## Janela principal e overlays
 
 - Ao iniciar o app, a janela principal é o **menu na aba Opções** (tela cheia).
   Título **Gestor Driver**, sem subtítulo.
-- Histórico, Carteira, Semáforo, Usuário e Sistema abrem **dentro do app**.
+- Histórico, Dashboard, Despesas, Semáforo, Usuário e Sistema abrem **dentro do app**. O mesmo toque na tela de atalhos abre essa tela, não a lista de Opções.
 - Por cima de outros apps: **selo**, **tela de atalhos** e **compacta**.
-- Selo e aviso da barra só com monitoramento ligado. Fechar um ou os dois não
-  desliga. Fechar aviso, selo e o app desliga por segurança.
+- Selo e aviso da barra sobem ao ligar o monitoramento. Com o app aberto o selo fica oculto; ao sair, ele volta, salvo se foi jogado na lixeira. Fechar nos atalhos abre o app em Opções e confirma lá.
+  Fechar só o aviso ou só o selo não desliga. Fechar aviso, selo e menu desliga.
 - [x] Semáforo — Meta de R$/hora do motorista (`metaGanhoHora`).
 - [x] Dashboard anual — já existente (Dia/Semana/Mês/Ano).
 - Comparação de mercado e recomendações de UX: `docs/ANALISE_TECNICA_MERCADO.md`.

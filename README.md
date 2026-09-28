@@ -2,7 +2,7 @@
 
 Assistente Android para motoristas de Uber, 99 e inDrive. Lê a oferta (notificação + tela), calcula **R$/KM** e o custo da corrida, e mostra a decisão em um overlay sobre o mapa. **Não aceita a corrida** — o aceite continua no app da plataforma.
 
-**Linha ativa:** VS `2.3` (versionCode 15) · **Beta congelado:** `1.1.10` · sem Play Store · não afiliado às plataformas.
+**Linha ativa:** VS `2.3` (versionCode 22) · **Beta congelado:** `1.1.10` · sem Play Store · não afiliado às plataformas.
 
 | Plano | Papel |
 | --- | --- |
@@ -17,18 +17,18 @@ Detalhe Free vs Pro: [`docs/REGRAS_NEGOCIO.md`](docs/REGRAS_NEGOCIO.md) §38 · 
 
 O motorista tem poucos segundos e os números estão espalhados na tela da plataforma. O Gestor junta **R$/KM + classificação por cor + custo da corrida** sem tapar o mapa.
 
-Fluxo de uso: ao abrir o app, a janela principal é o menu na aba **Opções**. Por cima de outros apps ficam só o **selo**, a **tela de atalhos** e a **compacta**. Histórico, Carteira e as abas de ajuste abrem dentro do app.
+Fluxo de uso: ao abrir o app, a janela principal é o menu na aba **Opções**. Ligar o monitoramento sobe a notificação; o **selo** fica oculto enquanto o app está aberto e volta ao sair para o mapa. O toque no selo abre a **tela de atalhos** (espelho de Opções, menor, saindo do selo para o lado livre). Histórico, Dashboard, Despesas, Semáforo, Usuário e Sistema, nessa tela, abrem a mesma tela dentro do app. O menu só abre pelo ícone. Por cima de outros apps ficam o selo, os atalhos e a **compacta**.
 
 ---
 
 ## Primeira abertura
 
-1. Verifica permissões obrigatórias: notificações, sobrepor, acessibilidade (leitura do card), bateria.
-2. Primeiro uso: pede **conta Google ou e-mail** (identidade local; sem sync).
-3. Tutorial em janelas curtas (selo, cabeçalho, expandida, botões, config, histórico) com **SEGUIR** ou **PULAR**.
-4. Inicia o monitoramento (selo sobre o mapa).
+1. Permissões para seguir: notificações, sobrepor e bateria, cada uma com o motivo. A acessibilidade não fica ligada aqui.
+2. E-mail obrigatório e, se tiver, a chave da versão Pro (`GestorDrivePro`). Chave vazia deixa o app em Free.
+3. Tutorial em seis passos. **Pular** conclui. O último botão é **Começar**.
+4. Abre Opções com o monitoramento desligado.
 
-Se alguma permissão cair depois, o app volta ao passo de permissões antes de monitorar.
+A acessibilidade só é pedida ao ligar o Monitorar, e fica ligada enquanto ele está ligado. Ao desligar o Monitorar ou fechar o app, ela se desliga sozinha, para o app de banco abrir. Com o Monitorar ligado, o banco ainda pode recusar.
 
 ---
 

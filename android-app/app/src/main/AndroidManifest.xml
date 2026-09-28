@@ -20,6 +20,14 @@
         <package android:name="sinet.startup.inDriver" />
         <package android:name="com.sis.android.indriver" />
         <package android:name="com.indrive.android" />
+        <package android:name="com.google.android.calculator" />
+        <package android:name="com.sec.android.app.popupcalculator" />
+        <package android:name="com.samsung.android.calculator" />
+        <package android:name="com.android.calculator2" />
+        <intent>
+            <action android:name="android.intent.action.MAIN" />
+            <category android:name="android.intent.category.APP_CALCULATOR" />
+        </intent>
     </queries>
 
     <application

@@ -120,6 +120,13 @@ data class ConfiguracaoUsuario(
         }
     }
 
+    fun limparCalculadoraAbastecimento(): ConfiguracaoUsuario = copy(
+        abastecimentoValor = 0.0,
+        abastecimentoLitros = 0.0,
+        abastecimentoKmInicial = 0.0,
+        abastecimentoKmFinal = 0.0,
+    )
+
     companion object {
         fun padrao(): ConfiguracaoUsuario = ConfiguracaoUsuario(
             tipoVeiculo = TipoVeiculo.CARRO,
@@ -136,13 +143,18 @@ data class ConfiguracaoUsuario(
             precoEnergia = 0.85,
             navegacao = AppNavegacao.GOOGLE_MAPS,
             limiteRuimMin = 0.0,
-            limiteRuimMax = 1.59,
-            limiteRegularMin = 1.60,
-            limiteRegularMax = 1.99,
-            limiteBoaMin = 1.60,
-            limiteBoaMax = 1.99,
-            limiteOtimaMin = 2.00,
+            limiteRuimMax = 1.50,
+            limiteRegularMin = 1.51,
+            limiteRegularMax = 2.00,
+            limiteBoaMin = 1.51,
+            limiteBoaMax = 2.00,
+            limiteOtimaMin = 2.01,
             limiteOtimaMax = 99.0,
+            metaGanhoHora = 50.0,
+            marcaHoraRuim = 30.0,
+            marcaHoraBoa = 50.0,
+            marcaNotaRuim = 4.70,
+            marcaNotaBoa = 4.90,
         )
     }
 }

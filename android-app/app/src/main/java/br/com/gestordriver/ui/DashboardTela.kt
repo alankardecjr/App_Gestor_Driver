@@ -19,7 +19,10 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
+import androidx.compose.ui.res.painterResource
+import br.com.gestordriver.R
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -232,11 +235,11 @@ fun DashboardTela(
             CartaoGrupo {
                 LinhaCusto("⛽", "Combustível", estCombustivel)
                 Box(Modifier.fillMaxWidth().height(1.dp).background(paleta.borda))
-                LinhaCusto("🛢", "Óleo", estOleo)
+                LinhaCusto("🛢", "Óleo", estOleo, iconeRes = R.drawable.ic_custo_oleo)
                 Box(Modifier.fillMaxWidth().height(1.dp).background(paleta.borda))
-                LinhaCusto("◉", "Pneu dianteiro", estPneuD)
+                LinhaCusto("◉", "Pneu dianteiro", estPneuD, iconeRes = R.drawable.ic_custo_pneu)
                 Box(Modifier.fillMaxWidth().height(1.dp).background(paleta.borda))
-                LinhaCusto("◉", "Pneu traseiro", estPneuT)
+                LinhaCusto("◉", "Pneu traseiro", estPneuT, iconeRes = R.drawable.ic_custo_pneu)
                 Box(Modifier.fillMaxWidth().height(1.dp).background(paleta.borda))
                 LinhaCusto("▣", "Seguro", estSeguro)
                 Box(Modifier.fillMaxWidth().height(1.dp).background(paleta.borda))
@@ -370,7 +373,7 @@ private fun RowScope.CelulaPar(titulo: String, valor: String) {
 }
 
 @Composable
-private fun LinhaCusto(icone: String, rotulo: String, valor: Double?) {
+private fun LinhaCusto(icone: String, rotulo: String, valor: Double?, iconeRes: Int? = null) {
     val paleta = LocalPaletaApp.current
     val ausente = valor == null
     Row(
@@ -385,11 +388,20 @@ private fun LinhaCusto(icone: String, rotulo: String, valor: Double?) {
                 .background(paleta.pocoIcone, RoundedCornerShape(10.dp)),
             contentAlignment = Alignment.Center,
         ) {
-            Text(
-                text = iconeCinza(icone),
-                color = paleta.textoSecundario,
-                fontSize = 13.sp,
-            )
+            if (iconeRes != null) {
+                Icon(
+                    painter = painterResource(iconeRes),
+                    contentDescription = null,
+                    tint = paleta.textoSecundario,
+                    modifier = Modifier.size(18.dp),
+                )
+            } else {
+                Text(
+                    text = iconeCinza(icone),
+                    color = paleta.textoSecundario,
+                    fontSize = 13.sp,
+                )
+            }
         }
         Text(
             rotulo,

@@ -12,17 +12,21 @@ import br.com.gestordriver.core.ClassificacaoConstantes
 import br.com.gestordriver.core.SemaforoOferta
 import br.com.gestordriver.data.ConfiguracaoStore
 import br.com.gestordriver.data.HistoricoRepository
+import br.com.gestordriver.data.LicencaStore
 import br.com.gestordriver.data.MemoriaConfiguracaoStore
 import br.com.gestordriver.data.MemoriaHistoricoRepository
+import br.com.gestordriver.data.MemoriaLicencaStore
 import br.com.gestordriver.data.MemoriaOnboardingStore
 import br.com.gestordriver.data.OnboardingStore
 import br.com.gestordriver.data.chaveHistorico
+import br.com.gestordriver.model.ChavePro
 import br.com.gestordriver.model.HistoricoItemPresentation
 import br.com.gestordriver.model.ModoApresentacao
 import br.com.gestordriver.model.OnboardingEtapa
 import br.com.gestordriver.model.PlanoAcesso
 import br.com.gestordriver.model.TutorialConteudo
 import br.com.gestordriver.notification.RideNotificationBus
+import br.com.gestordriver.notification.SessaoMonitoramento
 import br.com.gestordriver.notification.RideNotificationEvent
 import br.com.gestordriver.overlay.OverlayAcao
 import br.com.gestordriver.overlay.OverlayBridge
@@ -41,6 +45,7 @@ class AppViewModel(
     private val historicoRepository: HistoricoRepository = MemoriaHistoricoRepository(),
     private val onboardingStore: OnboardingStore = MemoriaOnboardingStore(inicial = true),
     private val configuracaoStore: ConfiguracaoStore = MemoriaConfiguracaoStore(),
+    private val licencaStore: LicencaStore = MemoriaLicencaStore(),
     coroutineScope: CoroutineScope? = null,
 ) : ViewModel() {
 
@@ -58,7 +63,9 @@ class AppViewModel(
     // ================================================================
 
     var state by mutableStateOf(
-        PresentationBuilder.criarEstadoInicial()
+        PresentationBuilder.criarEstadoInicial(
+            plano = ChavePro.plano(licencaStore.proLiberado()),
+        ),
     )
         private set
 
@@ -98,6 +105,12 @@ class AppViewModel(
 
     private val _pedirLocalizacao = MutableSharedFlow<Unit>(extraBufferCapacity = 1)
     val pedirLocalizacao: SharedFlow<Unit> = _pedirLocalizacao.asSharedFlow()
+
+    /** Activity visível. Fechar no menu confirma em Opções, sem a tela expandida antiga. */
+    private var menuNaFrente = false
+
+    /** O usuário saiu da tela do menu. Sozinho não desliga o monitoramento. */
+    private var menuEncerrado = false
 
     // ================================================================
     // NOTIFICAÇÕES
@@ -165,11 +178,19 @@ class AppViewModel(
                     OverlayAcao.Ocultar -> ocultarInterface()
                     OverlayAcao.Retratil -> retrairParaCompactaTemporaria()
                     OverlayAcao.ToqueForaDaCompacta -> Unit
-                    OverlayAcao.RecolherParaSelo -> recolherPorBarraSistema()
+                    OverlayAcao.RecolherParaSelo -> {
+                        if (state.atalhosAbertos) {
+                            state = state.copy(atalhosAbertos = false)
+                            publicarOverlay()
+                        } else {
+                            recolherPorBarraSistema()
+                        }
+                    }
                     OverlayAcao.VoltarAtalho -> voltarParaOpcoes()
                     OverlayAcao.VoltarBarra -> voltarPelaBarra()
                     OverlayAcao.RecentesBarra -> aoAbrirRecentes()
                     OverlayAcao.EsconderSelo -> esconderSeloManterMonitor()
+                    OverlayAcao.AlternarAtalhos -> alternarAtalhosPeloSelo()
                     OverlayAcao.SairParaMapaHistorico -> sairParaMapaHistorico()
                     OverlayAcao.DashboardPro -> abrirDashboard()
                     OverlayAcao.FecharDashboard -> voltarParaOpcoes()
@@ -217,6 +238,19 @@ class AppViewModel(
             )
             publicarOverlay()
         }
+        if (onboardingStore.concluido() && SessaoMonitoramento.ligada()) {
+            state = state.copy(
+                monitorando = true,
+                overlayAtivo = true,
+                notificacaoFechada = false,
+                seloFlutuante = true,
+                seloEscondido = false,
+                interfaceOculta = false,
+                configuracoesVisivel = true,
+                abaConfiguracao = -1,
+            )
+            publicarOverlay()
+        }
     }
 
     fun iniciarMonitoramento() {
@@ -230,8 +264,9 @@ class AppViewModel(
             }
             return
         }
+        SessaoMonitoramento.definir(true)
         state = state.copy(notificacaoFechada = false)
-        irParaSelo()
+        irParaSelo(enviarParaFundo = false)
     }
 
     /** Fecha só o aviso da barra. O monitoramento e o selo continuam. */
@@ -241,6 +276,7 @@ class AppViewModel(
         }
         state = state.copy(notificacaoFechada = true)
         publicarOverlay()
+        avaliarEncerramentoTotal()
     }
 
     fun avaliarInicio(permissoesOk: Boolean, temConta: Boolean) {
@@ -295,6 +331,7 @@ class AppViewModel(
 
     private fun concluirOnboarding() {
         onboardingStore.marcarConcluido()
+        SessaoMonitoramento.definir(false)
         // Após o onboarding o app abre em Opções com o monitoramento DESLIGADO;
         // o usuário liga quando quiser (esquema ON/OFF).
         state = state.copy(
@@ -332,8 +369,8 @@ class AppViewModel(
             configuracoesVisivel = true,
             historicoVisivel = false,
             dashboardVisivel = false,
-            seloFlutuante = false,
-            seloEscondido = false,
+            seloFlutuante = state.monitorando && !state.seloEscondido,
+            atalhosAbertos = false,
             abaConfiguracao = -1,
             confirmacaoFecharVisivel = false,
             confirmacaoDesativarVisivel = false,
@@ -346,7 +383,14 @@ class AppViewModel(
         if (state.onboardingEtapa != OnboardingEtapa.NENHUMA) {
             return
         }
+        menuNaFrente = false
+        menuEncerrado = true
+        if (state.monitorando && state.notificacaoFechada && state.seloEscondido) {
+            desativarMonitoramento()
+            return
+        }
         val monitorando = state.monitorando
+        val seloOculto = state.seloEscondido
         state = state.copy(
             estadoSalvo = null,
             recentesConfig = false,
@@ -358,9 +402,10 @@ class AppViewModel(
             confirmacaoLimparHistoricoVisivel = false,
             confirmacaoDesativarVisivel = false,
             compactaTemporaria = false,
-            seloEscondido = false,
+            atalhosAbertos = false,
+            seloEscondido = seloOculto,
             interfaceOculta = monitorando,
-            seloFlutuante = monitorando,
+            seloFlutuante = monitorando && !seloOculto,
         )
         publicarOverlay()
     }
@@ -382,6 +427,7 @@ class AppViewModel(
             historicoVisivel = true,
             configuracoesVisivel = false,
             dashboardVisivel = false,
+            atalhosAbertos = false,
             corrida = state.corrida.copy(modo = ModoApresentacao.DETALHES),
         )
         publicarOverlay()
@@ -450,6 +496,7 @@ class AppViewModel(
      * volta para a interface (Opções). Diferente de "Fechar app".
      */
     fun desativarMonitoramento() {
+        SessaoMonitoramento.definir(false)
         cancelarCompactaTemporaria()
         state = state.copy(
             confirmacaoDesativarVisivel = false,
@@ -457,11 +504,14 @@ class AppViewModel(
             overlayAtivo = false,
             seloFlutuante = false,
             seloEscondido = false,
+            atalhosAbertos = false,
             compactaTemporaria = false,
             interfaceOculta = false,
             historicoVisivel = false,
-            configuracoesVisivel = false,
             dashboardVisivel = false,
+            configuracoesVisivel = true,
+            abaConfiguracao = -1,
+            confirmacaoFecharVisivel = false,
         )
         publicarOverlay()
     }
@@ -469,6 +519,15 @@ class AppViewModel(
     // ================================================================
     // PLANO
     // ================================================================
+
+    fun liberarComChave(texto: String): Boolean {
+        if (!ChavePro.aceita(texto)) {
+            return false
+        }
+        licencaStore.liberarPro()
+        selecionarPlano(PlanoAcesso.PRO)
+        return true
+    }
 
     fun selecionarPlano(
         plano: PlanoAcesso
@@ -650,6 +709,7 @@ class AppViewModel(
             dashboardVisivel = true,
             historicoVisivel = false,
             configuracoesVisivel = false,
+            atalhosAbertos = false,
             confirmacaoFecharVisivel = false,
             confirmacaoLimparHistoricoVisivel = false,
             seloFlutuante = false,
@@ -951,7 +1011,7 @@ class AppViewModel(
     }
 
     fun recolherAoSairDoApp() {
-        if (!state.monitorando) {
+        if (!state.monitorando || state.seloEscondido) {
             return
         }
         if (state.seloFlutuante && state.interfaceOculta &&
@@ -1124,17 +1184,14 @@ class AppViewModel(
         state = state.copy(
             seloEscondido = true,
             seloFlutuante = false,
+            atalhosAbertos = false,
             compactaTemporaria = false,
-            historicoVisivel = false,
-            configuracoesVisivel = false,
-            dashboardVisivel = false,
+            overlayAtivo = true,
             confirmacaoFecharVisivel = false,
             confirmacaoLimparHistoricoVisivel = false,
-            overlayAtivo = true,
-            interfaceOculta = true,
-            corrida = state.corrida.copy(modo = ModoApresentacao.COMPACTA),
         )
         publicarOverlay()
+        avaliarEncerramentoTotal()
     }
 
     fun abrirAtalhoConfig(indice: Int) {
@@ -1147,6 +1204,7 @@ class AppViewModel(
             dashboardVisivel = false,
             configuracoesVisivel = true,
             abaConfiguracao = indice.coerceIn(0, 3),
+            atalhosAbertos = false,
             corrida = state.corrida.copy(modo = ModoApresentacao.DETALHES),
         )
         publicarOverlay()
@@ -1241,6 +1299,20 @@ class AppViewModel(
 
     fun solicitarFecharApp() {
         estadoAntesFechar = state
+        if (menuNaFrente || !state.interfaceOculta) {
+            state = state.copy(
+                confirmacaoFecharVisivel = true,
+                confirmacaoLimparHistoricoVisivel = false,
+                interfaceOculta = false,
+                configuracoesVisivel = true,
+                historicoVisivel = false,
+                dashboardVisivel = false,
+                abaConfiguracao = -1,
+                atalhosAbertos = false,
+            )
+            publicarOverlay()
+            return
+        }
         state = state.copy(
             confirmacaoFecharVisivel = true,
             confirmacaoLimparHistoricoVisivel = false,
@@ -1253,9 +1325,7 @@ class AppViewModel(
             ),
         )
         publicarOverlay()
-        if (state.interfaceOculta) {
-            _irParaSegundoPlano.tryEmit(Unit)
-        }
+        _irParaSegundoPlano.tryEmit(Unit)
     }
 
     fun cancelarFecharApp() {
@@ -1275,6 +1345,7 @@ class AppViewModel(
     }
 
     fun confirmarFecharApp() {
+        SessaoMonitoramento.definir(false)
         cancelarCompactaTemporaria()
         estadoAntesFechar = null
         state =
@@ -1525,14 +1596,14 @@ class AppViewModel(
         _irParaSegundoPlano.tryEmit(Unit)
     }
 
-    private fun irParaSelo() {
+    private fun irParaSelo(enviarParaFundo: Boolean = true) {
         cancelarCompactaTemporaria()
         state = state.copy(
             monitorando = true,
             overlayAtivo = true,
-            interfaceOculta = true,
             seloFlutuante = true,
             seloEscondido = false,
+            atalhosAbertos = false,
             compactaTemporaria = false,
             historicoVisivel = false,
             configuracoesVisivel = false,
@@ -1540,13 +1611,50 @@ class AppViewModel(
             recentesConfig = false,
             confirmacaoFecharVisivel = false,
             confirmacaoDesativarVisivel = false,
+            interfaceOculta = true,
             corrida = state.corrida.copy(
                 modo = ModoApresentacao.COMPACTA,
                 acaoDetalhes = "ⓘ",
             ),
         )
         publicarOverlay()
-        _irParaSegundoPlano.tryEmit(Unit)
+        if (enviarParaFundo) {
+            _irParaSegundoPlano.tryEmit(Unit)
+        }
+    }
+
+    /** Toque no selo abre ou fecha os atalhos. O menu do app só abre pelo ícone. */
+    fun alternarAtalhosPeloSelo() {
+        if (!state.monitorando || state.seloEscondido) {
+            return
+        }
+        state = state.copy(atalhosAbertos = !state.atalhosAbertos)
+        publicarOverlay()
+    }
+
+    fun menuEntrouNaFrente() {
+        menuNaFrente = true
+        menuEncerrado = false
+        if (state.atalhosAbertos) {
+            state = state.copy(atalhosAbertos = false)
+        }
+        publicarOverlay()
+    }
+
+    fun menuSaiuDaFrente() {
+        menuNaFrente = false
+        menuEncerrado = true
+        if (state.monitorando && state.notificacaoFechada && state.seloEscondido) {
+            desativarMonitoramento()
+            return
+        }
+        publicarOverlay()
+    }
+
+    private fun avaliarEncerramentoTotal() {
+        if (state.monitorando && state.notificacaoFechada && state.seloEscondido && menuEncerrado) {
+            desativarMonitoramento()
+        }
     }
 
     private fun cancelarCompactaTemporaria() {
@@ -1556,13 +1664,16 @@ class AppViewModel(
 
     private fun publicarOverlay() {
         val emOverlay = state.monitorando && state.overlayAtivo && state.interfaceOculta
+        val baseFlutuante = state.monitorando && state.overlayAtivo && !state.seloEscondido
         val compactaVisivel = emOverlay &&
             !state.seloEscondido &&
             state.corrida.modo != ModoApresentacao.DETALHES &&
             (state.ofertaAtiva || state.compactaTemporaria)
         val confirmandoFechar = state.confirmacaoFecharVisivel
         val confirmandoLimpar = state.confirmacaoLimparHistoricoVisivel
-        val expandidaVisivel = emOverlay &&
+        val painelAtalhos = baseFlutuante && state.atalhosAbertos && !compactaVisivel && !menuNaFrente
+        val expandidaLegado = emOverlay &&
+            !menuNaFrente &&
             !state.seloEscondido &&
             !compactaVisivel &&
             (
@@ -1575,16 +1686,8 @@ class AppViewModel(
                             !confirmandoLimpar
                         )
                 )
-        // Selo fica visível junto do menu atalho (toque abre/fecha). Some em oferta,
-        // histórico, config, dashboard e confirmação.
-        val seloVisivel = emOverlay &&
-            !state.seloEscondido &&
-            !compactaVisivel &&
-            !state.historicoVisivel &&
-            !state.configuracoesVisivel &&
-            !state.dashboardVisivel &&
-            !confirmandoFechar &&
-            !confirmandoLimpar
+        val expandidaVisivel = painelAtalhos || expandidaLegado
+        val seloVisivel = baseFlutuante && !compactaVisivel && !menuNaFrente
         val analise = analiseExibida()
         val campos = state.corrida.camposCompactos.associate { it.id to it.valor }
         val detalhes = state.corrida.camposDetalhes.associate { it.id to it.valor }
@@ -1651,9 +1754,9 @@ class AppViewModel(
                 historicoVisivel = false,
                 configuracoesVisivel = false,
                 dashboardVisivel = false,
-                // Fechar continua no menu atalho; limpar histórico fica sobre a aba Histórico.
-                confirmacaoFecharVisivel = emOverlay && !state.seloEscondido && state.confirmacaoFecharVisivel,
-                confirmacaoMonitorVisivel = emOverlay && !state.seloEscondido && state.confirmacaoDesativarVisivel,
+                // Fechar nos atalhos abre o app. Esta confirmação só flutua com o menu fora da frente.
+                confirmacaoFecharVisivel = emOverlay && !menuNaFrente && !state.seloEscondido && state.confirmacaoFecharVisivel,
+                confirmacaoMonitorVisivel = emOverlay && !menuNaFrente && !state.seloEscondido && state.confirmacaoDesativarVisivel,
                 confirmacaoLimparHistoricoVisivel = emOverlay && !state.seloEscondido &&
                     state.confirmacaoLimparHistoricoVisivel &&
                     state.historicoVisivel,

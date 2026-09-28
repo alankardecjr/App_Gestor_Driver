@@ -859,7 +859,7 @@ object OverlayPaineis {
         coluna.addView(
             TextView(context).apply {
                 tag = "confirmacao_titulo"
-                text = "gestor driver"
+                text = "Gestor Driver"
                 setTextColor(OverlayTema.de(context).texto)
                 textSize = 15f
                 typeface = Typeface.DEFAULT_BOLD
@@ -909,7 +909,7 @@ object OverlayPaineis {
     }
 
     fun atualizarConfirmacao(view: View, limparHistorico: Boolean, quantidade: Int = 0) {
-        view.findViewWithTag<TextView>("confirmacao_titulo")?.text = "gestor driver"
+        view.findViewWithTag<TextView>("confirmacao_titulo")?.text = "Gestor Driver"
         view.findViewWithTag<TextView>("confirmacao_mensagem")?.text =
             if (limparHistorico) {
                 "Limpar histórico"
@@ -1095,7 +1095,7 @@ object OverlayPaineis {
         )
         rodape.addView(
             TextView(ctx).apply {
-                text = "SALVAR"
+                text = "Salvar"
                 setTextColor(Color.parseColor(VERDE))
                 textSize = 14f
                 typeface = Typeface.DEFAULT_BOLD
@@ -1850,7 +1850,7 @@ object OverlayPaineis {
                     PermissoesMonitoramento.listenerNotificacoesAtivo(context),
                     dica = "Lê as ofertas da Uber e da 99",
                 ) {
-                    context.startActivity(PermissoesMonitoramento.intentNotificacoes().addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+                    PermissoesMonitoramento.abrirNotificacoes(context)
                 },
                 ItemPermissao(
                     "2  Sobrepor",

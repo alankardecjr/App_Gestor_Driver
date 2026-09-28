@@ -7,7 +7,9 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.detectDragGestures
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.foundation.gestures.drag
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
@@ -16,6 +18,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -84,6 +87,10 @@ import br.com.gestordriver.permission.PermissoesMonitoramento
 import br.com.gestordriver.ui.theme.LocalPaletaApp
 import kotlin.math.abs
 import kotlin.math.round
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
+import kotlinx.coroutines.launch
 
 private val TextoAmareloConfig = Color(0xFFFFD54F)
 private val DestaqueSelecionado = Color(0xFF7CB342)
@@ -114,6 +121,7 @@ fun ConfiguracoesScreen(
     confirmacaoMonitorVisivel: Boolean = false,
     onCancelarMonitor: () -> Unit = {},
     onConfirmarMonitor: () -> Unit = {},
+    onLiberarChave: (String) -> Boolean = { false },
 ) {
     val configuracao = viewModel.configuracao
     var aba by remember { mutableIntStateOf(if (abaInicial < 0) 0 else abaInicial + 1) }
@@ -123,6 +131,8 @@ fun ConfiguracoesScreen(
     var dialogoGoogle by remember { mutableStateOf(false) }
     var dialogoEmail by remember { mutableStateOf(false) }
     var dialogoAbastecimento by remember { mutableStateOf(false) }
+    var perguntarSalvar by remember { mutableStateOf(false) }
+    var voltarDepois by remember { mutableStateOf(false) }
     LaunchedEffect(abaInicial) {
         aba = if (abaInicial < 0) 0 else abaInicial + 1
     }
@@ -140,10 +150,14 @@ fun ConfiguracoesScreen(
     fun avisar(texto: String) {
         android.widget.Toast.makeText(contexto, texto, android.widget.Toast.LENGTH_SHORT).show()
     }
-    fun salvarEdicao(aplicarAbastecimento: Boolean) {
-        viewModel.salvar(aplicarAbastecimento = aplicarAbastecimento)
+    fun salvarEdicao(aplicarAbastecimento: Boolean, limparCalculadora: Boolean = false) {
+        viewModel.salvar(aplicarAbastecimento = aplicarAbastecimento, limparCalculadora = limparCalculadora)
         sairDoCampo()
         avisar("Alteração salva.")
+        if (voltarDepois) {
+            voltarDepois = false
+            onVoltar()
+        }
     }
 
     Box(
@@ -164,8 +178,8 @@ fun ConfiguracoesScreen(
             CabecalhoTela(
                 titulo = titulosPagina.getOrElse(aba) { "Menu" },
                 mostrarVoltar = aba != 0,
-                inicio = if (aba == 0 && monitorando) {
-                    { BotaoSelo(onClick = onVoltar) }
+                inicio = if (aba == 0) {
+                    { BotaoSelo(onClick = {}, clicavel = false) }
                 } else {
                     null
                 },
@@ -177,7 +191,7 @@ fun ConfiguracoesScreen(
                                 onClick = {
                                     android.widget.Toast.makeText(
                                         contexto,
-                                        "Arraste as marcas para calibrar. Até a primeira é ruim, abaixo da média, vermelho. Da primeira mais 0,01 até a segunda é boa, na média, amarelo. Da segunda mais 0,01 é ótima, acima da média, verde. R$/km e R$/hora vão de 0 a 99 e a borda da oferta fica com a pior cor. A nota vai de 0 a 5 e pinta só a nota. Salvar grava e permanece nesta tela.",
+                                        "Arraste as marcas para calibrar. Toque numa marca para destacá-la e use − e + para o ajuste fino. Segure o botão para a marca continuar. A barra mostra ruim, boa e ótima do mesmo tamanho. Até a primeira é ruim, vermelho. Da primeira mais 0,01 até a segunda é boa, amarelo. Da segunda mais 0,01 é ótima, verde. R$/km vai de 0 a 4. R$/hora vai de 0 a 99. A borda da oferta fica com a pior cor. A nota vai de 3,00 a 5,00 e pinta só a nota. Salvar grava e permanece nesta tela.",
                                         android.widget.Toast.LENGTH_LONG,
                                     ).show()
                                 },
@@ -207,16 +221,23 @@ fun ConfiguracoesScreen(
                     }
                     3 -> {
                         {
-                            BotaoCircular(
-                                simbolo = "?",
-                                onClick = {
-                                    android.widget.Toast.makeText(
-                                        contexto,
-                                        "Seu veículo: carro ou moto, marca, modelo, versão, ano e o final da placa. O final define o mês do IPVA. Abastecimento calcula o preço e o consumo do combustível marcado em Despesas. Salvar grava e permanece nesta tela.",
-                                        android.widget.Toast.LENGTH_LONG,
-                                    ).show()
-                                },
-                            )
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                BotaoCircular(
+                                    simbolo = "🔢",
+                                    onClick = { abrirCalculadora(contexto) },
+                                )
+                                Spacer(modifier = Modifier.size(8.dp))
+                                BotaoCircular(
+                                    simbolo = "?",
+                                    onClick = {
+                                        android.widget.Toast.makeText(
+                                            contexto,
+                                            "Seu veículo: carro ou moto, marca, modelo, versão, ano e o final da placa. O final define o mês do IPVA. Abastecimento calcula o preço e o consumo do combustível marcado em Despesas. A calculadora abre a do celular. Salvar grava e permanece nesta tela.",
+                                            android.widget.Toast.LENGTH_LONG,
+                                        ).show()
+                                    },
+                                )
+                            }
                         }
                     }
                     4 -> {
@@ -226,7 +247,7 @@ fun ConfiguracoesScreen(
                                 onClick = {
                                     android.widget.Toast.makeText(
                                         contexto,
-                                        "Permissões: toque para abrir o ajuste do celular. Apps de corrida mostra o que está instalado. Tema, mapa e conta valem depois de salvar. Salvar grava e permanece nesta tela. Sobre envia o log.",
+                                        "Permissões: toque para abrir o ajuste do celular. Apps de corrida mostra o que está instalado. Tema, mapa e conta entram ao voltar. A chave Pro libera esta instalação. Sem chave, o app fica Free. O voltar grava e retorna para Opções. Sobre envia o log.",
                                         android.widget.Toast.LENGTH_LONG,
                                     ).show()
                                 },
@@ -238,20 +259,22 @@ fun ConfiguracoesScreen(
                 onVoltar = {
                     sairDoCampo()
                     when (aba) {
-                        1 -> {
+                        4 -> {
                             if (viewModel.temAlteracao()) {
                                 viewModel.salvar(aplicarAbastecimento = false)
                                 avisar("Alteração salva.")
                             }
+                            onVoltar()
                         }
-                        2, 3, 4 -> {
+                        1, 2, 3 -> {
                             if (viewModel.temAlteracao()) {
-                                viewModel.cancelar()
-                                avisar("Alteração não salva.")
+                                perguntarSalvar = true
+                            } else {
+                                onVoltar()
                             }
                         }
+                        else -> onVoltar()
                     }
-                    onVoltar()
                 },
             )
 
@@ -266,10 +289,15 @@ fun ConfiguracoesScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .weight(1f, fill = true)
-                    .barraRolagemAoToque(rolagem)
-                    .verticalScroll(rolagem)
+                    .then(
+                        if (aba == 0) {
+                            Modifier
+                        } else {
+                            Modifier.barraRolagemAoToque(rolagem).verticalScroll(rolagem)
+                        },
+                    )
                     .padding(start = 12.dp, end = 16.dp, top = 10.dp, bottom = 8.dp),
-                verticalArrangement = Arrangement.spacedBy(6.dp),
+                verticalArrangement = Arrangement.spacedBy(if (aba == 0) 4.dp else 6.dp),
             ) {
                 when (aba) {
                     0 -> AbaOpcoes(
@@ -290,13 +318,19 @@ fun ConfiguracoesScreen(
                     else -> AbaApp(
                         viewModel = viewModel,
                         destacarPermissoes = destacarPermissoes,
+                        plano = plano,
                         onGoogle = { dialogoGoogle = true },
                         onEmail = { dialogoEmail = true },
+                        onLiberarChave = { texto ->
+                            val ok = onLiberarChave(texto)
+                            avisar(if (ok) "Versão Pro liberada." else "Chave inválida.")
+                            ok
+                        },
                     )
                 }
             }
 
-            if (aba != 0) {
+            if (aba in 1..3) {
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -313,7 +347,11 @@ fun ConfiguracoesScreen(
                 TextButton(
                     onClick = {
                         sairDoCampo()
-                        viewModel.cancelar()
+                        if (aba == 3) {
+                            viewModel.descartarMantendoCalculadora()
+                        } else {
+                            viewModel.cancelar()
+                        }
                         onVoltar()
                     },
                     modifier = Modifier
@@ -340,7 +378,7 @@ fun ConfiguracoesScreen(
                         .background(DestaqueSelecionado.copy(alpha = 0.2f), RoundedCornerShape(8.dp)),
                 ) {
                     Text(
-                        text = "SALVAR",
+                        text = "Salvar",
                         color = DestaqueSelecionado,
                         fontSize = 14.sp,
                         fontWeight = FontWeight.SemiBold,
@@ -371,75 +409,128 @@ fun ConfiguracoesScreen(
                         color = LocalPaletaApp.current.textoSecundario,
                         fontSize = 13.sp,
                     )
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceEvenly,
-                    ) {
-                        TextButton(onClick = onCancelarMonitor) {
-                            Text("Cancelar", color = LocalPaletaApp.current.textoSecundario)
-                        }
-                        TextButton(onClick = onConfirmarMonitor) {
-                            Text(
-                                if (monitorando) "Desligar" else "Ligar",
-                                color = Color(0xFF2E7D32),
-                                fontWeight = FontWeight.SemiBold,
-                            )
-                        }
-                    }
+                    BotoesMensagem(
+                        textoEsquerda = "Cancelar",
+                        onEsquerda = onCancelarMonitor,
+                        textoDireita = if (monitorando) "Desligar" else "Ligar",
+                        onDireita = onConfirmarMonitor,
+                        direitaPerigo = monitorando,
+                    )
                 }
             }
         }
         if (dialogoGoogle) {
-            DialogoContaGoogle(
-                emailAtual = if (configuracao.contaTipo == TipoContaVinculada.GOOGLE) {
-                    configuracao.contaEmail
-                } else {
-                    ""
-                },
-                onFechar = { dialogoGoogle = false },
-                onConectar = { email ->
-                    viewModel.conectarContaGoogle(email)
-                    dialogoGoogle = false
-                },
-                modifier = Modifier.align(Alignment.Center),
-            )
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.Black.copy(alpha = 0.45f))
+                    .clickable(enabled = false, onClick = {}),
+                contentAlignment = Alignment.Center,
+            ) {
+                DialogoContaGoogle(
+                    emailAtual = if (configuracao.contaTipo == TipoContaVinculada.GOOGLE) {
+                        configuracao.contaEmail
+                    } else {
+                        ""
+                    },
+                    onFechar = { dialogoGoogle = false },
+                    onConectar = { email ->
+                        viewModel.conectarContaGoogle(email)
+                        dialogoGoogle = false
+                    },
+                    modifier = Modifier.padding(horizontal = 16.dp),
+                )
+            }
         }
         if (dialogoEmail) {
-            DialogoContaEmail(
-                emailAtual = if (configuracao.contaTipo == TipoContaVinculada.EMAIL) {
-                    configuracao.contaEmail
-                } else {
-                    ""
-                },
-                onFechar = { dialogoEmail = false },
-                onConectar = { email ->
-                    if (viewModel.conectarContaEmail(email)) {
-                        dialogoEmail = false
-                    }
-                },
-                modifier = Modifier.align(Alignment.Center),
-            )
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.Black.copy(alpha = 0.45f))
+                    .clickable(enabled = false, onClick = {}),
+                contentAlignment = Alignment.Center,
+            ) {
+                DialogoContaEmail(
+                    emailAtual = if (configuracao.contaTipo == TipoContaVinculada.EMAIL) {
+                        configuracao.contaEmail
+                    } else {
+                        ""
+                    },
+                    onFechar = { dialogoEmail = false },
+                    onConectar = { email ->
+                        if (viewModel.conectarContaEmail(email)) {
+                            dialogoEmail = false
+                        }
+                    },
+                    modifier = Modifier.padding(horizontal = 16.dp),
+                )
+            }
+        }
+        if (perguntarSalvar) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.Black.copy(alpha = 0.45f))
+                    .clickable(enabled = false, onClick = {}),
+                contentAlignment = Alignment.Center,
+            ) {
+                CaixaDialogo(
+                    titulo = "Salvar alterações?",
+                    modifier = Modifier.padding(horizontal = 16.dp),
+                ) {
+                    Text(
+                        text = "Deseja salvar as alterações antes de voltar?",
+                        color = LocalPaletaApp.current.textoSecundario,
+                        fontSize = 13.sp,
+                    )
+                    BotoesMensagem(
+                        textoEsquerda = "Não",
+                        onEsquerda = {
+                            perguntarSalvar = false
+                            viewModel.cancelar()
+                            onVoltar()
+                        },
+                        textoDireita = "Sim",
+                        onDireita = {
+                            perguntarSalvar = false
+                            voltarDepois = true
+                            if (aba == 3 && viewModel.temCalculoAbastecimento()) {
+                                dialogoAbastecimento = true
+                            } else {
+                                salvarEdicao(aplicarAbastecimento = false)
+                            }
+                        },
+                    )
+                }
+            }
         }
         if (dialogoAbastecimento) {
-            CaixaDialogo("Usar abastecimento?", Modifier.align(Alignment.Center)) {
-                Text(
-                    text = "Preencher R$/L e km/L do combustível atual com o cálculo do abastecimento?",
-                    color = LocalPaletaApp.current.textoSecundario,
-                    fontSize = FonteCampo,
-                )
-                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
-                    TextButton(onClick = {
-                        dialogoAbastecimento = false
-                        salvarEdicao(aplicarAbastecimento = false)
-                    }) {
-                        Text("Não", color = LocalPaletaApp.current.textoSecundario)
-                    }
-                    TextButton(onClick = {
-                        dialogoAbastecimento = false
-                        salvarEdicao(aplicarAbastecimento = true)
-                    }) {
-                        Text("Sim", color = DestaqueSelecionado, fontWeight = FontWeight.SemiBold)
-                    }
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.Black.copy(alpha = 0.45f))
+                    .clickable(enabled = false, onClick = {}),
+                contentAlignment = Alignment.Center,
+            ) {
+                CaixaDialogo("Usar abastecimento?", Modifier.padding(horizontal = 16.dp)) {
+                    Text(
+                        text = "Preencher R$/L e km/L do combustível atual com o cálculo do abastecimento?",
+                        color = LocalPaletaApp.current.textoSecundario,
+                        fontSize = 14.sp,
+                        textAlign = TextAlign.Center,
+                    )
+                    BotoesMensagem(
+                        textoEsquerda = "Não",
+                        onEsquerda = {
+                            dialogoAbastecimento = false
+                            salvarEdicao(aplicarAbastecimento = false, limparCalculadora = true)
+                        },
+                        textoDireita = "Sim",
+                        onDireita = {
+                            dialogoAbastecimento = false
+                            salvarEdicao(aplicarAbastecimento = true, limparCalculadora = true)
+                        },
+                    )
                 }
             }
         }
@@ -495,7 +586,7 @@ private fun AbaVeiculo(viewModel: ConfiguracoesViewModel, plano: PlanoAcesso) {
         }
         CartaoDespesa(
             titulo = "Abastecimento",
-            subtitulo = if (travar) "Disponível no Pro" else "Preço e consumo do tanque",
+            subtitulo = if (travar) "Disponível no Pro" else "Calcular preço e consumo",
         ) {
             val energia = configuracao.combustivel == Combustivel.ENERGIA
             LinhaCampos {
@@ -539,23 +630,43 @@ private fun AbaVeiculo(viewModel: ConfiguracoesViewModel, plano: PlanoAcesso) {
 }
 
 private fun abrirCalculadora(contexto: android.content.Context) {
-    val intent = android.content.Intent(android.content.Intent.ACTION_MAIN).apply {
+    val pm = contexto.packageManager
+    val categoria = android.content.Intent(android.content.Intent.ACTION_MAIN).apply {
         addCategory(android.content.Intent.CATEGORY_APP_CALCULATOR)
-        flags = android.content.Intent.FLAG_ACTIVITY_NEW_TASK
+        addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
     }
-    if (contexto.packageManager.resolveActivity(intent, 0) != null) {
-        contexto.startActivity(intent)
-        return
+    val encontrada = pm.queryIntentActivities(categoria, android.content.pm.PackageManager.MATCH_DEFAULT_ONLY)
+        .firstOrNull()
+    if (encontrada != null) {
+        categoria.component = android.content.ComponentName(
+            encontrada.activityInfo.packageName,
+            encontrada.activityInfo.name,
+        )
+        if (runCatching { contexto.startActivity(categoria) }.isSuccess) {
+            return
+        }
     }
     val alternativas = listOf(
-        "com.google.android.calculator",
-        "com.sec.android.app.popupcalculator",
-        "com.android.calculator2",
+        "com.sec.android.app.popupcalculator" to "com.sec.android.app.popupcalculator.Calculator",
+        "com.samsung.android.calculator" to "com.samsung.android.calculator.Calculator",
+        "com.google.android.calculator" to "com.android.calculator2.Calculator",
+        "com.android.calculator2" to "com.android.calculator2.Calculator",
     )
-    for (pacote in alternativas) {
-        val especifico = contexto.packageManager.getLaunchIntentForPackage(pacote) ?: continue
-        contexto.startActivity(especifico.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK))
-        return
+    for ((pacote, classe) in alternativas) {
+        val especifico = android.content.Intent().apply {
+            component = android.content.ComponentName(pacote, classe)
+            addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
+        }
+        if (runCatching { contexto.startActivity(especifico) }.isSuccess) {
+            return
+        }
+        val launcher = pm.getLaunchIntentForPackage(pacote) ?: continue
+        if (runCatching {
+                contexto.startActivity(launcher.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK))
+            }.isSuccess
+        ) {
+            return
+        }
     }
     android.widget.Toast.makeText(
         contexto,
@@ -786,58 +897,76 @@ private fun AbaOpcoes(
     onLocalizacao: () -> Unit,
     onFechar: () -> Unit,
 ) {
-    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+    Column(
+        modifier = Modifier.fillMaxHeight(),
+        verticalArrangement = Arrangement.spacedBy(6.dp),
+    ) {
+        val linha = Modifier.weight(1f)
         LinhaOpcao(
             R.drawable.ic_menu_monitorar,
-            if (monitorando) "Monitorar On" else "Monitorar",
-            if (monitorando) "Ligado. Toque para confirmar." else "Desligado. Toque para ligar.",
+            if (monitorando) "Monitorar (ON)" else "Monitorar (Off)",
+            "Calculadora de ganhos",
             onMonitoramento,
             ligado = monitorando,
+            modifier = linha,
         )
         LinhaOpcao(
             R.drawable.ic_menu_localizacao,
             "Localização",
-            "Mapa na posição atual",
+            "Localização no mapa",
             onLocalizacao,
+            modifier = linha,
         )
         LinhaOpcao(
             R.drawable.ic_menu_historico,
             "Histórico",
             "Ver corridas aceitas",
             onHistorico,
+            modifier = linha,
         )
         LinhaOpcao(
             R.drawable.ic_menu_carteira,
-            "Carteira",
+            "Dashboard",
             "Saldo e movimentações",
             onCarteira,
+            modifier = linha,
         )
         LinhaOpcao(
             R.drawable.ic_menu_despesas,
             "Despesas",
-            "Controle de gastos do app",
+            "Controle de gastos",
             onDespesas,
+            modifier = linha,
         )
         LinhaOpcao(
             R.drawable.ic_menu_semaforo,
             "Semáforo",
-            "Regras de classificação",
+            "Calibrar calculadora",
             onSemaforo,
+            modifier = linha,
         )
         LinhaOpcao(
             R.drawable.ic_menu_usuario,
             "Usuário",
-            "Seu veículo",
+            "Informações do veiculo",
             onUsuario,
+            modifier = linha,
         )
         LinhaOpcao(
             R.drawable.ic_menu_sistema,
             "Sistema",
-            "Ajustes do aplicativo",
+            "Configurar o sistema",
             onConfigurar,
+            modifier = linha,
         )
-        LinhaOpcao(R.drawable.ic_menu_fechar, "Fechar", "Encerrar o aplicativo", onFechar, perigo = true)
-        Spacer(modifier = Modifier.height(64.dp))
+        LinhaOpcao(
+            R.drawable.ic_menu_fechar,
+            "Fechar",
+            "Encerrar aplicativo",
+            onFechar,
+            perigo = true,
+            modifier = linha,
+        )
     }
 }
 
@@ -849,6 +978,7 @@ private fun LinhaOpcao(
     onClick: () -> Unit,
     perigo: Boolean = false,
     ligado: Boolean = false,
+    modifier: Modifier = Modifier,
 ) {
     val paleta = LocalPaletaApp.current
     val verde = Color(0xFF2E7D32)
@@ -866,25 +996,26 @@ private fun LinhaOpcao(
         else -> paleta.textoSecundario
     }
     Row(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
+            .heightIn(min = 52.dp)
             .border(1.dp, borda, RoundedCornerShape(16.dp))
             .background(fundoLinha, RoundedCornerShape(16.dp))
             .clickable(onClick = onClick)
-            .padding(horizontal = 12.dp, vertical = 10.dp),
+            .padding(horizontal = 12.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Box(
             modifier = Modifier
-                .size(40.dp)
-                .background(fundoIcone, RoundedCornerShape(12.dp)),
+                .size(32.dp)
+                .background(fundoIcone, RoundedCornerShape(10.dp)),
             contentAlignment = Alignment.Center,
         ) {
             Icon(
                 painter = painterResource(icone),
                 contentDescription = null,
                 tint = tintaIcone,
-                modifier = Modifier.size(22.dp),
+                modifier = Modifier.size(18.dp),
             )
         }
         Column(
@@ -895,11 +1026,11 @@ private fun LinhaOpcao(
             Text(
                 text = titulo,
                 color = cor,
-                fontSize = if (ligado) 12.sp else 14.sp,
+                fontSize = if (ligado) 12.sp else 13.sp,
                 fontWeight = FontWeight.Bold,
                 maxLines = 1,
             )
-            Text(text = subtitulo, color = paleta.textoSecundario, fontSize = 11.sp, maxLines = 1)
+            Text(text = subtitulo, color = paleta.textoSecundario, fontSize = 10.sp, maxLines = 1)
         }
         Text(text = "›", color = paleta.textoSecundario, fontSize = 18.sp)
     }
@@ -909,29 +1040,33 @@ private fun LinhaOpcao(
 private fun AbaClassificacao(viewModel: ConfiguracoesViewModel) {
     val configuracao = viewModel.configuracao
     val paleta = LocalPaletaApp.current
-    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Text(
-            text = "Calibrar classificações",
-            color = paleta.texto,
-            fontSize = 16.sp,
-            fontWeight = FontWeight.SemiBold,
-        )
-        Text(
-            text = "Arraste as marcações para ajustar",
-            color = paleta.textoSecundario,
-            fontSize = 13.sp,
-        )
-        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            LegendaFaixa(Color(0xFFC62828), "Ruim = abaixo da média")
-            LegendaFaixa(Color(0xFFF9A825), "Boa = na média")
-            LegendaFaixa(Color(0xFF2E7D32), "Ótima = acima da média")
+    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        Column(verticalArrangement = Arrangement.spacedBy(1.dp)) {
+            Text(
+                text = "Calibrar classificações",
+                color = paleta.texto,
+                fontSize = 15.sp,
+                lineHeight = 18.sp,
+                fontWeight = FontWeight.SemiBold,
+            )
+            Text(
+                text = "Arraste as marcações para ajustar",
+                color = paleta.textoSecundario,
+                fontSize = 12.sp,
+                lineHeight = 15.sp,
+            )
+            Column(verticalArrangement = Arrangement.spacedBy(0.dp)) {
+                LegendaFaixa(Color(0xFFC62828), "Ruim = abaixo da média")
+                LegendaFaixa(Color(0xFFF9A825), "Boa = na média")
+                LegendaFaixa(Color(0xFF2E7D32), "Ótima = acima da média")
+            }
         }
         ReguaDuasMarcas(
             titulo = "Ganhos por Km",
-            ajuda = "Até a marca de baixo é ruim, vermelho. Da marca de baixo mais R$ 0,01 até a de cima é boa, amarelo. Da de cima mais R$ 0,01 até 99 é ótima, verde. A barra muda de cor junto com as marcas. Entra na borda da oferta.",
+            ajuda = "A barra divide ruim, boa e ótima em três partes iguais. Até a marca de baixo é ruim. Da marca de baixo mais R$ 0,01 até a de cima é boa. Acima da de cima é ótima. A marca vai de 0 a 4. Toque na marca e use − e +. Segure o botão para a marca continuar. Entra na borda da oferta.",
             ruim = configuracao.limiteRuimMax,
             boa = configuracao.limiteBoaMax,
-            ate = 99f,
+            ate = 4f,
             escalaInicio = "Ruim",
             escalaFim = "Bom",
             rotulo = { "R$ ${FaixasClassificacao.formatar(it)}/km" },
@@ -939,7 +1074,7 @@ private fun AbaClassificacao(viewModel: ConfiguracoesViewModel) {
         )
         ReguaDuasMarcas(
             titulo = "Ganhos por Hora",
-            ajuda = "Até a marca de baixo é ruim, vermelho. Da marca de baixo mais R$ 0,01 até a de cima é boa, amarelo. Da de cima mais R$ 0,01 até 99 é ótima, verde. A barra muda de cor junto com as marcas. Entra na borda da oferta, com a pior cor entre km e hora.",
+            ajuda = "A barra divide ruim, boa e ótima em três partes iguais. Até a marca de baixo é ruim. Da marca de baixo mais R$ 0,01 até a de cima é boa. Acima da de cima é ótima. A marca vai de 0 a 99. Toque na marca e use − e +. Segure o botão para a marca continuar. Entra na borda da oferta, com a pior cor entre km e hora.",
             ruim = configuracao.marcaHoraRuim,
             boa = configuracao.marcaHoraBoa,
             ate = 99f,
@@ -950,9 +1085,10 @@ private fun AbaClassificacao(viewModel: ConfiguracoesViewModel) {
         )
         ReguaDuasMarcas(
             titulo = "Nota do passageiro",
-            ajuda = "Até a marca de baixo é ruim, vermelho. Da marca de baixo mais 0,01 até a de cima é boa, amarelo. Da de cima mais 0,01 até 5 é ótima, verde. A barra muda de cor junto com as marcas. Pinta só a nota.",
+            ajuda = "A barra divide ruim, boa e ótima em três partes iguais. Até a marca de baixo é ruim. Da marca de baixo mais 0,01 até a de cima é boa. Acima da de cima é ótima. A marca vai de 3,00 a 5,00. Toque na marca e use − e +. Segure o botão para a marca continuar. Pinta só a nota.",
             ruim = configuracao.marcaNotaRuim,
             boa = configuracao.marcaNotaBoa,
+            desde = 3f,
             ate = 5f,
             escalaInicio = "Ruim",
             escalaFim = "Bom",
@@ -967,14 +1103,15 @@ private fun LegendaFaixa(cor: Color, texto: String) {
     Row(verticalAlignment = Alignment.CenterVertically) {
         Box(
             modifier = Modifier
-                .size(10.dp)
+                .size(8.dp)
                 .background(cor, CircleShape),
         )
         Text(
             text = texto,
             color = LocalPaletaApp.current.texto,
-            fontSize = 13.sp,
-            modifier = Modifier.padding(start = 8.dp),
+            fontSize = 12.sp,
+            lineHeight = 15.sp,
+            modifier = Modifier.padding(start = 6.dp),
         )
     }
 }
@@ -988,6 +1125,7 @@ private fun ReguaDuasMarcas(
     ate: Float,
     rotulo: (Double) -> String,
     onMarcas: (Double, Double) -> Unit,
+    desde: Float = 0f,
     escalaInicio: String = "Ruim",
     escalaFim: String = "Bom",
     passo: Float = 0.01f,
@@ -998,9 +1136,11 @@ private fun ReguaDuasMarcas(
     val vermelho = Color(0xFFC62828)
     val amarelo = Color(0xFFF9A825)
     val verde = Color(0xFF2E7D32)
-    val ruimAtual by rememberUpdatedState(ruim.toFloat().coerceIn(0f, ate))
-    val boaAtual by rememberUpdatedState(boa.toFloat().coerceIn(0f, ate))
+    val ruimAtual by rememberUpdatedState(ruim.toFloat().coerceIn(desde, ate))
+    val boaAtual by rememberUpdatedState(boa.toFloat().coerceIn(desde, ate))
     val aoMudar by rememberUpdatedState(onMarcas)
+    var marcaAtiva by remember { mutableIntStateOf(1) }
+    val marcaAtivaAtual by rememberUpdatedState(marcaAtiva)
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -1033,16 +1173,47 @@ private fun ReguaDuasMarcas(
                 .fillMaxWidth()
                 .padding(top = 6.dp),
         ) {
-            val margem = 44.dp
+            val margem = 36.dp
+            val botao = 28.dp
             val raio = 9.dp
-            val meio = maxWidth - margem * 2
+            val faixa = (ate - desde).coerceAtLeast(passo)
+            val meio = maxWidth - margem * 2 - botao * 2
             val util = (meio - raio * 2).coerceAtLeast(1.dp)
-            val fracRuim = (if (ate <= 0f) 0f else ruimAtual / ate).coerceIn(0f, 1f)
-            val fracBoa = (if (ate <= 0f) 0f else boaAtual / ate).coerceIn(fracRuim, 1f)
-            fun centro(fracao: Float): Dp = margem + raio + util * fracao
+            // Ruim, boa e ótima ocupam um terço cada. O número da marca
+            // muda com −/+, arraste ou toque; a largura da cor não muda.
+            val fracRuim = 1f / 3f
+            val fracBoa = 2f / 3f
+            val posRuim = util * fracRuim
+            val posBoa = util * fracBoa
+            fun centroDe(posicao: Dp): Dp = margem + botao + raio + posicao
+            fun centavos(valor: Double): Double = round(valor * 100.0) / 100.0
+            fun moverMarca(ruimCursor: Double, boaCursor: Double, repeticoes: Int, sinal: Double): Pair<Double, Double> {
+                val base = passo.toDouble().coerceAtLeast(0.01)
+                val amplo = ate - desde > 10f
+                val mult = when {
+                    repeticoes < 12 -> 1.0
+                    repeticoes < 28 -> 5.0
+                    amplo && repeticoes >= 40 -> 50.0
+                    amplo -> 10.0
+                    else -> 5.0
+                }
+                val delta = sinal * base * mult
+                val folga = base
+                val novo = if (marcaAtivaAtual == 0) {
+                    val limite = (boaCursor - folga).coerceAtLeast(desde.toDouble())
+                    centavos((ruimCursor + delta).coerceIn(desde.toDouble(), limite)) to boaCursor
+                } else {
+                    val limite = (ruimCursor + folga).coerceAtMost(ate.toDouble())
+                    ruimCursor to centavos((boaCursor + delta).coerceIn(limite, ate.toDouble()))
+                }
+                if (abs(novo.first - ruimCursor) > 0.0001 || abs(novo.second - boaCursor) > 0.0001) {
+                    aoMudar(novo.first, novo.second)
+                }
+                return novo
+            }
             Column {
                 Box(modifier = Modifier.fillMaxWidth().height(30.dp)) {
-                    MarcaAlinhada(centro(fracBoa)) {
+                    MarcaAlinhada(centroDe(posBoa)) {
                         BolhaMarca(rotulo(boaAtual.toDouble()), verde)
                     }
                 }
@@ -1053,40 +1224,48 @@ private fun ReguaDuasMarcas(
                         fontSize = 12.sp,
                         modifier = Modifier.width(margem),
                     )
+                    BotaoAjusteContinuo(
+                        simbolo = "−",
+                        tamanho = botao,
+                        fundo = paleta.pocoIcone,
+                        texto = paleta.texto,
+                        aoIniciar = { ruimAtual.toDouble() to boaAtual.toDouble() },
+                        aoTick = { ruimCursor, boaCursor, repeticoes ->
+                            moverMarca(ruimCursor, boaCursor, repeticoes, -1.0)
+                        },
+                    )
                     Box(
                         modifier = Modifier
                             .weight(1f)
-                            .height(28.dp)
-                            .pointerInput(ate) {
-                                var noInicio = true
-                                fun valorEm(x: Float): Float {
-                                    val raioPx = raio.toPx()
-                                    val utilPx = (size.width - raioPx * 2f).coerceAtLeast(1f)
-                                    val fracao = ((x - raioPx) / utilPx).coerceIn(0f, 1f)
-                                    return (round(fracao * ate * 100f) / 100f).coerceIn(0f, ate)
-                                }
+                            .height(36.dp)
+                            .pointerInput(ate, desde) {
                                 fun aplicar(inicio: Boolean, valor: Float) {
                                     val piso = ruimAtual
                                     val teto = boaAtual
                                     val folga = passo.coerceAtLeast(0.01f)
                                     if (inicio) {
-                                        val limite = (teto - folga).coerceAtLeast(0f)
-                                        aoMudar(valor.coerceIn(0f, limite).toDouble(), teto.toDouble())
+                                        val limite = (teto - folga).coerceAtLeast(desde)
+                                        aoMudar(valor.coerceIn(desde, limite).toDouble(), teto.toDouble())
                                     } else {
                                         val limite = (piso + folga).coerceAtMost(ate)
                                         aoMudar(piso.toDouble(), valor.coerceIn(limite, ate).toDouble())
                                     }
                                 }
-                                detectDragGestures(
-                                    onDragStart = { posicao ->
-                                        val valor = valorEm(posicao.x)
-                                        noInicio = abs(valor - ruimAtual) <= abs(valor - boaAtual)
-                                        aplicar(noInicio, valor)
-                                    },
-                                    onDrag = { change, _ ->
-                                        aplicar(noInicio, valorEm(change.position.x))
-                                    },
-                                )
+                                awaitEachGesture {
+                                    val down = awaitFirstDown()
+                                    val raioPx = raio.toPx()
+                                    val utilPx = (size.width - raioPx * 2f).coerceAtLeast(1f)
+                                    val fracao = ((down.position.x - raioPx) / utilPx).coerceIn(0f, 1f)
+                                    val inicio = abs(fracao - (1f / 3f)) <= abs(fracao - (2f / 3f))
+                                    marcaAtiva = if (inicio) 0 else 1
+                                    val base = if (inicio) ruimAtual else boaAtual
+                                    val x0 = down.position.x
+                                    drag(down.id) { change ->
+                                        val delta = (change.position.x - x0) / utilPx
+                                        val novo = round((base + delta * faixa) * 100f) / 100f
+                                        aplicar(inicio, novo)
+                                    }
+                                }
                             },
                     ) {
                         Canvas(
@@ -1130,9 +1309,24 @@ private fun ReguaDuasMarcas(
                             }
                             drawContext.canvas.restore()
                         }
-                        PoloMarca(util * fracRuim, paleta.borda)
-                        PoloMarca(util * fracBoa, paleta.borda)
+                        if (marcaAtiva == 0) {
+                            PoloMarca(posBoa, paleta.borda, false)
+                            PoloMarca(posRuim, vermelho, true)
+                        } else {
+                            PoloMarca(posRuim, paleta.borda, false)
+                            PoloMarca(posBoa, verde, true)
+                        }
                     }
+                    BotaoAjusteContinuo(
+                        simbolo = "+",
+                        tamanho = botao,
+                        fundo = paleta.pocoIcone,
+                        texto = paleta.texto,
+                        aoIniciar = { ruimAtual.toDouble() to boaAtual.toDouble() },
+                        aoTick = { ruimCursor, boaCursor, repeticoes ->
+                            moverMarca(ruimCursor, boaCursor, repeticoes, 1.0)
+                        },
+                    )
                     Text(
                         text = escalaFim,
                         color = paleta.textoSecundario,
@@ -1142,7 +1336,7 @@ private fun ReguaDuasMarcas(
                     )
                 }
                 Box(modifier = Modifier.fillMaxWidth().height(30.dp)) {
-                    MarcaAlinhada(centro(fracRuim)) {
+                    MarcaAlinhada(centroDe(posRuim)) {
                         BolhaMarca(rotulo(ruimAtual.toDouble()), vermelho)
                     }
                 }
@@ -1152,17 +1346,82 @@ private fun ReguaDuasMarcas(
 }
 
 @Composable
-private fun BoxScope.PoloMarca(deslocamento: Dp, borda: Color) {
+private fun BotaoAjusteContinuo(
+    simbolo: String,
+    tamanho: Dp,
+    fundo: Color,
+    texto: Color,
+    aoIniciar: () -> Pair<Double, Double>,
+    aoTick: (Double, Double, Int) -> Pair<Double, Double>,
+) {
+    val iniciar by rememberUpdatedState(aoIniciar)
+    val tick by rememberUpdatedState(aoTick)
+    Box(
+        modifier = Modifier
+            .size(tamanho)
+            .background(fundo, CircleShape)
+            .pointerInput(Unit) {
+                coroutineScope {
+                    val escopo = this
+                    awaitEachGesture {
+                        val down = awaitFirstDown()
+                        down.consume()
+                        var cursor = iniciar()
+                        val job = escopo.launch {
+                            var repeticoes = 0
+                            while (isActive) {
+                                val novo = tick(cursor.first, cursor.second, repeticoes)
+                                val mudou = abs(novo.first - cursor.first) > 0.0001 ||
+                                    abs(novo.second - cursor.second) > 0.0001
+                                cursor = novo
+                                if (!mudou) {
+                                    break
+                                }
+                                repeticoes++
+                                delay(
+                                    when {
+                                        repeticoes == 1 -> 420L
+                                        repeticoes < 10 -> 85L
+                                        repeticoes < 24 -> 50L
+                                        else -> 32L
+                                    },
+                                )
+                            }
+                        }
+                        try {
+                            while (true) {
+                                val event = awaitPointerEvent()
+                                val change = event.changes.firstOrNull { it.id == down.id } ?: break
+                                if (!change.pressed) {
+                                    change.consume()
+                                    break
+                                }
+                                change.consume()
+                            }
+                        } finally {
+                            job.cancel()
+                        }
+                    }
+                }
+            },
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(text = simbolo, color = texto, fontSize = 18.sp, fontWeight = FontWeight.Bold)
+    }
+}
+
+@Composable
+private fun BoxScope.PoloMarca(deslocamento: Dp, borda: Color, destaque: Boolean) {
     Box(
         modifier = Modifier
             .align(Alignment.CenterStart)
-            .offset(x = deslocamento)
-            .size(18.dp)
-            .border(1.dp, borda, CircleShape)
+            .offset(x = deslocamento - 5.dp)
+            .size(28.dp)
+            .border(if (destaque) 3.dp else 1.dp, borda, CircleShape)
             .background(Color.White, CircleShape),
         contentAlignment = Alignment.Center,
     ) {
-        Text(text = "↔", color = Color(0xFF607D8B), fontSize = 11.sp)
+        Text(text = "↔", color = Color(0xFF607D8B), fontSize = 12.sp)
     }
 }
 
@@ -1197,8 +1456,10 @@ private fun MarcaAlinhada(centro: Dp, conteudo: @Composable () -> Unit) {
 private fun AbaApp(
     viewModel: ConfiguracoesViewModel,
     destacarPermissoes: Boolean,
+    plano: PlanoAcesso,
     onGoogle: () -> Unit,
     onEmail: () -> Unit,
+    onLiberarChave: (String) -> Boolean,
 ) {
     val contexto = LocalContext.current
     val configuracao = viewModel.configuracao
@@ -1218,7 +1479,7 @@ private fun AbaApp(
                 dica = "Lê as ofertas da Uber e da 99",
                 ok = listenerOk,
                 destacar = destacarPermissoes && !listenerOk,
-                onClick = { contexto.startActivity(PermissoesMonitoramento.intentNotificacoes()) },
+                onClick = { PermissoesMonitoramento.abrirNotificacoes(contexto) },
             )
             StatusToque(
                 titulo = "Sobrepor",
@@ -1229,12 +1490,15 @@ private fun AbaApp(
             )
             StatusToque(
                 titulo = "Acessibilidade",
-                dica = "Configurações restritas, serviços instalados",
+                dica = "Liga só com o Monitorar. Desligada, o banco abre",
                 ok = leituraOk,
                 destacar = destacarPermissoes && !leituraOk,
                 onClick = {
+                    if (!br.com.gestordriver.notification.SessaoMonitoramento.ligada(contexto)) {
+                        return@StatusToque
+                    }
                     br.com.gestordriver.overlay.OverlayBridge.segurarAcessibilidade()
-                    contexto.startActivity(PermissoesMonitoramento.intentAcessibilidade())
+                    PermissoesMonitoramento.abrirAcessibilidade(contexto)
                 },
             )
             StatusToque(
@@ -1316,6 +1580,29 @@ private fun AbaApp(
             }
         }
         CartaoDespesa(
+            titulo = "Versão Pro",
+            subtitulo = if (plano.ehPro) "Liberada neste celular" else "Digite a chave de liberação",
+        ) {
+            if (plano.ehPro) {
+                Text(
+                    text = "Pro ativo",
+                    color = paleta.texto,
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.SemiBold,
+                )
+            } else {
+                var chave by remember { mutableStateOf("") }
+                CampoCaixa("Chave", chave, { chave = it }, Modifier.fillMaxWidth())
+                Text(
+                    text = "Liberar",
+                    color = DestaqueSelecionado,
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    modifier = Modifier.clickable { onLiberarChave(chave) },
+                )
+            }
+        }
+        CartaoDespesa(
             titulo = "Conta",
             subtitulo = "Identifica o motorista",
         ) {
@@ -1377,16 +1664,12 @@ private fun DialogoContaGoogle(
             color = LocalPaletaApp.current.textoSecundario,
             fontSize = FonteCampo,
         )
-        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
-            TextButton(onClick = onFechar) {
-                Text("Cancelar", color = LocalPaletaApp.current.textoSecundario)
-            }
-            TextButton(
-                onClick = { seletor.launch(ContaVinculo.intentEscolherContaGoogle()) },
-            ) {
-                Text("Conectar", color = TextoAmareloConfig, fontWeight = FontWeight.SemiBold)
-            }
-        }
+        BotoesMensagem(
+            textoEsquerda = "Cancelar",
+            onEsquerda = onFechar,
+            textoDireita = "Conectar",
+            onDireita = { seletor.launch(ContaVinculo.intentEscolherContaGoogle()) },
+        )
     }
 }
 
@@ -1407,22 +1690,18 @@ private fun DialogoContaEmail(
         if (erro) {
             Text("Informe um e-mail válido.", color = TextoAmareloConfig, fontSize = 11.sp)
         }
-        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
-            TextButton(onClick = onFechar) {
-                Text("Cancelar", color = LocalPaletaApp.current.textoSecundario)
-            }
-            TextButton(
-                onClick = {
-                    if (ContaVinculo.emailValido(email)) {
-                        onConectar(email)
-                    } else {
-                        erro = true
-                    }
-                },
-            ) {
-                Text("Conectar", color = TextoAmareloConfig, fontWeight = FontWeight.SemiBold)
-            }
-        }
+        BotoesMensagem(
+            textoEsquerda = "Cancelar",
+            onEsquerda = onFechar,
+            textoDireita = "Conectar",
+            onDireita = {
+                if (ContaVinculo.emailValido(email)) {
+                    onConectar(email)
+                } else {
+                    erro = true
+                }
+            },
+        )
     }
 }
 
@@ -1445,7 +1724,13 @@ private fun CaixaDialogo(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
-            Text(titulo, color = LocalPaletaApp.current.texto, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+            Text(
+                titulo,
+                color = LocalPaletaApp.current.texto,
+                fontSize = 16.sp,
+                fontWeight = FontWeight.SemiBold,
+                textAlign = TextAlign.Center,
+            )
             conteudo()
         }
     }

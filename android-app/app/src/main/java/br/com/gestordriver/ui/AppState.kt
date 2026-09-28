@@ -114,6 +114,9 @@ data class AppState(
 
     val seloEscondido: Boolean = false,
 
+    /** Toque no selo abre a tela de atalhos sobre o app. Não abre o menu. */
+    val atalhosAbertos: Boolean = false,
+
     /** Usuário fechou o aviso na barra. O monitoramento continua. */
     val notificacaoFechada: Boolean = false,
 

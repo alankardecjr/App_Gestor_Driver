@@ -51,7 +51,7 @@ fun CabecalhoTela(
         if (inicio != null) {
             inicio()
         } else if (mostrarVoltar) {
-            BotaoCircular(simbolo = simboloVoltar, onClick = onVoltar)
+            BotaoCircular(simbolo = simboloVoltar, onClick = onVoltar, contraste = true)
         }
         if (!icone.isNullOrBlank()) {
             Box(
@@ -90,7 +90,7 @@ fun CabecalhoTela(
 }
 
 @Composable
-fun BotaoSelo(onClick: () -> Unit) {
+fun BotaoSelo(onClick: () -> Unit, clicavel: Boolean = true) {
     val contexto = LocalContext.current
     val imagem = remember(contexto) {
         val drawable = ContextCompat.getDrawable(contexto, R.mipmap.ic_launcher_round) ?: return@remember null
@@ -103,11 +103,11 @@ fun BotaoSelo(onClick: () -> Unit) {
     if (imagem != null) {
         Image(
             bitmap = imagem,
-            contentDescription = "Selo",
+            contentDescription = "Gestor Driver",
             modifier = Modifier
                 .size(36.dp)
                 .clip(CircleShape)
-                .clickable(onClick = onClick),
+                .then(if (clicavel) Modifier.clickable(onClick = onClick) else Modifier),
         )
     }
 }
@@ -117,10 +117,18 @@ fun BotaoCircular(
     simbolo: String,
     onClick: () -> Unit,
     perigo: Boolean = false,
+    contraste: Boolean = false,
 ) {
     val paleta = LocalPaletaApp.current
+    val escuro = paleta.fundo.red < 0.2f
     val cor = if (perigo) Color(0xFFC62828) else paleta.texto
-    val fundo = if (perigo) Color(0x33C62828) else paleta.pocoIcone
+    val fundo = when {
+        perigo -> Color(0x33C62828)
+        contraste && escuro -> Color(0xFF4A4A52)
+        contraste -> Color(0xFFC4C4CA)
+        escuro -> paleta.pocoIcone
+        else -> Color(0xFFD6D7DC)
+    }
     Box(
         modifier = Modifier
             .size(36.dp)

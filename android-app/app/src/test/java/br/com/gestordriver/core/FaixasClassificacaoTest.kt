@@ -8,10 +8,14 @@ class FaixasClassificacaoTest {
     @Test
     fun padrao_tres_faixas_sem_sobreposicao() {
         val c = ConfiguracaoUsuario.padrao()
-        assertEquals(1.59, c.limiteRuimMax, 0.0)
-        assertEquals(1.60, c.limiteBoaMin, 0.0)
-        assertEquals(1.99, c.limiteBoaMax, 0.0)
-        assertEquals(2.00, c.limiteOtimaMin, 0.0)
+        assertEquals(1.50, c.limiteRuimMax, 0.0)
+        assertEquals(1.51, c.limiteBoaMin, 0.0)
+        assertEquals(2.00, c.limiteBoaMax, 0.0)
+        assertEquals(2.01, c.limiteOtimaMin, 0.0)
+        assertEquals(30.0, c.marcaHoraRuim, 0.0)
+        assertEquals(50.0, c.marcaHoraBoa, 0.0)
+        assertEquals(4.70, c.marcaNotaRuim, 0.0)
+        assertEquals(4.90, c.marcaNotaBoa, 0.0)
         assertEquals(c.limiteBoaMin, c.limiteRuimMax + FaixasClassificacao.PASSO, 0.0001)
         assertEquals(c.limiteOtimaMin, c.limiteBoaMax + FaixasClassificacao.PASSO, 0.0001)
     }

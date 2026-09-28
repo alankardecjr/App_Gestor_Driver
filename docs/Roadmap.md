@@ -19,7 +19,7 @@ Estado alinhado ao código em `android-app/` e às regras em [`REGRAS_NEGOCIO.md
 Código (telas A/B): ver [`ROTEIRO_PRO.md`](ROTEIRO_PRO.md).
 
 - [x] Lucro = valor − combustível + óleo + pneus + IPVA + seguro
-- [x] Semáforo 3 faixas (padrão 1,59 / 1,60–1,99 / 2,00)
+- [x] Semáforo 3 faixas (padrão R$/km 1,50 / 1,51–2,00 / 2,01; R$/hora 30 / 50; nota 4,70 / 4,90)
 - [x] Dashboard Diário / Semanal / Mensal (Compose + overlay)
 - [x] Tema Escuro / Claro / Celular
 - [x] Card histórico: Consumo (L) + Gasto; Embarque / Destino

@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -334,7 +335,7 @@ private fun ResumoPeriodoHistorico(itens: List<HistoricoItemPresentation>) {
             .padding(horizontal = 4.dp, vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        MetricaResumo("Qt", itens.size.toString(), "Corridas")
+        MetricaResumo("Qt", formatarQuantidadeResumo(itens.size), "Corridas")
         MetricaResumo("Km", formatarDecimalResumo(itens.sumOf { it.kmTotal }), "Distância")
         MetricaResumo("h", formatarHorasResumo(minutos), "Tempo")
     }
@@ -379,11 +380,17 @@ private fun RowScope.MetricaResumo(icone: String, valor: String, titulo: String)
                 fontWeight = FontWeight.Bold,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.padding(start = 6.dp),
+                textAlign = TextAlign.Start,
+                modifier = Modifier
+                    .padding(start = 6.dp)
+                    .width(56.dp),
             )
         }
     }
 }
+
+private fun formatarQuantidadeResumo(quantidade: Int): String =
+    if (quantidade < 100) "%02d".format(quantidade) else quantidade.toString()
 
 private fun formatarDecimalResumo(valor: Double): String =
     "%.2f".format(Locale.US, valor).replace('.', ',')

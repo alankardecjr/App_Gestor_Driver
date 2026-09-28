@@ -40,6 +40,8 @@ class MainActivity : ComponentActivity() {
     private lateinit var configuracoesViewModel: ConfiguracoesViewModel
     private var retomadaInicial = true
     private var deixouPelosRecentes = false
+    private var seguirPermissoesAoLigar = false
+    private var manterDestinoNestaRetomada = false
 
     private val seletorGoogle = registerForActivityResult(
         ActivityResultContracts.StartActivityForResult(),
@@ -99,6 +101,7 @@ class MainActivity : ComponentActivity() {
                         historicoRepository = app.historicoRepository,
                         onboardingStore = app.onboardingStore,
                         configuracaoStore = app.configuracaoStore,
+                        licencaStore = app.licencaStore,
                     ) as T
                 }
             },
@@ -146,7 +149,8 @@ class MainActivity : ComponentActivity() {
                                     Intent.FLAG_ACTIVITY_REORDER_TO_FRONT or
                                         Intent.FLAG_ACTIVITY_SINGLE_TOP or
                                         Intent.FLAG_ACTIVITY_NEW_TASK,
-                                ),
+                                )
+                                .putExtra(EXTRA_MANTER_TELA, true),
                         )
                     }
                 }
@@ -183,16 +187,22 @@ class MainActivity : ComponentActivity() {
                 LaunchedEffect(appViewModel.state.monitorando) {
                     val ligouAgora = monitoramentoJaVisto && appViewModel.state.monitorando
                     monitoramentoJaVisto = true
-                    if (appViewModel.state.monitorando &&
-                        PermissoesMonitoramento.overlayConcedida(this@MainActivity)
-                    ) {
-                        OverlayService.iniciar(this@MainActivity)
-                        if (ligouAgora && !PermissoesMonitoramento.acessibilidadeAtiva(this@MainActivity)) {
-                            OverlayBridge.segurarAcessibilidade()
-                            startActivity(PermissoesMonitoramento.intentAcessibilidade())
+                    if (appViewModel.state.monitorando) {
+                        if (!PermissoesMonitoramento.overlayConcedida(this@MainActivity)) {
+                            if (ligouAgora) {
+                                seguirPermissoesAoLigar = true
+                                startActivity(PermissoesMonitoramento.intentSobrepor(this@MainActivity))
+                            }
+                        } else {
+                            OverlayService.iniciar(this@MainActivity)
+                            if (ligouAgora && !PermissoesMonitoramento.acessibilidadeAtiva(this@MainActivity)) {
+                                OverlayBridge.segurarAcessibilidade()
+                                PermissoesMonitoramento.abrirAcessibilidade(this@MainActivity)
+                            }
                         }
                     }
                     if (!appViewModel.state.monitorando) {
+                        seguirPermissoesAoLigar = false
                         OverlayService.parar(this@MainActivity)
                     }
                 }
@@ -254,21 +264,30 @@ class MainActivity : ComponentActivity() {
     override fun onStop() {
         super.onStop()
         if (::appViewModel.isInitialized && !isChangingConfigurations && !deixouPelosRecentes) {
-            appViewModel.recolherAoSairDoApp()
+            appViewModel.menuSaiuDaFrente()
+            if (appViewModel.state.monitorando) {
+                appViewModel.recolherAoSairDoApp()
+            }
         }
     }
 
     override fun onResume() {
         super.onResume()
         if (::appViewModel.isInitialized) {
+            appViewModel.menuEntrouNaFrente()
             val atalho = tratarIntent(intent, appViewModel)
+            val manterDestino = manterDestinoNestaRetomada
+            manterDestinoNestaRetomada = false
             if (deixouPelosRecentes) {
                 deixouPelosRecentes = false
-                appViewModel.abrirMenuOpcoes()
+                if (!atalho && !manterDestino && !appViewModel.state.confirmacaoFecharVisivel) {
+                    appViewModel.abrirMenuOpcoes()
+                }
             } else if (retomadaInicial) {
                 retomadaInicial = false
             } else if (
                 !atalho &&
+                !manterDestino &&
                 appViewModel.state.monitorando &&
                 appViewModel.state.onboardingEtapa == OnboardingEtapa.NENHUMA &&
                 !isChangingConfigurations
@@ -277,6 +296,19 @@ class MainActivity : ComponentActivity() {
             }
         }
         sincronizarOverlay()
+        if (
+            ::appViewModel.isInitialized &&
+            seguirPermissoesAoLigar &&
+            appViewModel.state.monitorando &&
+            PermissoesMonitoramento.overlayConcedida(this)
+        ) {
+            seguirPermissoesAoLigar = false
+            OverlayService.iniciar(this)
+            if (!PermissoesMonitoramento.acessibilidadeAtiva(this)) {
+                OverlayBridge.segurarAcessibilidade()
+                PermissoesMonitoramento.abrirAcessibilidade(this@MainActivity)
+            }
+        }
     }
 
     @Suppress("UNUSED_PARAMETER")
@@ -292,14 +324,20 @@ class MainActivity : ComponentActivity() {
         (valor * resources.displayMetrics.density).toInt()
 
     private fun tratarIntent(intent: Intent?, viewModel: AppViewModel): Boolean {
+        val manterTela = intent?.getBooleanExtra(EXTRA_MANTER_TELA, false) == true
+        if (manterTela) {
+            intent?.removeExtra(EXTRA_MANTER_TELA)
+            manterDestinoNestaRetomada = true
+            viewModel.menuEntrouNaFrente()
+            sincronizarOverlay()
+            return true
+        }
         val abrirExpandida = intent?.getBooleanExtra(EXTRA_ABRIR_EXPANDIDA, false) == true
         if (abrirExpandida) {
-            val origemCompacta = intent.getBooleanExtra(EXTRA_ORIGEM_COMPACTA, false)
             intent?.removeExtra(EXTRA_ABRIR_EXPANDIDA)
             intent?.removeExtra(EXTRA_ORIGEM_COMPACTA)
-            viewModel.reabrirInterface(origemCompacta)
-            sincronizarOverlay()
-            moveTaskToBack(true)
+            viewModel.menuEntrouNaFrente()
+            viewModel.abrirMenuOpcoes()
             return true
         }
         val conectarGoogle = intent?.getBooleanExtra(EXTRA_CONECTAR_GOOGLE, false) == true
@@ -320,7 +358,7 @@ class MainActivity : ComponentActivity() {
         if (pedirAcessibilidade) {
             intent?.removeExtra(EXTRA_PEDIR_ACESSIBILIDADE)
             OverlayBridge.segurarAcessibilidade()
-            startActivity(PermissoesMonitoramento.intentAcessibilidade())
+            PermissoesMonitoramento.abrirAcessibilidade(this@MainActivity)
             sincronizarOverlay()
             return true
         }
@@ -369,6 +407,8 @@ class MainActivity : ComponentActivity() {
         val confirmarFechar = intent?.getBooleanExtra(EXTRA_CONFIRMAR_FECHAR, false) == true
         if (confirmarFechar) {
             intent?.removeExtra(EXTRA_CONFIRMAR_FECHAR)
+            viewModel.menuEntrouNaFrente()
+            viewModel.abrirMenuOpcoes()
             viewModel.solicitarFecharApp()
             sincronizarOverlay()
             return true
@@ -437,6 +477,7 @@ class MainActivity : ComponentActivity() {
     }
 
     companion object {
+        const val EXTRA_MANTER_TELA = "manter_tela"
         const val EXTRA_ABRIR_EXPANDIDA = "abrir_expandida"
         const val EXTRA_ORIGEM_COMPACTA = "origem_compacta"
         const val EXTRA_ABRIR_HISTORICO = "abrir_historico"

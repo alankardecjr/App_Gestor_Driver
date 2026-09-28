@@ -35,7 +35,7 @@ Revisão: **03/09/2026** — telas A/B no código. **Bloco C em andamento** no S
 | D14 | Seguro: **Valor R$** + vencimento (Custos). | Aprovado · no código |
 | D15 | Rateio IPVA/seguro: `(valor ÷ km/ano) × km` (melhor prática custo/km). Km/ano = 0 → fora. | Aprovado · no código |
 | D16 | Óleo/pneu: `(valor ÷ km) × km da corrida`. Km = 0 → fora. | Aprovado · no código |
-| D17 | Faixas padrão: Ruim até **1,59** · Boa **1,60–1,99** · Ótima a partir de **2,00**. | Aprovado · no código |
+| D17 | Faixas padrão: R$/km ruim até **1,50**, boa **1,51–2,00**, ótima a partir de **2,01**. R$/hora ruim até **30**, boa até **50**, ótima a partir de **50,01**. Nota **4,70** e **4,90**. | Aprovado · no código |
 | D18 | Compacta e overlay seguem o tema escolhido. | Aprovado · no código |
 | D19 | Vencimento IPVA em Veículo; valor R$ em Custos. | Aprovado · no código |
 | D20 | Km por ano começa em **0**. | Aprovado · no código |

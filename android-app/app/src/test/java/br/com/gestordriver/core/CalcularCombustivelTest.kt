@@ -41,5 +41,12 @@ class CalcularCombustivelTest {
         assertEquals(10.00, atualizada.consumoEtanol, 0.0)
         assertEquals(12.5, atualizada.consumoGasolina, 0.0)
         assertEquals(6.19, atualizada.precoGasolina, 0.0)
+        val limpa = atualizada.limparCalculadoraAbastecimento()
+        assertEquals(5.00, limpa.precoEtanol, 0.0)
+        assertEquals(10.00, limpa.consumoEtanol, 0.0)
+        assertEquals(0.0, limpa.abastecimentoValor, 0.0)
+        assertEquals(0.0, limpa.abastecimentoLitros, 0.0)
+        assertEquals(0.0, limpa.abastecimentoKmInicial, 0.0)
+        assertEquals(0.0, limpa.abastecimentoKmFinal, 0.0)
     }
 }

@@ -73,12 +73,17 @@ class RideScreenReaderService : AccessibilityService() {
     }
 
     override fun onServiceConnected() {
+        ativa = this
+        if (!SessaoMonitoramento.ligada(this)) {
+            disableSelf()
+            return
+        }
         serviceInfo = serviceInfo.apply {
             flags = flags or
                 AccessibilityServiceInfo.FLAG_INCLUDE_NOT_IMPORTANT_VIEWS or
                 AccessibilityServiceInfo.FLAG_REPORT_VIEW_IDS or
-                AccessibilityServiceInfo.FLAG_RETRIEVE_INTERACTIVE_WINDOWS or
-                AccessibilityServiceInfo.FLAG_REQUEST_FILTER_KEY_EVENTS
+                AccessibilityServiceInfo.FLAG_RETRIEVE_INTERACTIVE_WINDOWS
+            flags = flags and AccessibilityServiceInfo.FLAG_REQUEST_FILTER_KEY_EVENTS.inv()
             feedbackType = AccessibilityServiceInfo.FEEDBACK_GENERIC
             notificationTimeout = 400
             packageNames = PlatformDetector.packages.keys.toTypedArray()
@@ -131,6 +136,7 @@ class RideScreenReaderService : AccessibilityService() {
     }
 
     override fun onDestroy() {
+        ativa = null
         handler.removeCallbacks(poll)
         handler.removeCallbacks(soltarOcr)
         leituraExecutor.shutdownNow()
@@ -538,6 +544,13 @@ class RideScreenReaderService : AccessibilityService() {
     }
 
     companion object {
+        @Volatile
+        private var ativa: RideScreenReaderService? = null
+
+        fun desligar() {
+            ativa?.disableSelf()
+        }
+
         private const val INTERVALO_NOS_MS = 1100L
         private const val INTERVALO_OCR_MS = 2800L
         private const val INTERVALO_OCR_UBER_MS = 1600L

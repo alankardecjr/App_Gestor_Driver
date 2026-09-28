@@ -114,6 +114,7 @@ sealed class OverlayAcao {
     data object VoltarBarra : OverlayAcao()
     data object RecentesBarra : OverlayAcao()
     data object EsconderSelo : OverlayAcao()
+    data object AlternarAtalhos : OverlayAcao()
     data object SairParaMapaHistorico : OverlayAcao()
     data object DashboardPro : OverlayAcao()
     data object FecharDashboard : OverlayAcao()

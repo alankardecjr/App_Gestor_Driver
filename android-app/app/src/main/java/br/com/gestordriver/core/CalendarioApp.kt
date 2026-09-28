@@ -58,7 +58,9 @@ object CalendarioApp {
 
     fun gradeMes(dia: LocalDate): List<LocalDate> {
         val inicio = domingoDaSemana(primeiroDoMes(dia))
-        return (0L until 42L).map { inicio.plusDays(it) }
+        val fim = sabadoDaSemana(ultimoDoMes(dia))
+        val total = java.time.temporal.ChronoUnit.DAYS.between(inicio, fim) + 1
+        return (0L until total).map { inicio.plusDays(it) }
     }
 
     fun noMes(dia: LocalDate, referencia: LocalDate): Boolean =
