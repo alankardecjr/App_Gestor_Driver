@@ -69,6 +69,18 @@ R$/hora online real (`SessaoTrabalho`), Design System / tokens, depreciação.
   única do usuário e **desacoplar** `monitorando` dos fluxos de navegação que hoje
   o setam `true` implicitamente.
 
+## VS 2.3.2 — pronta para teste de rua
+
+`2.3.2` / versionCode 24. APK de debug: `dist/GestorDriver-VS-2.3.2.apk`.
+Testes unitários: 230, sem falhas. A formatação dos campos acontece **ao salvar**, não a cada tecla.
+
+- Compacta com 4,2 cm de largura. Valores centralizados, sem corte. Borda mais fina. O X fica afastado da borda. Há espaço entre o nome do app e o tempo/km. Vermelho, amarelo e verde do semáforo ficam nas barras e na borda; os números continuam pretos ou brancos.
+- Home e Recentes reabrem a última aba. O app não força Opções. Voltar desce até Opções; o próximo Voltar vai para a tela inicial do celular e deixa o app nos Recentes.
+- Selo na lixeira só volta quando o Monitorar é desligado e ligado de novo.
+- Atalhos abrem a aba correspondente: Histórico, Dashboard, Despesas, Semáforo, Usuário e Sistema.
+- No card de resumo do histórico, embarque e destino mostram só a primeira linha. O detalhe da corrida permanece inteiro.
+- Ao salvar: `01052026` ou `010526` vira `01/05/2026`. `50` e `50.00` viram `50,00`. `50000` em R$ vira `50.000,00`. `5000` e `50000` em km ou km/L viram `5.000` e `50.000`. Data inválida fica como foi digitada. Zero continua em branco.
+
 ## Status de implementação
 
 - [x] Bloco A — R$/hora (tempo total) — Kotlin + Python + testes.

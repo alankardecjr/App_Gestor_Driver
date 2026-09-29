@@ -1,6 +1,7 @@
 package br.com.gestordriver.ui
 
 import android.app.Activity
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Canvas
@@ -38,7 +39,9 @@ import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -103,6 +106,8 @@ private val FonteTitulo = 16.sp
 private val FonteAjuda = 12.sp
 private val AlturaToque = 48.dp
 
+private val LocalRevisaoCampos = compositionLocalOf { 0 }
+
 @Composable
 fun ConfiguracoesScreen(
     viewModel: ConfiguracoesViewModel,
@@ -159,7 +164,36 @@ fun ConfiguracoesScreen(
             onVoltar()
         }
     }
+    fun voltarDaAba() {
+        sairDoCampo()
+        when (aba) {
+            4 -> {
+                if (viewModel.temAlteracao()) {
+                    viewModel.salvar(aplicarAbastecimento = false)
+                    avisar("Alteração salva.")
+                }
+                onVoltar()
+            }
+            1, 2, 3 -> {
+                if (viewModel.temAlteracao()) {
+                    perguntarSalvar = true
+                } else {
+                    onVoltar()
+                }
+            }
+            else -> onVoltar()
+        }
+    }
+    val dialogoAberto = dialogoGoogle || dialogoEmail || dialogoAbastecimento || perguntarSalvar
+    BackHandler(enabled = dialogoAberto) {
+        dialogoGoogle = false
+        dialogoEmail = false
+        dialogoAbastecimento = false
+        perguntarSalvar = false
+    }
+    BackHandler(enabled = aba != 0 && !dialogoAberto) { voltarDaAba() }
 
+    CompositionLocalProvider(LocalRevisaoCampos provides viewModel.revisaoCampos) {
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -256,26 +290,7 @@ fun ConfiguracoesScreen(
                     }
                     else -> null
                 },
-                onVoltar = {
-                    sairDoCampo()
-                    when (aba) {
-                        4 -> {
-                            if (viewModel.temAlteracao()) {
-                                viewModel.salvar(aplicarAbastecimento = false)
-                                avisar("Alteração salva.")
-                            }
-                            onVoltar()
-                        }
-                        1, 2, 3 -> {
-                            if (viewModel.temAlteracao()) {
-                                perguntarSalvar = true
-                            } else {
-                                onVoltar()
-                            }
-                        }
-                        else -> onVoltar()
-                    }
-                },
+                onVoltar = { voltarDaAba() },
             )
 
             Box(
@@ -534,6 +549,7 @@ fun ConfiguracoesScreen(
                 }
             }
         }
+    }
     }
 }
 
@@ -1040,27 +1056,29 @@ private fun LinhaOpcao(
 private fun AbaClassificacao(viewModel: ConfiguracoesViewModel) {
     val configuracao = viewModel.configuracao
     val paleta = LocalPaletaApp.current
-    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-        Column(verticalArrangement = Arrangement.spacedBy(1.dp)) {
-            Text(
-                text = "Calibrar classificações",
-                color = paleta.texto,
-                fontSize = 15.sp,
-                lineHeight = 18.sp,
-                fontWeight = FontWeight.SemiBold,
-            )
-            Text(
-                text = "Arraste as marcações para ajustar",
-                color = paleta.textoSecundario,
-                fontSize = 12.sp,
-                lineHeight = 15.sp,
-            )
-            Column(verticalArrangement = Arrangement.spacedBy(0.dp)) {
-                LegendaFaixa(Color(0xFFC62828), "Ruim = abaixo da média")
-                LegendaFaixa(Color(0xFFF9A825), "Boa = na média")
-                LegendaFaixa(Color(0xFF2E7D32), "Ótima = acima da média")
-            }
+    Column {
+        Text(
+            text = "Calibrar classificações",
+            color = paleta.texto,
+            fontSize = 15.sp,
+            lineHeight = 18.sp,
+            fontWeight = FontWeight.SemiBold,
+        )
+        Spacer(modifier = Modifier.height(18.dp))
+        Text(
+            text = "Arraste as marcações para ajustar",
+            color = paleta.textoSecundario,
+            fontSize = 12.sp,
+            lineHeight = 15.sp,
+        )
+        Spacer(modifier = Modifier.height(18.dp))
+        Column(verticalArrangement = Arrangement.spacedBy(0.dp)) {
+            LegendaFaixa(Color(0xFFFF1744), "Ruim = abaixo da média")
+            LegendaFaixa(Color(0xFFFFD600), "Boa = na média")
+            LegendaFaixa(Color(0xFF00C853), "Ótima = acima da média")
         }
+        Spacer(modifier = Modifier.height(18.dp))
+        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
         ReguaDuasMarcas(
             titulo = "Ganhos por Km",
             ajuda = "A barra divide ruim, boa e ótima em três partes iguais. Até a marca de baixo é ruim. Da marca de baixo mais R$ 0,01 até a de cima é boa. Acima da de cima é ótima. A marca vai de 0 a 4. Toque na marca e use − e +. Segure o botão para a marca continuar. Entra na borda da oferta.",
@@ -1095,6 +1113,7 @@ private fun AbaClassificacao(viewModel: ConfiguracoesViewModel) {
             rotulo = { FaixasClassificacao.formatar(it) },
             onMarcas = viewModel::atualizarMarcasNota,
         )
+        }
     }
 }
 
@@ -1133,9 +1152,9 @@ private fun ReguaDuasMarcas(
     val paleta = LocalPaletaApp.current
     val contexto = LocalContext.current
     val forma = RoundedCornerShape(16.dp)
-    val vermelho = Color(0xFFC62828)
-    val amarelo = Color(0xFFF9A825)
-    val verde = Color(0xFF2E7D32)
+    val vermelho = Color(0xFFFF1744)
+    val amarelo = Color(0xFFFFD600)
+    val verde = Color(0xFF00C853)
     val ruimAtual by rememberUpdatedState(ruim.toFloat().coerceIn(desde, ate))
     val boaAtual by rememberUpdatedState(boa.toFloat().coerceIn(desde, ate))
     val aoMudar by rememberUpdatedState(onMarcas)
@@ -1819,7 +1838,14 @@ private fun CampoNumericoCaixa(
     modifier: Modifier = Modifier,
     bloqueado: Boolean = false,
 ) {
-    var texto by remember(valor) { mutableStateOf(DecimalInput.formatar(valor)) }
+    val revisao = LocalRevisaoCampos.current
+    val emReais = "R$" in label
+    fun exibir(numero: Double): String =
+        if (emReais) DecimalInput.formatarReais(numero) else DecimalInput.formatarQuantidade(numero)
+    var texto by remember { mutableStateOf(exibir(valor)) }
+    LaunchedEffect(revisao) {
+        texto = exibir(valor)
+    }
     Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(3.dp)) {
         Text(text = label, color = LocalPaletaApp.current.textoSecundario, fontSize = FonteCampo)
         Box(
@@ -1837,9 +1863,14 @@ private fun CampoNumericoCaixa(
                     if (bloqueado) {
                         return@BasicTextField
                     }
-                    if (entrada.isEmpty() || entrada.matches(Regex("^[0-9]*[.,]?[0-9]*$"))) {
+                    val aceita = entrada.isEmpty() || entrada.all { it.isDigit() || it == '.' || it == ',' }
+                    if (aceita) {
                         texto = entrada
-                        DecimalInput.parse(entrada)?.let(onValorChange)
+                        if (entrada.isEmpty()) {
+                            onValorChange(0.0)
+                        } else {
+                            DecimalInput.parse(entrada)?.let(onValorChange)
+                        }
                     }
                 },
                 enabled = !bloqueado,

@@ -218,20 +218,15 @@ class MainActivity : ComponentActivity() {
                 finish()
                 return@addCallback
             }
-            // Sem monitoramento: Voltar = padrão do celular (sair da activity).
-            if (!appViewModel.state.monitorando) {
+            if (appViewModel.state.onboardingEtapa != OnboardingEtapa.NENHUMA) {
                 finish()
                 return@addCallback
             }
-            val jaNoSelo = appViewModel.state.seloFlutuante &&
-                !appViewModel.state.historicoVisivel &&
-                !appViewModel.state.configuracoesVisivel &&
-                !appViewModel.state.dashboardVisivel &&
-                !appViewModel.state.confirmacaoFecharVisivel &&
-                !appViewModel.state.confirmacaoLimparHistoricoVisivel
-            appViewModel.voltarPelaBarra()
-            if (jaNoSelo || appViewModel.state.seloFlutuante || appViewModel.state.interfaceOculta) {
-                OverlayService.iniciar(this@MainActivity)
+            val irParaHome = appViewModel.voltarPelaBarra()
+            if (irParaHome) {
+                if (appViewModel.state.monitorando) {
+                    OverlayService.iniciar(this@MainActivity)
+                }
                 moveTaskToBack(true)
             }
         }
@@ -265,9 +260,6 @@ class MainActivity : ComponentActivity() {
         super.onStop()
         if (::appViewModel.isInitialized && !isChangingConfigurations && !deixouPelosRecentes) {
             appViewModel.menuSaiuDaFrente()
-            if (appViewModel.state.monitorando) {
-                appViewModel.recolherAoSairDoApp()
-            }
         }
     }
 
@@ -276,23 +268,19 @@ class MainActivity : ComponentActivity() {
         if (::appViewModel.isInitialized) {
             appViewModel.menuEntrouNaFrente()
             val atalho = tratarIntent(intent, appViewModel)
-            val manterDestino = manterDestinoNestaRetomada
             manterDestinoNestaRetomada = false
-            if (deixouPelosRecentes) {
-                deixouPelosRecentes = false
-                if (!atalho && !manterDestino && !appViewModel.state.confirmacaoFecharVisivel) {
-                    appViewModel.abrirMenuOpcoes()
-                }
-            } else if (retomadaInicial) {
-                retomadaInicial = false
-            } else if (
+            if (
                 !atalho &&
-                !manterDestino &&
-                appViewModel.state.monitorando &&
-                appViewModel.state.onboardingEtapa == OnboardingEtapa.NENHUMA &&
-                !isChangingConfigurations
+                !isChangingConfigurations &&
+                appViewModel.state.estadoSalvo != null &&
+                appViewModel.state.monitorando
             ) {
                 appViewModel.restaurarTelaAposRecentes()
+            }
+            if (deixouPelosRecentes) {
+                deixouPelosRecentes = false
+            } else if (retomadaInicial) {
+                retomadaInicial = false
             }
         }
         sincronizarOverlay()

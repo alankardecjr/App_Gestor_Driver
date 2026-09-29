@@ -25,6 +25,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.activity.compose.BackHandler
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -98,6 +99,9 @@ fun HistoricoTela(
     var calendarioAberto by remember { mutableStateOf(false) }
     var mesCalendario by remember { mutableStateOf(CalendarioApp.mesDe(selecionado)) }
     var detalhe by remember { mutableStateOf<HistoricoItemPresentation?>(null) }
+    BackHandler(enabled = detalhe != null) { detalhe = null }
+    BackHandler(enabled = detalhe == null && calendarioAberto) { calendarioAberto = false }
+    BackHandler(enabled = detalhe == null && !calendarioAberto && marcando) { onCancelarMarcacao() }
     LaunchedEffect(itens) {
         val aberto = detalhe
         if (aberto != null && itens.none { it.chaveHistorico() == aberto.chaveHistorico() }) {
@@ -554,8 +558,8 @@ private fun CartaoCorridaHistorico(
                 .weight(1f)
                 .padding(horizontal = 8.dp),
         ) {
-            LinhaEndereco("●", embarque, VerdePaleta)
-            LinhaEndereco("●", destino, VermelhoPaleta)
+            LinhaEndereco("●", embarque.first to null, VerdePaleta)
+            LinhaEndereco("●", destino.first to null, VermelhoPaleta)
         }
         Column(horizontalAlignment = Alignment.End) {
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {

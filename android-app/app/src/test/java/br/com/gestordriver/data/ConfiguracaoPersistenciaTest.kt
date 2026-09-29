@@ -42,6 +42,28 @@ class ConfiguracaoPersistenciaTest {
     }
 
     @Test
+    fun salvar_formata_as_datas_digitadas() {
+        val store = MemoriaConfiguracaoStore()
+        val viewModel = ConfiguracoesViewModel(store)
+        viewModel.atualizarOleoData("01052026")
+        viewModel.atualizarPneuDianteiroData("010526")
+        viewModel.atualizarPneuTraseiroData("31122025")
+        viewModel.atualizarSeguroData("150826")
+        viewModel.salvar()
+
+        assertEquals("01/05/2026", viewModel.configuracao.oleoData)
+        assertEquals("01/05/2026", viewModel.configuracao.pneuDianteiroData)
+        assertEquals("31/12/2025", viewModel.configuracao.pneuTraseiroData)
+        assertEquals("15/08/2026", viewModel.configuracao.seguroData)
+        assertEquals("01/05/2026", store.carregar().oleoData)
+        assertEquals(1, viewModel.revisaoCampos)
+
+        viewModel.atualizarOleoData("32012026")
+        viewModel.salvar()
+        assertEquals("32012026", viewModel.configuracao.oleoData)
+    }
+
+    @Test
     fun configuracao_ja_gravada_mantem_os_limites_do_motorista() {
         val gravada = ConfiguracaoUsuario.padrao().copy(
             limiteRuimMax = 1.59,

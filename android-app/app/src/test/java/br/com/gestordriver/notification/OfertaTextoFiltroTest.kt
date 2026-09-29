@@ -106,6 +106,48 @@ class OfertaTextoFiltroTest {
     }
 
     @Test
+    fun tela_de_ganhos_nao_e_oferta() {
+        val texto = """
+            Estatísticas
+            Online
+            5 h 28 m
+            Viagens
+            13
+            Detalhamento
+            Valor
+            R${'$'} 181,03
+            Promoções
+            R${'$'} 16,06
+            Ganhos totais
+            R${'$'} 197,09
+            Ver histórico de ganhos
+        """.trimIndent()
+        assertTrue(OfertaTextoFiltro.ehTelaDeGanhos(texto))
+        assertTrue(OfertaTextoFiltro.ehPromocaoOuStatus(texto))
+        assertFalse(OfertaTextoFiltro.pareceOferta(texto))
+        assertFalse(OfertaTextoFiltro.temDadosParseaveis(texto))
+        assertFalse(
+            RideEventClassifier.pareceAceite(
+                NotificationData("com.ubercab.driver", "", texto),
+            ),
+        )
+    }
+
+    @Test
+    fun bonus_uber_pro_no_card_continua_oferta() {
+        val texto = """
+            UberX
+            R${'$'} 19,10
+            +10% de ganhos Uber Pro
+            7 min (1.8 km)
+            20 minutos (10.9 km)
+            Aceitar
+        """.trimIndent()
+        assertFalse(OfertaTextoFiltro.ehTelaDeGanhos(texto))
+        assertTrue(OfertaTextoFiltro.pareceOferta(texto))
+    }
+
+    @Test
     fun card_uber_com_minutos_nao_e_mapa() {
         val texto = """
             R${'$'} 11,74

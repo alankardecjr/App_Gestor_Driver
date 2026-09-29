@@ -51,9 +51,9 @@ object SemaforoOferta {
     }
 
     private fun gravidade(cor: String): Int = when (cor.uppercase()) {
-        "#C62828", "#EF6C00" -> 0
-        "#F9A825" -> 1
-        "#2E7D32" -> 2
+        "#C62828", "#EF6C00", "#FF1744" -> 0
+        "#F9A825", "#FFB300", "#FFD600" -> 1
+        "#2E7D32", "#8BC34A", "#00C853" -> 2
         else -> 3
     }
 }

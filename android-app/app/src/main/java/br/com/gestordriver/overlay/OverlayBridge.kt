@@ -90,6 +90,7 @@ data class OverlaySnapshot(
     val corridaAceita: Boolean = false,
     val corClassificacao: String = ClassificacaoConstantes.COR_BORDA_NEUTRA,
     val corValorPorHora: String = ClassificacaoConstantes.COR_BORDA_NEUTRA,
+    val corNota: String = ClassificacaoConstantes.COR_BORDA_NEUTRA,
     val corBordaCompacta: String = ClassificacaoConstantes.COR_BORDA_NEUTRA,
     val horaEstimada: Boolean = false,
     val anunciarVoz: Boolean = true,

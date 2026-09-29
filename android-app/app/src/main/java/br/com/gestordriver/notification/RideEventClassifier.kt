@@ -112,7 +112,8 @@ object RideEventClassifier {
 
     fun pareceAceite(notification: NotificationData): Boolean {
         if (OfertaTextoFiltro.ehInterfaceGestor(notification.fullText) ||
-            OfertaTextoFiltro.ehTelaCancelamento(notification.fullText)
+            OfertaTextoFiltro.ehTelaCancelamento(notification.fullText) ||
+            OfertaTextoFiltro.ehTelaDeGanhos(notification.fullText)
         ) {
             return false
         }

@@ -122,6 +122,7 @@ object PresentationBuilder {
         confirmacaoLimparHistoricoVisivel: Boolean = false,
         seloOffsetX: Float = 0f,
         seloOffsetY: Float = 0f,
+        seloEscondido: Boolean = false,
         estadoSalvo: EstadoInterfaceSalvo? = null,
         corridaAceita: Boolean = false,
         ultimaCorridaAceita: AnaliseCorrida? = null,
@@ -217,6 +218,9 @@ object PresentationBuilder {
 
             seloOffsetY =
                 seloOffsetY,
+
+            seloEscondido =
+                seloEscondido,
 
             estadoSalvo =
                 estadoSalvo,

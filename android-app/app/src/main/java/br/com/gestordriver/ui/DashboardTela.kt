@@ -23,6 +23,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.ui.res.painterResource
 import br.com.gestordriver.R
+import androidx.activity.compose.BackHandler
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -106,6 +107,8 @@ fun DashboardTela(
         .toSet()
     var calendarioAberto by remember { mutableStateOf(false) }
     var mesCalendario by remember { mutableStateOf(CalendarioApp.mesDe(selecionado)) }
+    BackHandler(enabled = calendarioAberto) { calendarioAberto = false }
+    BackHandler(enabled = !calendarioAberto) { onVoltar() }
 
     Column(
         modifier = Modifier
@@ -323,20 +326,20 @@ private fun RowScope.Celula(titulo: String, valor: String) {
     Column(
         modifier = Modifier
             .weight(1f)
-            .padding(horizontal = 2.dp, vertical = 10.dp),
+            .padding(horizontal = 2.dp, vertical = 14.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Text(
             titulo,
             color = paleta.textoSecundario,
-            fontSize = 9.sp,
+            fontSize = 12.sp,
             textAlign = TextAlign.Center,
             maxLines = 1,
         )
         Text(
             valor,
             color = paleta.texto,
-            fontSize = 11.sp,
+            fontSize = 15.sp,
             fontWeight = FontWeight.Bold,
             textAlign = TextAlign.Center,
             maxLines = 1,

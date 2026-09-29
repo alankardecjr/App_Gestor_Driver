@@ -13,8 +13,8 @@ android {
         applicationId = "br.com.gestordriver"
         minSdk = 30
         targetSdk = 36
-        versionCode = 22
-        versionName = "2.3"
+        versionCode = 24
+        versionName = "2.3.2"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }

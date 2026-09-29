@@ -495,6 +495,6 @@ class CalculadoraCorridaTest {
         assertEquals(1.28, resultado.combustivelEstimado!!, 0.01)
         assertEquals(7.9232, resultado.custoCombustivel!!, 0.01)
         assertEquals(br.com.gestordriver.core.Classificacao.EXCELENTE, resultado.classificacao)
-        assertEquals("#2E7D32", resultado.corClassificacao)
+        assertEquals("#00C853", resultado.corClassificacao)
     }
 }

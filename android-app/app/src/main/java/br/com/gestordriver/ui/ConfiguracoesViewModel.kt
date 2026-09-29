@@ -1,6 +1,7 @@
 package br.com.gestordriver.ui
 
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
@@ -21,6 +22,10 @@ class ConfiguracoesViewModel(
 ) : ViewModel() {
 
     var configuracao by mutableStateOf(store.carregar())
+        private set
+
+    /** Sobe a cada Salvar para os campos reexibirem data, real e quantidade no formato certo. */
+    var revisaoCampos by mutableIntStateOf(0)
         private set
 
     fun atualizarTipoVeiculo(tipo: TipoVeiculo) {
@@ -253,8 +258,15 @@ class ConfiguracoesViewModel(
         val normalizada = FaixasClassificacao.normalizar(
             calculadora.copy(seguroRecorrencia = SeguroRecorrencia.MENSAL),
         )
-        store.salvar(normalizada)
-        configuracao = normalizada
+        val comDatas = normalizada.copy(
+            oleoData = DataInput.formatar(normalizada.oleoData),
+            pneuDianteiroData = DataInput.formatar(normalizada.pneuDianteiroData),
+            pneuTraseiroData = DataInput.formatar(normalizada.pneuTraseiroData),
+            seguroData = DataInput.formatar(normalizada.seguroData),
+        )
+        store.salvar(comDatas)
+        configuracao = comDatas
+        revisaoCampos++
     }
 
     /** Cancelar em Usuário: descarta o resto do rascunho e mantém a calculadora. */
@@ -266,6 +278,7 @@ class ConfiguracoesViewModel(
             abastecimentoKmInicial = atual.abastecimentoKmInicial,
             abastecimentoKmFinal = atual.abastecimentoKmFinal,
         )
+        revisaoCampos++
     }
 
     fun temCalculoAbastecimento(): Boolean {
@@ -288,5 +301,6 @@ class ConfiguracoesViewModel(
 
     fun cancelar() {
         configuracao = store.carregar()
+        revisaoCampos++
     }
 }

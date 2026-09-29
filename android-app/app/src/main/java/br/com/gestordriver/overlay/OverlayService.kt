@@ -87,7 +87,7 @@ class OverlayService : Service() {
         super.onCreate()
         criarCanal()
         runCatching {
-            startForeground(NOTIFICACAO_ID, criarNotificacao())
+            startForeground(NOTIFICACAO_ID, criarNotificacaoMonitoramento())
         }.onFailure {
             stopSelf()
             return
@@ -104,11 +104,7 @@ class OverlayService : Service() {
                     encerrarSemMonitoramento()
                     return@collect
                 }
-                if (snapshot.notificacaoFechada) {
-                    removerNotificacaoMantendoServico()
-                } else {
-                    atualizarNotificacao(snapshot)
-                }
+                atualizarNotificacao(snapshot)
                 if (snapshot.compactaVisivel && compactaNova) {
                     agendarCompactaNaFrente()
                 } else if (!snapshot.compactaVisivel) {
@@ -207,7 +203,9 @@ class OverlayService : Service() {
 
     private fun encerrarSemMonitoramento() {
         runCatching { stopForeground(STOP_FOREGROUND_REMOVE) }
-        (getSystemService(NOTIFICATION_SERVICE) as NotificationManager).cancel(NOTIFICACAO_ID)
+        val avisos = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
+        avisos.cancel(NOTIFICACAO_ID)
+        avisos.cancel(NOTIFICACAO_OFERTA_ID)
         stopSelf()
     }
 
@@ -249,10 +247,6 @@ class OverlayService : Service() {
         } else {
             expandidaView?.animate()?.cancel()
             expandidaView?.visibility = View.INVISIBLE
-        }
-        // Com menu atalho aberto, o selo fica por cima para o toque abrir/fechar.
-        if (snapshot.seloVisivel && snapshot.expandidaVisivel) {
-            trazerSeloParaFrente()
         }
         if (snapshot.historicoVisivel && !snapshot.configuracoesVisivel && !snapshot.dashboardVisivel) {
             garantirHistorico(snapshot)
@@ -603,6 +597,7 @@ class OverlayService : Service() {
     private fun atualizarExpandida(view: View, snapshot: OverlaySnapshot) {
         view.alpha = if (snapshot.monitorando) 1f else 0.9f
         val card = view.findViewWithTag<LinearLayout>("menu_atalho_card") ?: return
+        card.background = fundoMenuCard()
         card.removeAllViews()
         if (snapshot.confirmacaoFecharVisivel) {
             montarConfirmacaoNoAtalho(card, snapshot)
@@ -825,13 +820,28 @@ class OverlayService : Service() {
                     LinearLayout.LayoutParams.WRAP_CONTENT,
                 ).apply { bottomMargin = dp(4) }
                 addView(
+                    ImageView(this@OverlayService).apply {
+                        setImageResource(R.mipmap.ic_launcher_round)
+                        scaleType = ImageView.ScaleType.CENTER_CROP
+                        clipToOutline = true
+                        outlineProvider = object : ViewOutlineProvider() {
+                            override fun getOutline(view: View, outline: android.graphics.Outline) {
+                                outline.setOval(0, 0, view.width, view.height)
+                            }
+                        }
+                        layoutParams = LinearLayout.LayoutParams(dp(36), dp(36))
+                    },
+                )
+                addView(
                     TextView(this@OverlayService).apply {
-                        text = "Atalhos"
+                        text = "Gestor Driver"
                         setTextColor(temaCabecalho.menuTexto)
-                        textSize = 16f
+                        textSize = 22f
                         typeface = android.graphics.Typeface.DEFAULT_BOLD
                         maxLines = 1
-                        layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+                        layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f).apply {
+                            marginStart = dp(12)
+                        }
                     },
                 )
                 addView(botaoCircular("✕", dp(28)) { OverlayBridge.emitir(OverlayAcao.RecolherParaSelo) })
@@ -1015,19 +1025,34 @@ class OverlayService : Service() {
         runCatching { windowManager.updateViewLayout(view, params) }
     }
 
-    /** O cartão cresce a partir da quina do selo, para o lado em que há espaço. */
+    /** O painel nasce no selo e as linhas descem em cascata. */
     private fun animarSaidaDoSelo(view: View?) {
         val alvo = view ?: return
         alvo.animate().cancel()
-        alvo.scaleX = 0.7f
-        alvo.scaleY = 0.7f
-        alvo.alpha = 0.9f
+        alvo.scaleX = 0.08f
+        alvo.scaleY = 0.08f
+        alvo.alpha = 0f
         alvo.animate()
             .scaleX(1f)
             .scaleY(1f)
             .alpha(1f)
-            .setDuration(180)
+            .setDuration(280)
+            .setInterpolator(DecelerateInterpolator())
             .start()
+        val card = alvo.findViewWithTag<LinearLayout>("menu_atalho_card") ?: return
+        for (indice in 0 until card.childCount) {
+            val filho = card.getChildAt(indice)
+            filho.animate().cancel()
+            filho.alpha = 0f
+            filho.translationY = -dp(12).toFloat()
+            filho.animate()
+                .alpha(1f)
+                .translationY(0f)
+                .setStartDelay(36L * indice)
+                .setDuration(220)
+                .setInterpolator(DecelerateInterpolator())
+                .start()
+        }
     }
 
     private fun criarSelo(): ImageView {
@@ -1062,14 +1087,14 @@ class OverlayService : Service() {
         val tema = OverlayTema.de(this)
         val layout = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
-            setPadding(dp(10), dp(6), dp(8), dp(6))
-            background = fundoPainel(ClassificacaoConstantes.COR_BORDA_NEUTRA, BORDA_COMPACTA_DP)
+            setPadding(dp(14), dp(10), dp(12), dp(10))
+            background = fundoCompacta(ClassificacaoConstantes.COR_BORDA_NEUTRA)
         }
         layout.setOnTouchListener(CompactaTouchListener())
         val cabecalho = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
-            setPadding(0, 0, 0, dp(4))
+            setPadding(0, 0, 0, dp(6))
         }
         cabecalho.addView(
             TextView(this).apply {
@@ -1088,41 +1113,53 @@ class OverlayService : Service() {
                 setTextColor(tema.texto)
                 textSize = 13f
                 maxLines = 1
-                ellipsize = TextUtils.TruncateAt.END
+                typeface = android.graphics.Typeface.DEFAULT_BOLD
                 gravity = Gravity.START or Gravity.CENTER_VERTICAL
+                includeFontPadding = false
                 layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f).apply {
-                    marginStart = dp(6)
+                    marginStart = dp(16)
                 }
                 text = ""
             },
         )
         cabecalho.addView(
             TextView(this).apply {
+                tag = "cmp_fechar"
                 text = "✕"
                 setTextColor(tema.texto)
-                textSize = 14f
+                textSize = 12f
+                includeFontPadding = false
+                typeface = android.graphics.Typeface.DEFAULT_BOLD
                 gravity = Gravity.CENTER
+                setPadding(0, 0, 0, 0)
                 background = GradientDrawable().apply {
                     shape = GradientDrawable.OVAL
                     setColor(tema.pocoIcone)
                 }
-                layoutParams = LinearLayout.LayoutParams(dp(28), dp(28))
+                layoutParams = LinearLayout.LayoutParams(dp(22), dp(22)).apply {
+                    marginStart = dp(6)
+                    gravity = Gravity.CENTER_VERTICAL
+                }
                 isClickable = true
                 isFocusable = true
                 setOnClickListener { OverlayBridge.emitir(OverlayAcao.FecharCompacta) }
             },
         )
         layout.addView(cabecalho)
-        // Métricas de decisão: R$/KM · R$/HORA · TEMPO · NOTA (sem VALOR:
-        // a plataforma já mostra o valor bruto).
         val metricas = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
             tag = "metricas"
-            gravity = Gravity.CENTER_VERTICAL
+            gravity = Gravity.CENTER
         }
-        listOf("R$/KM" to true, "R$/HORA" to true, "NOTA" to false, "LUCRO%" to false).forEach { (titulo, hero) ->
-            metricas.addView(criarColunaCompacta(titulo, hero))
+        listOf(
+            "R$/Km" to true,
+            "R$/Hora" to true,
+            "Nota" to false,
+            "Lucro" to false,
+        ).forEach { (titulo, barraGrossa) ->
+            metricas.addView(criarColunaCompacta(titulo, barraGrossa))
         }
+        (metricas.getChildAt(3).layoutParams as LinearLayout.LayoutParams).marginStart = dp(10)
         layout.addView(metricas)
         val paradasLinha = LinearLayout(this).apply {
             tag = "linha_paradas"
@@ -1134,7 +1171,7 @@ class OverlayService : Service() {
         paradasLinha.addView(
             TextView(this).apply {
                 text = "⚑"
-                setTextColor(Color.parseColor("#F9A825"))
+                setTextColor(Color.parseColor("#FFD600"))
                 textSize = 13f
                 gravity = Gravity.CENTER
             },
@@ -1154,19 +1191,21 @@ class OverlayService : Service() {
         return layout
     }
 
-    private fun criarColunaCompacta(titulo: String, hero: Boolean): LinearLayout {
+    private fun criarColunaCompacta(titulo: String, barraGrossa: Boolean): LinearLayout {
+        val peso = if (titulo == "Lucro") 1.15f else if (barraGrossa) 1.25f else 0.9f
         return LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             gravity = Gravity.CENTER
-            layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, if (hero) 1.45f else 0.85f)
+            layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, peso)
             addView(
                 TextView(this@OverlayService).apply {
                     text = titulo
                     setTextColor(OverlayTema.de(this@OverlayService).secundario)
-                    textSize = if (hero) 12f else 10f
-                    typeface = if (hero) android.graphics.Typeface.DEFAULT_BOLD else android.graphics.Typeface.DEFAULT
+                    typeface = android.graphics.Typeface.DEFAULT_BOLD
                     gravity = Gravity.CENTER
                     maxLines = 1
+                    includeFontPadding = false
+                    setAutoSizeTextTypeUniformWithConfiguration(9, 12, 1, TypedValue.COMPLEX_UNIT_SP)
                 },
             )
             addView(
@@ -1180,7 +1219,10 @@ class OverlayService : Service() {
                                 setColor(OverlayTema.de(this@OverlayService).borda)
                                 cornerRadius = dp(2).toFloat()
                             }
-                            layoutParams = LinearLayout.LayoutParams(dp(3), dp(16)).apply {
+                            layoutParams = LinearLayout.LayoutParams(
+                                dp(if (barraGrossa) 6 else 3),
+                                dp(18),
+                            ).apply {
                                 marginEnd = dp(4)
                             }
                         },
@@ -1189,11 +1231,17 @@ class OverlayService : Service() {
                         TextView(this@OverlayService).apply {
                             tag = "valor"
                             setTextColor(OverlayTema.de(this@OverlayService).texto)
-                            textSize = if (hero) 20f else 14f
-                            typeface = if (hero) android.graphics.Typeface.DEFAULT_BOLD else android.graphics.Typeface.DEFAULT
+                            typeface = android.graphics.Typeface.DEFAULT_BOLD
                             gravity = Gravity.CENTER
                             maxLines = 1
-                            ellipsize = TextUtils.TruncateAt.END
+                            includeFontPadding = false
+                            ellipsize = null
+                            setAutoSizeTextTypeUniformWithConfiguration(
+                                10,
+                                if (barraGrossa) 16 else 13,
+                                1,
+                                TypedValue.COMPLEX_UNIT_SP,
+                            )
                             text = "—"
                         },
                     )
@@ -1216,26 +1264,56 @@ class OverlayService : Service() {
                 snapshot.lucroPercentual,
             )
         }
-        valores.forEachIndexed { index, valor ->
-            valorCompacta(metricas, index).text = valor
-        }
-        // R$/KM pela faixa; R$/HORA pela meta. Borda = a pior das duas.
         val tema = OverlayTema.de(this)
+        val escuro = tema.texto == Color.WHITE
+        val corLinha1 = if (escuro) Color.WHITE else Color.parseColor("#111111")
+        val corTitulo = if (escuro) Color.parseColor("#D0D0D0") else Color.parseColor("#4E4E4E")
+        val corValor = if (escuro) Color.WHITE else Color.parseColor("#111111")
+        val corBotao = if (escuro) Color.parseColor("#D0D0D0") else Color.parseColor("#9E9E9E")
+        val corMarcaBotao = if (escuro) Color.parseColor("#111111") else Color.WHITE
+        val corBarraLucro = if (escuro) Color.parseColor("#D0D0D0") else Color.parseColor("#4E4E4E")
+        val lucro = valores[3].let { if (it == "—") it else "$it%" }
+        valores.forEachIndexed { index, valor ->
+            val texto = if (index == 3) lucro else valor
+            valorCompacta(metricas, index).apply {
+                text = texto
+                setTextColor(corValor)
+                typeface = android.graphics.Typeface.DEFAULT_BOLD
+            }
+            (metricas.getChildAt(index) as LinearLayout).getChildAt(0).let { titulo ->
+                (titulo as TextView).apply {
+                    setTextColor(corTitulo)
+                    typeface = android.graphics.Typeface.DEFAULT_BOLD
+                }
+            }
+        }
         val corKm = if (aguardando) tema.borda else Color.parseColor(corBorda(snapshot))
         val corHora = if (aguardando) tema.borda else Color.parseColor(snapshot.corValorPorHora)
-        pintarMetrica(metricas, 0, corKm, if (aguardando) tema.texto else corKm)
-        pintarMetrica(metricas, 1, corHora, if (aguardando) tema.texto else corHora)
-        pintarMetrica(metricas, 2, tema.borda, tema.texto)
-        pintarMetrica(metricas, 3, tema.borda, tema.texto)
+        val corNota = if (aguardando) tema.borda else Color.parseColor(snapshot.corNota)
+        pintarMetrica(metricas, 0, corKm, corValor)
+        pintarMetrica(metricas, 1, corHora, corValor)
+        pintarMetrica(metricas, 2, corNota, corValor)
+        pintarMetrica(metricas, 3, corBarraLucro, corValor)
 
-        layout.findViewWithTag<TextView>("cmp_app")?.text =
-            snapshot.plataformaSigla.ifBlank { "" }
+        layout.findViewWithTag<TextView>("cmp_app")?.apply {
+            text = snapshot.plataformaSigla.ifBlank { "" }
+            setTextColor(corLinha1)
+            typeface = android.graphics.Typeface.DEFAULT_BOLD
+        }
         val tempo = snapshot.tempo.takeUnless { aguardando || it.isBlank() || it == "—" }.orEmpty()
         val km = snapshot.kmTotal.takeUnless { aguardando || it.isBlank() || it == "—" }
             ?.let { if (it.contains("km", ignoreCase = true)) it else "$it km" }
             .orEmpty()
-        layout.findViewWithTag<TextView>("cmp_linha")?.text =
-            listOf(tempo, km).filter { it.isNotBlank() }.joinToString(" · ")
+        val resumo = listOf(tempo, km).filter { it.isNotBlank() }.joinToString(" · ")
+        layout.findViewWithTag<TextView>("cmp_linha")?.apply {
+            text = resumo
+            setTextColor(corLinha1)
+            typeface = android.graphics.Typeface.DEFAULT_BOLD
+        }
+        layout.findViewWithTag<TextView>("cmp_fechar")?.apply {
+            setTextColor(corMarcaBotao)
+            (background as? GradientDrawable)?.setColor(corBotao)
+        }
 
         val paradas = snapshot.quantidadeParadas
         val linhaParadas = layout.findViewWithTag<LinearLayout>("linha_paradas")
@@ -1250,7 +1328,7 @@ class OverlayService : Service() {
         layout.contentDescription = "R\$ por km ${valores[0]}, R\$ por hora ${valores[1]}, " +
             "tempo ${valores[2]}, nota ${valores[3]}"
         val borda = if (aguardando) ClassificacaoConstantes.COR_BORDA_NEUTRA else snapshot.corBordaCompacta
-        layout.background = fundoPainel(borda, BORDA_COMPACTA_DP)
+        layout.background = fundoCompacta(borda)
     }
 
     private fun botaoCircular(simbolo: String, tamanho: Int = dp(36), onClick: () -> Unit): TextView {
@@ -1378,6 +1456,16 @@ class OverlayService : Service() {
         }
     }
 
+    private fun fundoCompacta(corBorda: String): GradientDrawable {
+        val escuro = OverlayTema.de(this).texto == Color.WHITE
+        val fundo = if (escuro) Color.argb(0xD4, 0x00, 0x00, 0x00) else Color.argb(0xD4, 0xFF, 0xFF, 0xFF)
+        return GradientDrawable().apply {
+            setColor(fundo)
+            setStroke(dp(BORDA_COMPACTA_DP), Color.parseColor(corBorda))
+            cornerRadius = dp(16).toFloat()
+        }
+    }
+
     private fun criarParams(
         x: Int,
         y: Int,
@@ -1443,18 +1531,6 @@ class OverlayService : Service() {
                 windowManager.removeViewImmediate(view)
             }
         }
-        runCatching { windowManager.addView(view, params) }
-    }
-
-    private fun trazerSeloParaFrente() {
-        val view = seloView ?: return
-        val params = seloParams ?: return
-        if (!view.isAttachedToWindow) {
-            return
-        }
-        view.visibility = View.VISIBLE
-        view.elevation = 56f
-        runCatching { windowManager.removeViewImmediate(view) }
         runCatching { windowManager.addView(view, params) }
     }
 
@@ -1581,10 +1657,7 @@ class OverlayService : Service() {
     private fun aplicarTamanhoCompacta(view: View, params: WindowManager.LayoutParams) {
         val insets = insetsSeguros()
         val larguraTela = windowManager.currentWindowMetrics.bounds.width() - insets.left - insets.right
-        // Referência: card da calculadora sobre o mapa deixa ~40% da largura livre
-        // (print de oferta) e fica na faixa curta de ~100 dp de altura. Teto 220 dp.
-        val livreParaMapa = larguraTela * 42 / 100
-        val max = minOf(dp(COMPACTA_LARGURA_MAX_DP), larguraTela - livreParaMapa).coerceAtLeast(dp(188))
+        val max = mm(42).coerceAtMost(larguraTela - dp(8))
         view.measure(
             View.MeasureSpec.makeMeasureSpec(max, View.MeasureSpec.EXACTLY),
             View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED),
@@ -1906,20 +1979,19 @@ class OverlayService : Service() {
     }
 
     private fun atualizarNotificacao(snapshot: OverlaySnapshot) {
-        if (!snapshot.monitorando || snapshot.notificacaoFechada) {
-            return
-        }
         val manager = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
-        manager.notify(NOTIFICACAO_ID, criarNotificacao(snapshot))
+        manager.notify(NOTIFICACAO_ID, criarNotificacaoMonitoramento())
+        if (ofertaNaBarra(snapshot)) {
+            manager.notify(NOTIFICACAO_OFERTA_ID, criarNotificacaoOferta(snapshot))
+        } else {
+            manager.cancel(NOTIFICACAO_OFERTA_ID)
+        }
     }
 
-    /** Tira o aviso da barra e mantém o serviço. O monitoramento não desliga. */
-    private fun removerNotificacaoMantendoServico() {
-        runCatching { stopForeground(STOP_FOREGROUND_DETACH) }
-        (getSystemService(NOTIFICATION_SERVICE) as NotificationManager).cancel(NOTIFICACAO_ID)
-    }
+    private fun ofertaNaBarra(snapshot: OverlaySnapshot): Boolean =
+        snapshot.monitorando && !snapshot.aguardandoOferta && snapshot.valorTotal != "—"
 
-    private fun criarNotificacao(snapshot: OverlaySnapshot = OverlaySnapshot()): Notification {
+    private fun criarNotificacaoMonitoramento(): Notification {
         val abrir = PendingIntent.getActivity(
             this,
             0,
@@ -1928,55 +2000,42 @@ class OverlayService : Service() {
                 .putExtra(MainActivity.EXTRA_ABRIR_OPCOES, true),
             PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
         )
-        val fecharApp = PendingIntent.getActivity(
-            this,
-            3,
-            Intent(this, MainActivity::class.java)
-                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP)
-                .putExtra(MainActivity.EXTRA_CONFIRMAR_FECHAR, true),
-            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
-        )
-        val fecharAviso = PendingIntent.getService(
-            this,
-            2,
-            Intent(this, OverlayService::class.java).setAction(ACAO_FECHAR_NOTIFICACAO),
-            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
-        )
-        val titulo: String
-        val texto: String
-        val detalhe: String
-        if (!snapshot.aguardandoOferta && snapshot.valorTotal != "—") {
-            titulo = "${snapshot.valorTotal} · ${snapshot.tempoHm} · ${snapshot.kmTotal}"
-            val numeros = "${soNumero(snapshot.valorPorKm)} · " +
-                "${soNumero(snapshot.lucroEstimado)} · ${snapshot.litrosEstimados} · ${snapshot.nota}"
-            texto = numeros
-            detalhe = "$titulo\nR$/km · Resultado · Consumo · Nota\n$numeros"
-        } else {
-            titulo = "Gestor Driver"
-            texto = "Monitorando ofertas"
-            detalhe = texto
-        }
         return NotificationCompat.Builder(this, CANAL_ID)
-            .setContentTitle(titulo)
-            .setContentText(texto)
-            .setStyle(NotificationCompat.BigTextStyle().bigText(detalhe))
+            .setContentTitle("Gestor Driver")
+            .setContentText("está monitorando o celular!")
+            .setStyle(
+                NotificationCompat.BigTextStyle()
+                    .bigText("Gestor Driver está monitorando o celular!"),
+            )
             .setSmallIcon(R.drawable.ic_stat_monitor)
             .setContentIntent(abrir)
-            .setDeleteIntent(fecharAviso)
-            .setOngoing(false)
+            .setOngoing(true)
             .setOnlyAlertOnce(true)
-            .addAction(0, "Abrir App", abrir)
-            .addAction(0, "Fechar App", fecharApp)
+            .build()
+    }
+
+    private fun criarNotificacaoOferta(snapshot: OverlaySnapshot): Notification {
+        val titulo = "${snapshot.valorTotal} · ${snapshot.tempoHm} · ${snapshot.kmTotal}"
+        val numeros = "${soNumero(snapshot.valorPorKm)} · " +
+            "${soNumero(snapshot.lucroEstimado)} · ${snapshot.litrosEstimados} · ${snapshot.nota}"
+        val detalhe = "$titulo\nR$/km · Resultado · Consumo · Nota\n$numeros"
+        return NotificationCompat.Builder(this, CANAL_ID)
+            .setContentTitle(titulo)
+            .setContentText(numeros)
+            .setStyle(NotificationCompat.BigTextStyle().bigText(detalhe))
+            .setSmallIcon(R.drawable.ic_stat_monitor)
+            .setOngoing(true)
+            .setOnlyAlertOnce(true)
             .build()
     }
 
     companion object {
         private const val CANAL_ID = "gestor_driver_monitoramento"
         private const val NOTIFICACAO_ID = 7101
-        private const val BORDA_COMPACTA_DP = 5
-        private const val SELO_DP = 48
+        private const val NOTIFICACAO_OFERTA_ID = 7102
+        private const val BORDA_COMPACTA_DP = 6
+        private const val SELO_DP = 52
         private const val LIXEIRA_DP = 96
-        private const val COMPACTA_LARGURA_MAX_DP = 220
         private const val PREFS_COMPACTA = "compacta_posicao"
         private const val PREF_COMPACTA_X = "x"
         private const val PREF_COMPACTA_Y = "y"

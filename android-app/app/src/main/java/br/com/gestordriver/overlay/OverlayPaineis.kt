@@ -41,6 +41,7 @@ import br.com.gestordriver.notification.Plataforma
 import br.com.gestordriver.notification.PlataformasMotorista
 import br.com.gestordriver.permission.PermissoesMonitoramento
 import br.com.gestordriver.presentation.PresentationBuilder
+import br.com.gestordriver.ui.DataInput
 import br.com.gestordriver.ui.DecimalInput
 import kotlin.math.abs
 
@@ -745,8 +746,9 @@ object OverlayPaineis {
                             setStroke(dp(context, 1), OverlayTema.de(context).borda)
                             cornerRadius = dp(context, 16).toFloat()
                         }
-                        setPadding(dp(context, 4), dp(context, 8), dp(context, 4), dp(context, 8))
-                        val fonte = if (itens.size >= 4) 10f else 11f
+                        val quatro = itens.size >= 4
+                        val fonte = if (quatro) 12f else 11f
+                        setPadding(dp(context, 4), dp(context, if (quatro) 12 else 8), dp(context, 4), dp(context, if (quatro) 12 else 8))
                         addView(TextView(context).apply {
                             text = titulo
                             setTextColor(OverlayTema.de(context).secundario)
@@ -765,7 +767,7 @@ object OverlayPaineis {
                         addView(TextView(context).apply {
                             text = valorCor.first
                             setTextColor(valorCor.second)
-                            textSize = if (itens.size >= 4) 11f else 13f
+                            textSize = if (itens.size >= 4) 14f else 13f
                             gravity = Gravity.CENTER
                             maxLines = 1
                             typeface = Typeface.DEFAULT_BOLD
@@ -1212,10 +1214,17 @@ object OverlayPaineis {
                     colhida.abastecimentoLitros,
                 ) != null
         fun persistir(aplicarAbastecimento: Boolean) {
-            val final = FaixasClassificacao.normalizar(
+            val normalizada = FaixasClassificacao.normalizar(
                 if (aplicarAbastecimento) colhida.aplicarCalculoAbastecimento() else colhida,
             )
+            val final = normalizada.copy(
+                oleoData = DataInput.formatar(normalizada.oleoData),
+                pneuDianteiroData = DataInput.formatar(normalizada.pneuDianteiroData),
+                pneuTraseiroData = DataInput.formatar(normalizada.pneuTraseiroData),
+                seguroData = DataInput.formatar(normalizada.seguroData),
+            )
             runCatching { app.configuracaoStore.salvar(final) }
+            reformatarCamposGet(raiz, final)
             rascunho = null
             OverlayBridge.emitir(OverlayAcao.SalvarConfig)
         }
@@ -1230,6 +1239,40 @@ object OverlayPaineis {
             .setNegativeButton("Não") { _, _ -> persistir(false) }
             .setNeutralButton("Cancelar", null)
             .show()
+    }
+
+    private fun reformatarCamposGet(raiz: View, config: ConfiguracaoUsuario) {
+        fun reais(tag: String, valor: Double) {
+            raiz.findViewWithTag<EditText>(tag)?.setText(DecimalInput.formatarReais(valor))
+        }
+        fun quantidade(tag: String, valor: Double) {
+            raiz.findViewWithTag<EditText>(tag)?.setText(DecimalInput.formatarQuantidade(valor))
+        }
+        fun data(tag: String, valor: String) {
+            raiz.findViewWithTag<EditText>(tag)?.setText(valor)
+        }
+        reais("cfg_ipva_valor", config.ipvaValor)
+        reais("cfg_abast_valor", config.abastecimentoValor)
+        reais("cfg_preco_g", config.precoGasolina)
+        reais("cfg_preco_e", config.precoEtanol)
+        reais("cfg_preco_energia", config.precoEnergia)
+        reais("cfg_oleo_valor", config.oleoValor)
+        reais("cfg_pneu_d_valor", config.pneuDianteiroValor)
+        reais("cfg_pneu_t_valor", config.pneuTraseiroValor)
+        reais("cfg_seguro_valor", config.seguroValor)
+        quantidade("cfg_consumo_g", config.consumoGasolina)
+        quantidade("cfg_consumo_e", config.consumoEtanol)
+        quantidade("cfg_consumo_energia", config.consumoEnergia)
+        quantidade("cfg_abast_litros", config.abastecimentoLitros)
+        quantidade("cfg_abast_km_ini", config.abastecimentoKmInicial)
+        quantidade("cfg_abast_km_fim", config.abastecimentoKmFinal)
+        quantidade("cfg_oleo_km", config.oleoKilometragem)
+        quantidade("cfg_pneu_d_km", config.pneuDianteiroRodagem)
+        quantidade("cfg_pneu_t_km", config.pneuTraseiroRodagem)
+        data("cfg_oleo_data", config.oleoData)
+        data("cfg_pneu_d_data", config.pneuDianteiroData)
+        data("cfg_pneu_t_data", config.pneuTraseiroData)
+        data("cfg_seguro_data", config.seguroData)
     }
 
     private fun adicionarAlertaOleo(
@@ -1642,7 +1685,7 @@ object OverlayPaineis {
                 campo(
                     ctx,
                     "IPVA R$",
-                    DecimalInput.formatar(config.ipvaValor),
+                    DecimalInput.formatarReais(config.ipvaValor),
                     "cfg_ipva_valor",
                     bloqueado = !planoPro,
                     compacto = true,
@@ -1671,9 +1714,9 @@ object OverlayPaineis {
         destino.addView(
             linha(
                 ctx,
-                campo(ctx, "Gasolina", DecimalInput.formatar(config.consumoGasolina), "cfg_consumo_g", compacto = true).first,
-                campo(ctx, "Etanol", DecimalInput.formatar(config.consumoEtanol), "cfg_consumo_e", compacto = true).first,
-                campo(ctx, "Energia", DecimalInput.formatar(config.consumoEnergia), "cfg_consumo_energia", compacto = true).first,
+                campo(ctx, "Gasolina", DecimalInput.formatarQuantidade(config.consumoGasolina), "cfg_consumo_g", compacto = true).first,
+                campo(ctx, "Etanol", DecimalInput.formatarQuantidade(config.consumoEtanol), "cfg_consumo_e", compacto = true).first,
+                campo(ctx, "Energia", DecimalInput.formatarQuantidade(config.consumoEnergia), "cfg_consumo_energia", compacto = true).first,
             ),
         )
         if (planoPro) {
@@ -1684,15 +1727,15 @@ object OverlayPaineis {
         destino.addView(
             linha(
                 ctx,
-                campo(ctx, "Valor R$", DecimalInput.formatar(config.abastecimentoValor), "cfg_abast_valor", bloqueado = !planoPro, compacto = true).first,
-                campo(ctx, "Quant. litros", DecimalInput.formatar(config.abastecimentoLitros), "cfg_abast_litros", bloqueado = !planoPro, compacto = true).first,
+                campo(ctx, "Valor R$", DecimalInput.formatarReais(config.abastecimentoValor), "cfg_abast_valor", bloqueado = !planoPro, compacto = true).first,
+                campo(ctx, "Quant. litros", DecimalInput.formatarQuantidade(config.abastecimentoLitros), "cfg_abast_litros", bloqueado = !planoPro, compacto = true).first,
             ),
         )
         destino.addView(
             linha(
                 ctx,
-                campo(ctx, "Km inicial", DecimalInput.formatar(config.abastecimentoKmInicial), "cfg_abast_km_ini", bloqueado = !planoPro, compacto = true).first,
-                campo(ctx, "Km final", DecimalInput.formatar(config.abastecimentoKmFinal), "cfg_abast_km_fim", bloqueado = !planoPro, compacto = true).first,
+                campo(ctx, "Km inicial", DecimalInput.formatarQuantidade(config.abastecimentoKmInicial), "cfg_abast_km_ini", bloqueado = !planoPro, compacto = true).first,
+                campo(ctx, "Km final", DecimalInput.formatarQuantidade(config.abastecimentoKmFinal), "cfg_abast_km_fim", bloqueado = !planoPro, compacto = true).first,
             ),
         )
     }
@@ -1715,9 +1758,9 @@ object OverlayPaineis {
         destino.addView(
             linha(
                 ctx,
-                campo(ctx, "R$ / L Gasolina", DecimalInput.formatar(config.precoGasolina), "cfg_preco_g").first,
-                campo(ctx, "R$ / L Etanol", DecimalInput.formatar(config.precoEtanol), "cfg_preco_e").first,
-                campo(ctx, "R$ / kWh", DecimalInput.formatar(config.precoEnergia), "cfg_preco_energia").first,
+                campo(ctx, "R$ / L Gasolina", DecimalInput.formatarReais(config.precoGasolina), "cfg_preco_g").first,
+                campo(ctx, "R$ / L Etanol", DecimalInput.formatarReais(config.precoEtanol), "cfg_preco_e").first,
+                campo(ctx, "R$ / kWh", DecimalInput.formatarReais(config.precoEnergia), "cfg_preco_energia").first,
             ),
         )
         destino.addView(
@@ -1774,8 +1817,8 @@ object OverlayPaineis {
         destino.addView(
             linha(
                 ctx,
-                campo(ctx, "Valor R$", DecimalInput.formatar(config.oleoValor), "cfg_oleo_valor", bloqueado = !planoPro, compacto = true).first,
-                campo(ctx, "Km", DecimalInput.formatar(config.oleoKilometragem), "cfg_oleo_km", bloqueado = !planoPro, compacto = true).first,
+                campo(ctx, "Valor R$", DecimalInput.formatarReais(config.oleoValor), "cfg_oleo_valor", bloqueado = !planoPro, compacto = true).first,
+                campo(ctx, "Km", DecimalInput.formatarQuantidade(config.oleoKilometragem), "cfg_oleo_km", bloqueado = !planoPro, compacto = true).first,
                 campo(ctx, "Data", config.oleoData, "cfg_oleo_data", bloqueado = !planoPro, compacto = true).first,
             ),
         )
@@ -1789,8 +1832,8 @@ object OverlayPaineis {
         destino.addView(
             linha(
                 ctx,
-                campo(ctx, "Valor R$", DecimalInput.formatar(config.pneuDianteiroValor), "cfg_pneu_d_valor", bloqueado = !planoPro, compacto = true).first,
-                campo(ctx, "Rodagem", DecimalInput.formatar(config.pneuDianteiroRodagem), "cfg_pneu_d_km", bloqueado = !planoPro, compacto = true).first,
+                campo(ctx, "Valor R$", DecimalInput.formatarReais(config.pneuDianteiroValor), "cfg_pneu_d_valor", bloqueado = !planoPro, compacto = true).first,
+                campo(ctx, "Rodagem", DecimalInput.formatarQuantidade(config.pneuDianteiroRodagem), "cfg_pneu_d_km", bloqueado = !planoPro, compacto = true).first,
                 campo(ctx, "Data", config.pneuDianteiroData, "cfg_pneu_d_data", bloqueado = !planoPro, compacto = true).first,
             ),
         )
@@ -1798,8 +1841,8 @@ object OverlayPaineis {
         destino.addView(
             linha(
                 ctx,
-                campo(ctx, "Valor R$", DecimalInput.formatar(config.pneuTraseiroValor), "cfg_pneu_t_valor", bloqueado = !planoPro, compacto = true).first,
-                campo(ctx, "Rodagem", DecimalInput.formatar(config.pneuTraseiroRodagem), "cfg_pneu_t_km", bloqueado = !planoPro, compacto = true).first,
+                campo(ctx, "Valor R$", DecimalInput.formatarReais(config.pneuTraseiroValor), "cfg_pneu_t_valor", bloqueado = !planoPro, compacto = true).first,
+                campo(ctx, "Rodagem", DecimalInput.formatarQuantidade(config.pneuTraseiroRodagem), "cfg_pneu_t_km", bloqueado = !planoPro, compacto = true).first,
                 campo(ctx, "Data", config.pneuTraseiroData, "cfg_pneu_t_data", bloqueado = !planoPro, compacto = true).first,
             ),
         )
@@ -1811,7 +1854,7 @@ object OverlayPaineis {
         destino.addView(
             linha(
                 ctx,
-                campo(ctx, "Valor do seguro", DecimalInput.formatar(config.seguroValor), "cfg_seguro_valor", bloqueado = !planoPro, compacto = true).first,
+                campo(ctx, "Valor do seguro", DecimalInput.formatarReais(config.seguroValor), "cfg_seguro_valor", bloqueado = !planoPro, compacto = true).first,
                 campo(ctx, "Data de vencimento", config.seguroData, "cfg_seguro_data", bloqueado = !planoPro, compacto = true).first,
             ),
         )

@@ -123,7 +123,7 @@ fun AppScreen(
                     )
                     else -> ConfiguracoesScreen(
                         viewModel = configuracoesViewModel,
-                        onVoltar = viewModel::voltarPelaBarra,
+                        onVoltar = { viewModel.voltarPelaBarra() },
                         abaInicial = state.abaConfiguracao,
                         destacarPermissoes = state.destacarPermissoes,
                         plano = state.plano,

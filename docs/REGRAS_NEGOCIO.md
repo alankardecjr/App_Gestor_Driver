@@ -6,7 +6,7 @@ FLUXOGRAMA_REGRAS_NEGOCIO.
 >
 > **Esta especificação deve ser utilizada como regra-base para as próximas etapas de desenvolvimento.**
 >
-> **Versão em foco: VS 2.3** (`2.3` / versionCode 15). Produto: **Free** (demo, calculadora oculta) e **Pro** (paga, tudo liberado). O Beta `1.1.10` permanece histórico. Ver seção 38 e `docs/ROTEIRO_VS_2.3.md`.
+> **Versão em foco: VS 2.3.2** (`2.3.2` / versionCode 24). Produto: **Free** (demo, calculadora oculta) e **Pro** (paga, tudo liberado). O Beta `1.1.10` permanece histórico. Ver seção 38 e `docs/ROTEIRO_VS_2.3.md`.
 >
 > **Roteiro atual:** `docs/ROTEIRO_VS_2.3.md`. O Pro 2.0 (`docs/ROTEIRO_PRO.md`) e a UI Beta congelada em 02/09/2026 (seção 43) permanecem como referência histórica.
 

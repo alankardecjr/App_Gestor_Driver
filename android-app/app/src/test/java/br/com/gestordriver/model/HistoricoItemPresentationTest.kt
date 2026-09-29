@@ -33,7 +33,7 @@ class HistoricoItemPresentationTest {
         assertEquals(4.98, item.notaPassageiro!!, 0.001)
         assertEquals(ClassificacaoVisual.EXCELENTE, item.classificacao)
         assertEquals("🟢", item.classificacao.marcador)
-        assertEquals("#2E7D32", item.corClassificacao)
+        assertEquals("#00C853", item.corClassificacao)
         assertEquals(3.2, item.kmAtePassageiro, 0.001)
         assertEquals(12.8, item.kmViagem, 0.001)
         assertEquals(1.28, item.combustivelEstimado!!, 0.01)

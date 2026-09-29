@@ -239,12 +239,13 @@ class AppViewModel(
             publicarOverlay()
         }
         if (onboardingStore.concluido() && SessaoMonitoramento.ligada()) {
+            val naLixeira = SessaoMonitoramento.seloNaLixeira()
             state = state.copy(
                 monitorando = true,
                 overlayAtivo = true,
                 notificacaoFechada = false,
-                seloFlutuante = true,
-                seloEscondido = false,
+                seloFlutuante = !naLixeira,
+                seloEscondido = naLixeira,
                 interfaceOculta = false,
                 configuracoesVisivel = true,
                 abaConfiguracao = -1,
@@ -265,7 +266,8 @@ class AppViewModel(
             return
         }
         SessaoMonitoramento.definir(true)
-        state = state.copy(notificacaoFechada = false)
+        SessaoMonitoramento.definirSeloNaLixeira(false)
+        state = state.copy(notificacaoFechada = false, seloEscondido = false)
         irParaSelo(enviarParaFundo = false)
     }
 
@@ -285,9 +287,14 @@ class AppViewModel(
                 concluirOnboarding()
                 return
             }
-            // O ícone abre a tela menu na aba Opções. O selo só existe com
-            // monitoramento ligado, e nesse caso continua no overlay.
-            abrirMenuOpcoes()
+            // Só a primeira abertura cai em Opções. Home, Recentes e qualquer
+            // retomada mantêm a aba que já estava na tela.
+            val jaTemTela = state.historicoVisivel ||
+                state.dashboardVisivel ||
+                state.configuracoesVisivel
+            if (!jaTemTela) {
+                abrirMenuOpcoes()
+            }
             return
         }
         val etapa = when {
@@ -378,7 +385,7 @@ class AppViewModel(
         publicarOverlay()
     }
 
-    /** Recentes e Home: a miniatura e a volta mostram o menu em Opções. */
+    /** Home e Recentes: sai do app e mantém a aba que estava aberta. */
     fun exibirOpcoesNosRecentes() {
         if (state.onboardingEtapa != OnboardingEtapa.NENHUMA) {
             return
@@ -389,24 +396,9 @@ class AppViewModel(
             desativarMonitoramento()
             return
         }
-        val monitorando = state.monitorando
-        val seloOculto = state.seloEscondido
-        state = state.copy(
-            estadoSalvo = null,
-            recentesConfig = false,
-            historicoVisivel = false,
-            dashboardVisivel = false,
-            configuracoesVisivel = true,
-            abaConfiguracao = -1,
-            confirmacaoFecharVisivel = false,
-            confirmacaoLimparHistoricoVisivel = false,
-            confirmacaoDesativarVisivel = false,
-            compactaTemporaria = false,
-            atalhosAbertos = false,
-            seloEscondido = seloOculto,
-            interfaceOculta = monitorando,
-            seloFlutuante = monitorando && !seloOculto,
-        )
+        if (state.atalhosAbertos) {
+            state = state.copy(atalhosAbertos = false)
+        }
         publicarOverlay()
     }
 
@@ -428,6 +420,7 @@ class AppViewModel(
             configuracoesVisivel = false,
             dashboardVisivel = false,
             atalhosAbertos = false,
+            estadoSalvo = null,
             corrida = state.corrida.copy(modo = ModoApresentacao.DETALHES),
         )
         publicarOverlay()
@@ -439,6 +432,7 @@ class AppViewModel(
             dashboardVisivel = true,
             configuracoesVisivel = false,
             historicoVisivel = false,
+            estadoSalvo = null,
         )
         publicarOverlay()
     }
@@ -552,6 +546,7 @@ class AppViewModel(
             monitorando = state.monitorando,
             seloOffsetX = state.seloOffsetX,
             seloOffsetY = state.seloOffsetY,
+            seloEscondido = state.seloEscondido,
             estadoSalvo = state.estadoSalvo,
             corridaAceita = state.corridaAceita,
             ultimaCorridaAceita = state.ultimaCorridaAceita,
@@ -640,6 +635,7 @@ class AppViewModel(
             monitorando = true,
             seloOffsetX = state.seloOffsetX,
             seloOffsetY = state.seloOffsetY,
+            seloEscondido = state.seloEscondido,
             estadoSalvo = state.estadoSalvo,
             corridaAceita = if (manterOferta) false else state.corridaAceita,
             ultimaCorridaAceita = state.ultimaCorridaAceita,
@@ -691,6 +687,7 @@ class AppViewModel(
             monitorando = true,
             seloOffsetX = state.seloOffsetX,
             seloOffsetY = state.seloOffsetY,
+            seloEscondido = state.seloEscondido,
             estadoSalvo = state.estadoSalvo,
             corridaAceita = false,
             ultimaCorridaAceita = state.ultimaCorridaAceita,
@@ -713,8 +710,8 @@ class AppViewModel(
             confirmacaoFecharVisivel = false,
             confirmacaoLimparHistoricoVisivel = false,
             seloFlutuante = false,
-            seloEscondido = false,
             interfaceOculta = false,
+            estadoSalvo = null,
             overlayAtivo = true,
             historicoDia = CalendarioApp.hoje(),
             calendarioPeriodo = CalendarioPeriodo.DIA,
@@ -763,7 +760,6 @@ class AppViewModel(
             destacarPermissoes = false,
             interfaceOculta = true,
             seloFlutuante = false,
-            seloEscondido = false,
             compactaTemporaria = false,
             overlayAtivo = true,
             corrida = state.corrida.copy(modo = ModoApresentacao.DETALHES),
@@ -801,6 +797,7 @@ class AppViewModel(
             monitorando = true,
             seloOffsetX = state.seloOffsetX,
             seloOffsetY = state.seloOffsetY,
+            seloEscondido = state.seloEscondido,
             estadoSalvo = state.estadoSalvo,
             corridaAceita = !state.ofertaAtiva,
             ultimaCorridaAceita = state.ultimaCorridaAceita,
@@ -935,11 +932,12 @@ class AppViewModel(
                 interfaceOculta = true,
                 overlayAtivo = true,
                 notificacaoDisponivel = true,
-                seloFlutuante = true,
+                seloFlutuante = !state.seloEscondido,
                 compactaTemporaria = false,
                 monitorando = true,
                 seloOffsetX = state.seloOffsetX,
                 seloOffsetY = state.seloOffsetY,
+            seloEscondido = state.seloEscondido,
                 estadoSalvo = state.estadoSalvo,
                 corridaAceita = false,
                 ultimaCorridaAceita = analise,
@@ -962,11 +960,12 @@ class AppViewModel(
                 interfaceOculta = true,
                 overlayAtivo = true,
                 notificacaoDisponivel = true,
-                seloFlutuante = true,
+                seloFlutuante = !state.seloEscondido,
                 compactaTemporaria = false,
                 monitorando = true,
                 seloOffsetX = state.seloOffsetX,
                 seloOffsetY = state.seloOffsetY,
+            seloEscondido = state.seloEscondido,
                 estadoSalvo = state.estadoSalvo,
                 corridaAceita = true,
                 ultimaCorridaAceita = analise,
@@ -1025,37 +1024,37 @@ class AppViewModel(
         ocultarInterface()
     }
 
-    fun voltarPelaBarra() {
-        if (!state.monitorando) {
-            return
+    /**
+     * Voltar do celular: um passo de cada vez até Opções.
+     * Em Opções devolve true para o app ir ao Home do celular, sem trocar a aba.
+     */
+    fun voltarPelaBarra(): Boolean {
+        if (state.onboardingEtapa != OnboardingEtapa.NENHUMA) {
+            return false
         }
         if (state.confirmacaoFecharVisivel) {
             cancelarFecharApp()
-            return
+            return false
         }
         if (state.confirmacaoLimparHistoricoVisivel) {
             cancelarLimparHistorico()
-            return
+            return false
+        }
+        if (state.confirmacaoDesativarVisivel) {
+            cancelarDesativarMonitoramento()
+            return false
         }
         val foraDeOpcoes = state.dashboardVisivel ||
             state.historicoVisivel ||
             (state.configuracoesVisivel && state.abaConfiguracao >= 0)
         if (foraDeOpcoes) {
             voltarParaOpcoes()
-            return
+            return false
         }
-        if (state.configuracoesVisivel) {
-            if (state.monitorando) {
-                recolherAoSairDoApp()
-            }
-            return
+        if (state.monitorando) {
+            menuSaiuDaFrente()
         }
-        val noMenu = state.corrida.modo == ModoApresentacao.DETALHES &&
-            !state.seloFlutuante &&
-            !state.seloEscondido
-        if (noMenu || state.ofertaAtiva || state.compactaTemporaria || !state.seloFlutuante) {
-            irParaSelo()
-        }
+        return true
     }
 
     fun aoAbrirRecentes() {
@@ -1070,26 +1069,26 @@ class AppViewModel(
         if (!state.monitorando) {
             return
         }
-        // Abrir App / voltar ao app com selo escondido no X → mostra o selo na última posição.
-        if (state.seloEscondido) {
-            irParaSelo()
+        val salvo = state.estadoSalvo
+        if (state.seloEscondido && salvo == null) {
+            publicarOverlay()
             return
         }
-        val salvo = state.estadoSalvo
         if (salvo == null) {
             publicarOverlay()
             _irParaSegundoPlano.tryEmit(Unit)
             return
         }
         cancelarCompactaTemporaria()
+        val escondido = state.seloEscondido || salvo.seloEscondido
         state = state.copy(
             estadoSalvo = null,
             recentesConfig = false,
             historicoVisivel = salvo.historicoVisivel,
             configuracoesVisivel = salvo.configuracoesVisivel,
             dashboardVisivel = salvo.dashboardVisivel,
-            seloFlutuante = salvo.seloFlutuante,
-            seloEscondido = salvo.seloEscondido,
+            seloFlutuante = salvo.seloFlutuante && !escondido,
+            seloEscondido = escondido,
             compactaTemporaria = salvo.compactaTemporaria,
             interfaceOculta = !(salvo.historicoVisivel || salvo.configuracoesVisivel || salvo.dashboardVisivel),
             overlayAtivo = true,
@@ -1134,7 +1133,6 @@ class AppViewModel(
             recentesConfig = false,
             interfaceOculta = true,
             seloFlutuante = false,
-            seloEscondido = false,
             overlayAtivo = true,
             corrida = state.corrida.copy(modo = ModoApresentacao.DETALHES),
         )
@@ -1181,6 +1179,7 @@ class AppViewModel(
             return
         }
         cancelarCompactaTemporaria()
+        SessaoMonitoramento.definirSeloNaLixeira(true)
         state = state.copy(
             seloEscondido = true,
             seloFlutuante = false,
@@ -1196,7 +1195,6 @@ class AppViewModel(
 
     fun abrirAtalhoConfig(indice: Int) {
         state = state.copy(
-            seloEscondido = false,
             seloFlutuante = false,
             interfaceOculta = false,
             overlayAtivo = true,
@@ -1205,6 +1203,7 @@ class AppViewModel(
             configuracoesVisivel = true,
             abaConfiguracao = indice.coerceIn(0, 3),
             atalhosAbertos = false,
+            estadoSalvo = null,
             corrida = state.corrida.copy(modo = ModoApresentacao.DETALHES),
         )
         publicarOverlay()
@@ -1216,7 +1215,6 @@ class AppViewModel(
         state = state.copy(
             interfaceOculta = true,
             seloFlutuante = false,
-            seloEscondido = false,
             compactaTemporaria = true,
             historicoVisivel = false,
             configuracoesVisivel = false,
@@ -1267,7 +1265,6 @@ class AppViewModel(
         state = state.copy(
             interfaceOculta = true,
             seloFlutuante = false,
-            seloEscondido = false,
             compactaTemporaria = false,
             overlayAtivo = true,
             monitorando = true,
@@ -1501,6 +1498,7 @@ class AppViewModel(
                 monitorando = true,
                 seloOffsetX = state.seloOffsetX,
                 seloOffsetY = state.seloOffsetY,
+            seloEscondido = state.seloEscondido,
                 estadoSalvo = state.estadoSalvo,
                 corridaAceita = false,
                 ultimaCorridaAceita = state.ultimaCorridaAceita,
@@ -1510,7 +1508,6 @@ class AppViewModel(
                 onboardingEtapa = state.onboardingEtapa,
                 tutorialPasso = state.tutorialPasso,
             ).copy(
-                seloEscondido = false,
                 dashboardVisivel = false,
             )
         publicarOverlay()
@@ -1556,6 +1553,7 @@ class AppViewModel(
                 monitorando = true,
                 seloOffsetX = state.seloOffsetX,
                 seloOffsetY = state.seloOffsetY,
+            seloEscondido = state.seloEscondido,
                 estadoSalvo = state.estadoSalvo,
                 corridaAceita = false,
                 ultimaCorridaAceita = state.ultimaCorridaAceita,
@@ -1578,11 +1576,12 @@ class AppViewModel(
                 interfaceOculta = true,
                 overlayAtivo = true,
                 notificacaoDisponivel = false,
-                seloFlutuante = true,
+                seloFlutuante = !state.seloEscondido,
                 compactaTemporaria = false,
                 monitorando = true,
                 seloOffsetX = state.seloOffsetX,
                 seloOffsetY = state.seloOffsetY,
+            seloEscondido = state.seloEscondido,
                 estadoSalvo = state.estadoSalvo,
                 corridaAceita = false,
                 ultimaCorridaAceita = state.ultimaCorridaAceita,
@@ -1598,11 +1597,12 @@ class AppViewModel(
 
     private fun irParaSelo(enviarParaFundo: Boolean = true) {
         cancelarCompactaTemporaria()
+        val escondido = state.seloEscondido
         state = state.copy(
             monitorando = true,
             overlayAtivo = true,
-            seloFlutuante = true,
-            seloEscondido = false,
+            seloFlutuante = !escondido,
+            seloEscondido = escondido,
             atalhosAbertos = false,
             compactaTemporaria = false,
             historicoVisivel = false,
@@ -1687,7 +1687,7 @@ class AppViewModel(
                         )
                 )
         val expandidaVisivel = painelAtalhos || expandidaLegado
-        val seloVisivel = baseFlutuante && !compactaVisivel && !menuNaFrente
+        val seloVisivel = baseFlutuante && !compactaVisivel && !menuNaFrente && !state.atalhosAbertos
         val analise = analiseExibida()
         val campos = state.corrida.camposCompactos.associate { it.id to it.valor }
         val detalhes = state.corrida.camposDetalhes.associate { it.id to it.valor }
@@ -1743,6 +1743,11 @@ class AppViewModel(
             SemaforoOferta.corPorDuasMarcas(analise?.valorPorHora, config.marcaHoraRuim, config.marcaHoraBoa)
         } else {
             SemaforoOferta.corPorFaixaHora(analise?.valorPorHora, config.metaGanhoHora)
+        }
+        val corNota = if (config.marcaNotaBoa > 0.0) {
+            SemaforoOferta.corPorDuasMarcas(analise?.notaPassageiro, config.marcaNotaRuim, config.marcaNotaBoa)
+        } else {
+            ClassificacaoConstantes.COR_BORDA_NEUTRA
         }
         OverlayBridge.publicar(
             OverlaySnapshot(
@@ -1811,6 +1816,7 @@ class AppViewModel(
                     state.corrida.corClassificacao
                 },
                 corValorPorHora = corHora,
+                corNota = corNota,
                 horaEstimada = analise?.corrida?.horaEstimada == true,
                 anunciarVoz = configuracaoStore.carregar().anunciarVoz,
                 rotuloClassificacao = state.corrida.classificacao.rotulo,

@@ -122,6 +122,28 @@ object OfertaTextoFiltro {
             normal.contains("sua tx de corridas")
     }
 
+    /** Resumo e histórico de ganhos da Uber. Não é card de corrida. */
+    fun ehTelaDeGanhos(texto: String): Boolean {
+        val normal = normalizar(texto)
+        val marcas = listOf(
+            "ganhos totais",
+            "histórico de ganhos",
+            "historico de ganhos",
+            "preço pago pelo usuário",
+            "preco pago pelo usuario",
+            "como calculamos as estatísticas",
+            "como calculamos as estatisticas",
+            "dinheiro recebido",
+        )
+        if (marcas.any { normal.contains(it) }) {
+            return true
+        }
+        val resumo = normal.contains("estatísticas") || normal.contains("estatisticas") ||
+            normal.contains("detalhamento")
+        val promocaoGanhos = normal.contains("promoções") || normal.contains("promocoes")
+        return resumo && promocaoGanhos
+    }
+
     fun pareceCardNovaOferta(texto: String): Boolean {
         if (ehTelaCancelamento(texto) || ehInterfaceGestor(texto)) {
             return false
@@ -185,7 +207,7 @@ object OfertaTextoFiltro {
         if (normal.isBlank()) {
             return true
         }
-        if (ehInterfaceGestor(texto)) {
+        if (ehInterfaceGestor(texto) || ehTelaDeGanhos(texto)) {
             return true
         }
         if (promocao.any { normal.contains(it) }) {
@@ -198,7 +220,7 @@ object OfertaTextoFiltro {
     }
 
     fun pareceOferta(texto: String): Boolean {
-        if (ehInterfaceGestor(texto)) {
+        if (ehInterfaceGestor(texto) || ehTelaDeGanhos(texto)) {
             return false
         }
         val normal = normalizar(texto)
@@ -223,7 +245,7 @@ object OfertaTextoFiltro {
     }
 
     fun temDadosParseaveis(texto: String): Boolean {
-        if (ehInterfaceGestor(texto) || ehMapaSemCard(texto)) {
+        if (ehInterfaceGestor(texto) || ehMapaSemCard(texto) || ehTelaDeGanhos(texto)) {
             return false
         }
         if (!NotificationPatterns.VALOR.containsMatchIn(texto)) {
