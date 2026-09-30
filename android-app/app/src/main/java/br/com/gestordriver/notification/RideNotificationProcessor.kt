@@ -11,6 +11,7 @@ open class RideNotificationProcessor(
     private val calculadora: CalculadoraCorrida? = null,
     private val configuracaoProvider: () -> ConfiguracaoUsuario = { ConfiguracaoUsuario.padrao() },
     private val ofertaEmAndamento: (String) -> Boolean = { OfertaSessao.chaveAtiva(it) },
+    private val permiteAceite: Boolean = true,
 ) {
     open fun processar(notification: NotificationData): RideNotificationEvent {
         if (!RideEventClassifier.pareceAceite(notification) &&
@@ -41,13 +42,16 @@ open class RideNotificationProcessor(
                 )
                 RideNotificationEvent.CorridaRecebida(
                     analise = analise,
-                    aceiteImediato = RideEventClassifier.pareceAceite(notification) &&
-                        !ofertaEmAndamento(notification.packageName),
+                    aceiteImediato = false,
                 )
             }
 
             TipoEventoCorrida.ACEITE_DETECTADO ->
-                RideNotificationEvent.CorridaAceita
+                if (permiteAceite) {
+                    RideNotificationEvent.CorridaAceita
+                } else {
+                    RideNotificationEvent.NotificacaoNaoReconhecida
+                }
 
             TipoEventoCorrida.IGNORADO ->
                 RideNotificationEvent.NotificacaoNaoReconhecida
@@ -71,6 +75,8 @@ open class RideNotificationProcessor(
         return try {
             parser.parseComPlataforma(notification)
         } catch (_: NotificationError) {
+            null
+        } catch (_: IllegalArgumentException) {
             null
         }
     }

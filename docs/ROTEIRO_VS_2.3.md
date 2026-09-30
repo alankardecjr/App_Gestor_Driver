@@ -81,6 +81,15 @@ Testes unitários: 230, sem falhas. A formatação dos campos acontece **ao salv
 - No card de resumo do histórico, embarque e destino mostram só a primeira linha. O detalhe da corrida permanece inteiro.
 - Ao salvar: `01052026` ou `010526` vira `01/05/2026`. `50` e `50.00` viram `50,00`. `50000` em R$ vira `50.000,00`. `5000` e `50000` em km ou km/L viram `5.000` e `50.000`. Data inválida fica como foi digitada. Zero continua em branco.
 
+## VS 2.3.3 — pronta para teste de rua
+
+`2.3.3` / versionCode 25. APK de debug: `dist/GestorDriver-VS-2.3.3.apk`. Instalada no celular de rua. A 2.3.2 permanece em Downloads.
+
+- Compacta com 46 mm de largura. R$/km e R$/hora com duas casas. Nota com duas casas (`4,99`). Lucro com uma casa e `%` (`85,7%`). Os títulos ficam sobre os números. Há espaço entre R$/hora e Nota. As cores dos números não mudam.
+- A compacta abre uma vez, mostra a oferta e some quando essa oferta expira, é recusada ou aceita. Com o monitoramento ligado, ela aparece mesmo com o selo na lixeira, as barras fechadas ou o motorista em outro aplicativo.
+- Fechar o selo, as barras de notificação e a aba do app nos Recentes desliga o monitoramento sem confirmação. Home, ou só abrir a tela de Recentes, não desliga. O botão Monitorar continua pedindo confirmação.
+- O histórico só grava depois do card da oferta e da tela de embarque. Notificação não grava corrida. Aplicativo fechado, ou aberto e desconectado (`Buscando`, `Ficar online`, `Ganhe R$`), não gera corrida. Sem quilometragem não entra. Taxa de parada não vira o valor da corrida. A foto da tela só é lida com o aplicativo da plataforma na frente.
+
 ## Status de implementação
 
 - [x] Bloco A — R$/hora (tempo total) — Kotlin + Python + testes.

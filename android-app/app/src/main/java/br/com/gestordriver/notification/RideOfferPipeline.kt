@@ -24,18 +24,24 @@ class RideOfferPipeline(
             is RideNotificationEvent.CorridaRecebida -> {
                 val assinatura = assinaturaDe(evento)
                 val pacote = notification.packageName
+                if (OfertaSessao.bloqueada(assinatura, pacote)) {
+                    diagnostico.registrar(notification, "OFERTA_ENCERRADA")
+                    return
+                }
                 if (OfertaSessao.aceiteDetectado(pacote)) {
-                    if (OfertaTextoFiltro.pareceCardNovaOferta(notification.fullText)) {
-                        OfertaSessao.limpar(pacote)
-                    } else {
+                    if (OfertaSessao.mesmaOferta(assinatura, pacote) ||
+                        !OfertaTextoFiltro.pareceCardNovaOferta(notification.fullText)
+                    ) {
                         diagnostico.registrar(notification, "POS_ACEITE")
                         return
                     }
+                    OfertaSessao.limpar(pacote)
                 }
                 if (OfertaSessao.chaveAtiva(pacote) &&
                     OfertaSessao.mesmaOferta(assinatura, pacote) &&
                     !evento.aceiteImediato
                 ) {
+                    OfertaSessao.confirmarViva()
                     diagnostico.registrar(notification, "OFERTA_IGUAL")
                     return
                 }
@@ -51,6 +57,10 @@ class RideOfferPipeline(
             }
 
             RideNotificationEvent.CorridaAceita -> {
+                if (!OfertaSessao.chaveAtiva(notification.packageName)) {
+                    diagnostico.registrar(notification, "ACEITE_SEM_OFERTA")
+                    return
+                }
                 if (OfertaSessao.aceiteDetectado(notification.packageName)) {
                     diagnostico.registrar(notification, "ACEITE_IGUAL")
                     return

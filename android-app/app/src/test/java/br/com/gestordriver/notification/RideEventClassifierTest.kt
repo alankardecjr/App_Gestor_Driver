@@ -17,13 +17,28 @@ class RideEventClassifierTest {
     }
 
     @Test
-    fun aceite_so_com_assinatura_explicita_sem_metricas() {
+    fun aceite_sem_oferta_na_sessao_e_ignorado() {
         val notification = NotificationData(
             packageName = "com.ubercab.driver",
             title = "Viagem aceita",
             text = "Dirija ate o passageiro",
         )
         val evento = RideEventClassifier.classificar(notification, ofertaParseavel = false)
+        assertEquals(TipoEventoCorrida.IGNORADO, evento)
+    }
+
+    @Test
+    fun aceite_explicito_grava_so_com_oferta_na_sessao() {
+        val notification = NotificationData(
+            packageName = "com.ubercab.driver",
+            title = "Viagem aceita",
+            text = "Dirija ate o passageiro",
+        )
+        val evento = RideEventClassifier.classificar(
+            notification,
+            ofertaParseavel = false,
+            ofertaEmAndamento = true,
+        )
         assertEquals(TipoEventoCorrida.ACEITE_DETECTADO, evento)
     }
 
@@ -54,7 +69,7 @@ class RideEventClassifierTest {
     }
 
     @Test
-    fun primeira_notificacao_com_aceite_mostra_oferta_e_grava() {
+    fun primeira_leitura_com_embarque_mostra_oferta_sem_gravar() {
         val notification = NotificationData(
             packageName = "com.ubercab.driver",
             title = "R$ 38,00 • 3,2 km • 12,8 km • 24 min",
@@ -65,7 +80,7 @@ class RideEventClassifierTest {
             ofertaParseavel = true,
             ofertaEmAndamento = false,
         )
-        assertEquals(TipoEventoCorrida.OFERTA_E_ACEITE, evento)
+        assertEquals(TipoEventoCorrida.NOVA_OFERTA, evento)
     }
 
     @Test
@@ -75,8 +90,29 @@ class RideEventClassifierTest {
             title = "Ponto de encontro",
             text = "Estou no local",
         )
-        val evento = RideEventClassifier.classificar(notification, ofertaParseavel = false)
+        val evento = RideEventClassifier.classificar(
+            notification,
+            ofertaParseavel = false,
+            ofertaEmAndamento = true,
+        )
         assertEquals(TipoEventoCorrida.ACEITE_DETECTADO, evento)
+    }
+
+    @Test
+    fun ponto_de_encontro_sozinho_nao_e_aceite() {
+        val notification = NotificationData(
+            packageName = "com.app99.driver",
+            title = "Mapa",
+            text = "Ponto de encontro\nChegar até o destino\nLocal de embarque",
+        )
+        assertEquals(
+            TipoEventoCorrida.IGNORADO,
+            RideEventClassifier.classificar(notification, ofertaParseavel = false),
+        )
+        assertEquals(
+            false,
+            RideEventClassifier.pareceAceite(notification),
+        )
     }
 
     @Test
@@ -86,7 +122,11 @@ class RideEventClassifierTest {
             title = "JARDIM TARUMA",
             text = "9 min 2,3 km\nChegue antes de 06:50",
         )
-        val evento = RideEventClassifier.classificar(notification, ofertaParseavel = false)
+        val evento = RideEventClassifier.classificar(
+            notification,
+            ofertaParseavel = false,
+            ofertaEmAndamento = true,
+        )
         assertEquals(TipoEventoCorrida.ACEITE_DETECTADO, evento)
     }
 
@@ -97,7 +137,11 @@ class RideEventClassifierTest {
             title = "",
             text = "9 min 2,3 km\nChegada prevista: 06:46",
         )
-        val evento = RideEventClassifier.classificar(notification, ofertaParseavel = false)
+        val evento = RideEventClassifier.classificar(
+            notification,
+            ofertaParseavel = false,
+            ofertaEmAndamento = true,
+        )
         assertEquals(TipoEventoCorrida.ACEITE_DETECTADO, evento)
     }
 
@@ -149,7 +193,11 @@ class RideEventClassifierTest {
         )
         assertEquals(
             TipoEventoCorrida.ACEITE_DETECTADO,
-            RideEventClassifier.classificar(notification, ofertaParseavel = false),
+            RideEventClassifier.classificar(
+                notification,
+                ofertaParseavel = false,
+                ofertaEmAndamento = true,
+            ),
         )
     }
 
@@ -162,7 +210,11 @@ class RideEventClassifierTest {
         )
         assertEquals(
             TipoEventoCorrida.ACEITE_DETECTADO,
-            RideEventClassifier.classificar(notification, ofertaParseavel = false),
+            RideEventClassifier.classificar(
+                notification,
+                ofertaParseavel = false,
+                ofertaEmAndamento = true,
+            ),
         )
     }
 }

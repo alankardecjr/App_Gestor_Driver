@@ -13,5 +13,6 @@ object ValidadorCorrida {
         validarValor(corrida.valorTotal)
         validarKm(corrida.kmAtePassageiro)
         validarKm(corrida.kmViagem)
+        require(corrida.kmTotal > 0.0) { "Corrida sem quilometragem." }
     }
 }

@@ -2,7 +2,7 @@
 
 Assistente Android para motoristas de Uber, 99 e inDrive. Lê a oferta (notificação + tela), calcula **R$/KM** e o custo da corrida, e mostra a decisão em um overlay sobre o mapa. **Não aceita a corrida** — o aceite continua no app da plataforma.
 
-**Linha ativa:** VS `2.3.2` (versionCode 24) · **Beta congelado:** `1.1.10` · sem Play Store · não afiliado às plataformas.
+**Linha ativa:** VS `2.3.3` (versionCode 25) · **Beta congelado:** `1.1.10` · sem Play Store · não afiliado às plataformas.
 
 | Plano | Papel |
 | --- | --- |
@@ -55,7 +55,7 @@ O núcleo de cálculo também existe em Python (`core/`, `tests/`) como referên
 3. Na primeira abertura, complete permissões, conta e tutorial (ou pule o tutorial).
 4. Teste Pro: [`docs/ROTEIRO_PRO.md`](docs/ROTEIRO_PRO.md). Referência Beta (congelada): [`docs/ROTEIRO_BETA.md`](docs/ROTEIRO_BETA.md).
 
-O APK de debug desta VS 2.3.2 fica em `dist/GestorDriver-VS-2.3.2.apk`.
+O APK de debug desta VS 2.3.3 fica em `dist/GestorDriver-VS-2.3.3.apk`.
 
 ```bash
 # núcleo (opcional)

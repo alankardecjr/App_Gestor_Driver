@@ -11,9 +11,18 @@ object OfertaSessao {
         var chave: String? = null,
         var aceite: Boolean = false,
         var assinatura: String? = null,
+        var encerrada: Boolean = false,
     )
 
     private val sessoes = ConcurrentHashMap<String, Estado>()
+    private var geracao = 0
+
+    fun geracao(): Int = geracao
+
+    /** A mesma oferta ainda está na tela. Cancela um sumiço pendente. */
+    fun confirmarViva() {
+        geracao++
+    }
 
     fun chaveAtiva(pacote: String = ""): Boolean {
         if (pacote.isNotBlank()) {
@@ -34,6 +43,28 @@ object OfertaSessao {
         val estado = sessoes.getOrPut(pacote.ifBlank { "_" }) { Estado() }
         estado.chave = chave
         estado.aceite = false
+        estado.encerrada = false
+    }
+
+    /** A oferta já foi encerrada. A mesma assinatura não reabre a compacta. */
+    fun bloqueada(assinatura: String, pacote: String = ""): Boolean {
+        val estado = sessoes[pacote.ifBlank { return false }] ?: return false
+        return estado.encerrada && estado.assinatura == assinatura
+    }
+
+    fun marcarEncerrada(pacote: String = "") {
+        geracao++
+        if (pacote.isBlank()) {
+            sessoes.values.forEach { estado ->
+                estado.encerrada = true
+                estado.chave = null
+            }
+            return
+        }
+        sessoes[pacote]?.let { estado ->
+            estado.encerrada = true
+            estado.chave = null
+        }
     }
 
     fun mesmaOferta(assinatura: String, pacote: String = ""): Boolean {

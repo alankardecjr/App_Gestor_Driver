@@ -24,6 +24,8 @@ object OfertaTextoFiltro {
         "fique online",
         "alerta de ganhos",
         "ganhos mais altos",
+        "ganhe r$",
+        "ganhe rs",
     )
 
     private val status = listOf(
@@ -39,6 +41,8 @@ object OfertaTextoFiltro {
         "continuar conectado",
         "política de cancelamento",
         "politica de cancelamento",
+        "buscando",
+        "ficar online",
     )
 
     private val oferta = listOf(
@@ -94,6 +98,10 @@ object OfertaTextoFiltro {
         "página inicial",
         "pagina inicial",
         "alta demanda aqui",
+        "buscando",
+        "ficar online",
+        "você está desconectado",
+        "voce esta desconectado",
     )
 
     fun ehInterfaceGestor(texto: String): Boolean {

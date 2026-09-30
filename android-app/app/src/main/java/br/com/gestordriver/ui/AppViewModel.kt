@@ -25,6 +25,7 @@ import br.com.gestordriver.model.ModoApresentacao
 import br.com.gestordriver.model.OnboardingEtapa
 import br.com.gestordriver.model.PlanoAcesso
 import br.com.gestordriver.model.TutorialConteudo
+import br.com.gestordriver.notification.OfertaSessao
 import br.com.gestordriver.notification.RideNotificationBus
 import br.com.gestordriver.notification.SessaoMonitoramento
 import br.com.gestordriver.notification.RideNotificationEvent
@@ -51,6 +52,7 @@ class AppViewModel(
 
     private val scope: CoroutineScope = coroutineScope ?: viewModelScope
     private var compactaTemporariaJob: Job? = null
+    private var sumicoCompactaJob: Job? = null
     private var estadoAntesFechar: AppState? = null
     private var estadoAntesLimparHistorico: AppState? = null
     private var ofertaParaHistorico: AnaliseCorrida? = null
@@ -132,6 +134,10 @@ class AppViewModel(
                     // ------------------------------------------------
 
                     is RideNotificationEvent.CorridaRecebida -> {
+                        if (!state.monitorando) {
+                            return@collect
+                        }
+                        sumicoCompactaJob?.cancel()
                         aplicarNovaCorrida(
                             evento.analise
                         )
@@ -148,6 +154,10 @@ class AppViewModel(
                     // ------------------------------------------------
 
                     RideNotificationEvent.CorridaAceita -> {
+                        if (!state.monitorando) {
+                            return@collect
+                        }
+                        sumicoCompactaJob?.cancel()
                         registrarAceiteCorrida()
                     }
 
@@ -156,7 +166,10 @@ class AppViewModel(
                     // ------------------------------------------------
 
                     RideNotificationEvent.CorridaExpirada -> {
-                        expirarOfertaAtual()
+                        if (!state.monitorando) {
+                            return@collect
+                        }
+                        agendarSumicoDaCompacta()
                     }
 
                     RideNotificationEvent.NotificacaoNaoReconhecida -> {
@@ -278,7 +291,6 @@ class AppViewModel(
         }
         state = state.copy(notificacaoFechada = true)
         publicarOverlay()
-        avaliarEncerramentoTotal()
     }
 
     fun avaliarInicio(permissoesOk: Boolean, temConta: Boolean) {
@@ -385,17 +397,13 @@ class AppViewModel(
         publicarOverlay()
     }
 
-    /** Home e Recentes: sai do app e mantém a aba que estava aberta. */
+    /** Home e a tela de Recentes: sai do app e mantém a aba. Não desliga o monitoramento. */
     fun exibirOpcoesNosRecentes() {
         if (state.onboardingEtapa != OnboardingEtapa.NENHUMA) {
             return
         }
         menuNaFrente = false
         menuEncerrado = true
-        if (state.monitorando && state.notificacaoFechada && state.seloEscondido) {
-            desativarMonitoramento()
-            return
-        }
         if (state.atalhosAbertos) {
             state = state.copy(atalhosAbertos = false)
         }
@@ -450,7 +458,9 @@ class AppViewModel(
         if (!state.monitorando) {
             return
         }
+        sumicoCompactaJob?.cancel()
         cancelarCompactaTemporaria()
+        OfertaSessao.marcarEncerrada()
         state = state.copy(ofertaAtiva = false, analiseAtual = null)
         irParaSelo()
     }
@@ -491,11 +501,13 @@ class AppViewModel(
      */
     fun desativarMonitoramento() {
         SessaoMonitoramento.definir(false)
+        sumicoCompactaJob?.cancel()
         cancelarCompactaTemporaria()
         state = state.copy(
             confirmacaoDesativarVisivel = false,
             monitorando = false,
             overlayAtivo = false,
+            ofertaAtiva = false,
             seloFlutuante = false,
             seloEscondido = false,
             atalhosAbertos = false,
@@ -905,6 +917,9 @@ class AppViewModel(
 
     fun registrarAceiteCorrida() {
         val analise = state.analiseAtual ?: ofertaParaHistorico ?: return
+        if (analise.kmTotal <= 0.0) {
+            return
+        }
         val aceiteEm = CalendarioApp.agora()
         val itemHistorico = PresentationBuilder.historicoDe(analise).copy(
             dataHoraRegistro = aceiteEm,
@@ -1190,7 +1205,6 @@ class AppViewModel(
             confirmacaoLimparHistoricoVisivel = false,
         )
         publicarOverlay()
-        avaliarEncerramentoTotal()
     }
 
     fun abrirAtalhoConfig(indice: Int) {
@@ -1644,17 +1658,18 @@ class AppViewModel(
     fun menuSaiuDaFrente() {
         menuNaFrente = false
         menuEncerrado = true
-        if (state.monitorando && state.notificacaoFechada && state.seloEscondido) {
-            desativarMonitoramento()
-            return
-        }
         publicarOverlay()
     }
 
-    private fun avaliarEncerramentoTotal() {
-        if (state.monitorando && state.notificacaoFechada && state.seloEscondido && menuEncerrado) {
-            desativarMonitoramento()
+    /**
+     * Selo na lixeira, aviso da barra fechado e a aba removida dos Recentes:
+     * desliga o monitoramento na hora, sem pedido de confirmação.
+     */
+    fun encerrarSeAbaRemovidaDosRecentes() {
+        if (!state.monitorando || !state.notificacaoFechada || !state.seloEscondido) {
+            return
         }
+        desativarMonitoramento()
     }
 
     private fun cancelarCompactaTemporaria() {
@@ -1662,13 +1677,37 @@ class AppViewModel(
         compactaTemporariaJob = null
     }
 
+    /**
+     * A compacta só some uma vez. Uma leitura vazia no meio da oferta
+     * não esconde a tela; se a mesma oferta continuar, o sumiço é cancelado.
+     */
+    private fun agendarSumicoDaCompacta() {
+        if (!state.monitorando || sumicoCompactaJob?.isActive == true) {
+            return
+        }
+        val geracao = OfertaSessao.geracao()
+        sumicoCompactaJob = scope.launch {
+            delay(SUMICO_COMPACTA_MS)
+            if (OfertaSessao.geracao() != geracao || !state.monitorando || !state.ofertaAtiva) {
+                return@launch
+            }
+            OfertaSessao.marcarEncerrada()
+            expirarOfertaAtual()
+        }
+    }
+
     private fun publicarOverlay() {
         val emOverlay = state.monitorando && state.overlayAtivo && state.interfaceOculta
         val baseFlutuante = state.monitorando && state.overlayAtivo && !state.seloEscondido
-        val compactaVisivel = emOverlay &&
+        // Oferta nova: a compacta aparece com o monitoramento ligado, mesmo com o
+        // selo na lixeira, o aviso fechado ou o usuário no Gestor ou em outro app.
+        val ofertaNaCompacta = state.monitorando && state.overlayAtivo && state.ofertaAtiva
+        val compactaTemporariaVisivel = emOverlay &&
             !state.seloEscondido &&
             state.corrida.modo != ModoApresentacao.DETALHES &&
-            (state.ofertaAtiva || state.compactaTemporaria)
+            state.compactaTemporaria &&
+            !state.ofertaAtiva
+        val compactaVisivel = ofertaNaCompacta || compactaTemporariaVisivel
         val confirmandoFechar = state.confirmacaoFecharVisivel
         val confirmandoLimpar = state.confirmacaoLimparHistoricoVisivel
         val painelAtalhos = baseFlutuante && state.atalhosAbertos && !compactaVisivel && !menuNaFrente
@@ -1910,5 +1949,6 @@ class AppViewModel(
         const val COMPACTA_TEMPORARIA_MS = 5_000L
         /** Recolher os detalhes sem oferta: a compacta volta ao selo. */
         const val COMPACTA_EXPIRA_MS = 1_000L
+        const val SUMICO_COMPACTA_MS = 1_600L
     }
 }

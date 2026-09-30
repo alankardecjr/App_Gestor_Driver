@@ -54,6 +54,38 @@ object DecimalInput {
         }
     }
 
+    /** Compacta: 1,8 e R$1,8 viram 1,80. "—" e "🔒" permanecem. */
+    fun formatarDuasCasasExibicao(texto: String): String {
+        val limpo = texto.replace("R$", "", ignoreCase = true).trim()
+        if (limpo.isEmpty() || limpo == "—" || limpo == "🔒") {
+            return limpo.ifEmpty { "—" }
+        }
+        val numero = parse(limpo) ?: return limpo
+        if (!numero.isFinite()) {
+            return "—"
+        }
+        if (numero == 0.0) {
+            return "0,00"
+        }
+        return formatarReais(numero)
+    }
+
+    /** Compacta: 85,71 e 85,7% viram 85,7. "—" e "🔒" permanecem. */
+    fun formatarUmaCasaExibicao(texto: String): String {
+        val limpo = texto.replace("%", "").replace("R$", "", ignoreCase = true).trim()
+        if (limpo.isEmpty() || limpo == "—" || limpo == "🔒") {
+            return limpo.ifEmpty { "—" }
+        }
+        val numero = parse(limpo) ?: return limpo
+        if (!numero.isFinite()) {
+            return "—"
+        }
+        val negativo = numero < 0.0
+        val decimos = kotlin.math.round(kotlin.math.abs(numero) * 10.0).toLong()
+        val textoCasa = "${decimos / 10},${decimos % 10}"
+        return if (negativo) "-$textoCasa" else textoCasa
+    }
+
     /** 50 → 50,00 e 50000 → 50.000,00. */
     fun formatarReais(valor: Double): String {
         if (!valor.isFinite() || valor == 0.0) {

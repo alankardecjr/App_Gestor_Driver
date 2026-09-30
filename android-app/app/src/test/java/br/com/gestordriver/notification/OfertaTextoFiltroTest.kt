@@ -148,6 +148,20 @@ class OfertaTextoFiltroTest {
     }
 
     @Test
+    fun home_99_desconectada_nao_e_oferta() {
+        val texto = """
+            Buscando
+            Ficar online
+            Ganhe R${'$'}1.500
+            99Abastece
+        """.trimIndent()
+        assertTrue(OfertaTextoFiltro.ehMapaSemCard(texto))
+        assertTrue(OfertaTextoFiltro.ehPromocaoOuStatus(texto))
+        assertFalse(OfertaTextoFiltro.pareceOferta(texto))
+        assertFalse(OfertaTextoFiltro.temDadosParseaveis(texto))
+    }
+
+    @Test
     fun card_uber_com_minutos_nao_e_mapa() {
         val texto = """
             R${'$'} 11,74

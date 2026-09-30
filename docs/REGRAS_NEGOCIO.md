@@ -6,7 +6,7 @@ FLUXOGRAMA_REGRAS_NEGOCIO.
 >
 > **Esta especificação deve ser utilizada como regra-base para as próximas etapas de desenvolvimento.**
 >
-> **Versão em foco: VS 2.3.2** (`2.3.2` / versionCode 24). Produto: **Free** (demo, calculadora oculta) e **Pro** (paga, tudo liberado). O Beta `1.1.10` permanece histórico. Ver seção 38 e `docs/ROTEIRO_VS_2.3.md`.
+> **Versão em foco: VS 2.3.3** (`2.3.3` / versionCode 25). Produto: **Free** (demo, calculadora oculta) e **Pro** (paga, tudo liberado). O Beta `1.1.10` permanece histórico. Ver seção 38 e `docs/ROTEIRO_VS_2.3.md`.
 >
 > **Roteiro atual:** `docs/ROTEIRO_VS_2.3.md`. O Pro 2.0 (`docs/ROTEIRO_PRO.md`) e a UI Beta congelada em 02/09/2026 (seção 43) permanecem como referência histórica.
 
@@ -226,7 +226,7 @@ A compacta **não** tem botões Fechar / Config / Ocultar / Histórico. `⬇️`
 
 **Toque fora da compacta → selo:** enquanto a barra compacta estiver visível — por oferta recém-detectada ou por retração a partir da expandida — um toque em qualquer região da tela que **não** pertença às janelas do Gestor Driver recolhe a interface **imediatamente** para o selo flutuante. O toque segue para o aplicativo da plataforma (Uber, 99 ou inDrive), liberando controles cobertos pela barra, em especial o recusar da 99. A oferta permanece em monitoramento. Toque **sobre** a compacta continua expandindo o painel.
 
-**Oferta expirada → selo na hora:** se a leitura da tela voltar ao mapa/home da plataforma (`Você está online/conectado/offline`, sem o par `N min (X km)` do card e sem `Aceitar`), a compacta some **na primeira leitura**. Não espera várias capturas. O botão **Aceitar** da oferta **não** grava histórico. Histórico só com assinatura de aceite real (ex.: `Aceitei por engano`, `local de partida`, ponto de encontro). Card Uber típico: valor `R$`, taxa `/km` ignorada, bônus `+R$` ignorado, nota `4,99 (165)`, embarque `5 min (1.2 km)` e destino `5 minutos (1.3 km)` — o destino muitas vezes só no OCR; nós da acessibilidade sozinhos não bastam.
+**Oferta expirada → selo na hora:** se a leitura da tela voltar ao mapa/home da plataforma (`Você está online/conectado/offline`, `Buscando`, `Ficar online`, sem o par `N min (X km)` do card e sem `Aceitar`), a compacta some. O botão **Aceitar** da oferta **não** grava histórico. O histórico só entra depois que o card da oferta já estava na tela e a leitura seguinte é a de embarque. Notificação com o aplicativo da plataforma fechado não grava corrida. Mapa desconectado e anúncio (`Ganhe R$`) não são oferta. Frase solta (`chegar até`, `local de embarque`, `ponto de encontro` sozinho) não é aceite. Corrida sem quilometragem não entra. A foto da tela só vale com o aplicativo da plataforma na frente. Card Uber típico: valor `R$`, taxa `/km` e taxa de parada ignoradas, bônus `+R$` ignorado, nota `4,99 (165)`, embarque `5 min (1.2 km)` e destino `5 minutos (1.3 km)`.
 
 8. Regra da corrida atual
 

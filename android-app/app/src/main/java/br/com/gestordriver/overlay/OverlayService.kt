@@ -9,6 +9,7 @@ import android.content.Context
 import android.content.Intent
 import android.graphics.Color
 import android.graphics.PixelFormat
+import android.graphics.Typeface
 import android.graphics.drawable.GradientDrawable
 import android.text.TextUtils
 import android.service.notification.NotificationListenerService
@@ -35,7 +36,9 @@ import androidx.core.app.NotificationCompat
 import br.com.gestordriver.MainActivity
 import br.com.gestordriver.R
 import br.com.gestordriver.core.ClassificacaoConstantes
+import br.com.gestordriver.ui.DecimalInput
 import br.com.gestordriver.notification.RideNotificationListenerService
+import br.com.gestordriver.notification.SessaoMonitoramento
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -79,7 +82,9 @@ class OverlayService : Service() {
     private var dashboardAberto = false
     private var confirmacaoAberto = false
     private val camadaHandler = Handler(Looper.getMainLooper())
-    private val atrasosReafirmarMs = longArrayOf(0L, 220L, 550L, 1100L)
+    private val fonteValorCompacta: Typeface by lazy {
+        Typeface.create(Typeface.SANS_SERIF, 900, false)
+    }
 
     override fun onBind(intent: Intent?): IBinder? = null
 
@@ -162,9 +167,9 @@ class OverlayService : Service() {
 
     override fun onTaskRemoved(rootIntent: Intent?) {
         val snap = OverlayBridge.snapshot.value
-        val seloAberto = snap.seloVisivel || snap.compactaVisivel || snap.expandidaVisivel ||
-            snap.historicoVisivel || snap.configuracoesVisivel || snap.dashboardVisivel
-        if (snap.monitorando && snap.notificacaoFechada && !seloAberto) {
+        val seloNaLixeira = SessaoMonitoramento.seloNaLixeira(this)
+        if (snap.monitorando && snap.notificacaoFechada && seloNaLixeira) {
+            SessaoMonitoramento.definir(false)
             OverlayBridge.desligarMonitoramentoNoSnapshot()
             OverlayBridge.emitir(OverlayAcao.DesativarMonitoramento)
             encerrarSemMonitoramento()
@@ -231,9 +236,11 @@ class OverlayService : Service() {
         seloView?.visibility = if (snapshot.seloVisivel) View.VISIBLE else View.INVISIBLE
         if (snapshot.compactaVisivel) {
             garantirCompacta(snapshot)
-            compactaView?.visibility = View.VISIBLE
+            if (compactaView?.visibility != View.VISIBLE) {
+                compactaView?.visibility = View.VISIBLE
+            }
             compactaView?.elevation = 48f
-        } else {
+        } else if (compactaView?.visibility != View.INVISIBLE) {
             compactaView?.visibility = View.INVISIBLE
             desligarToqueForaCompacta()
         }
@@ -1159,6 +1166,7 @@ class OverlayService : Service() {
         ).forEach { (titulo, barraGrossa) ->
             metricas.addView(criarColunaCompacta(titulo, barraGrossa))
         }
+        (metricas.getChildAt(2).layoutParams as LinearLayout.LayoutParams).marginStart = dp(8)
         (metricas.getChildAt(3).layoutParams as LinearLayout.LayoutParams).marginStart = dp(10)
         layout.addView(metricas)
         val paradasLinha = LinearLayout(this).apply {
@@ -1192,26 +1200,55 @@ class OverlayService : Service() {
     }
 
     private fun criarColunaCompacta(titulo: String, barraGrossa: Boolean): LinearLayout {
-        val peso = if (titulo == "Lucro") 1.15f else if (barraGrossa) 1.25f else 0.9f
+        val peso = when {
+            titulo == "Lucro" -> 0.85f
+            barraGrossa -> 1.85f
+            else -> 0.7f
+        }
+        val folgaTitulo = dp(if (barraGrossa) 8 else 3) + dp(4)
         return LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
-            gravity = Gravity.CENTER
+            gravity = Gravity.CENTER_HORIZONTAL
             layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, peso)
             addView(
-                TextView(this@OverlayService).apply {
-                    text = titulo
-                    setTextColor(OverlayTema.de(this@OverlayService).secundario)
-                    typeface = android.graphics.Typeface.DEFAULT_BOLD
-                    gravity = Gravity.CENTER
-                    maxLines = 1
-                    includeFontPadding = false
-                    setAutoSizeTextTypeUniformWithConfiguration(9, 12, 1, TypedValue.COMPLEX_UNIT_SP)
+                LinearLayout(this@OverlayService).apply {
+                    orientation = LinearLayout.HORIZONTAL
+                    layoutParams = LinearLayout.LayoutParams(
+                        LinearLayout.LayoutParams.MATCH_PARENT,
+                        LinearLayout.LayoutParams.WRAP_CONTENT,
+                    )
+                    addView(
+                        View(this@OverlayService).apply {
+                            layoutParams = LinearLayout.LayoutParams(folgaTitulo, 1)
+                        },
+                    )
+                    addView(
+                        TextView(this@OverlayService).apply {
+                            tag = "titulo"
+                            text = titulo
+                            setTextColor(OverlayTema.de(this@OverlayService).secundario)
+                            typeface = android.graphics.Typeface.DEFAULT_BOLD
+                            gravity = Gravity.CENTER
+                            maxLines = 1
+                            includeFontPadding = false
+                            layoutParams = LinearLayout.LayoutParams(
+                                0,
+                                LinearLayout.LayoutParams.WRAP_CONTENT,
+                                1f,
+                            )
+                            setAutoSizeTextTypeUniformWithConfiguration(9, 12, 1, TypedValue.COMPLEX_UNIT_SP)
+                        },
+                    )
                 },
             )
             addView(
                 LinearLayout(this@OverlayService).apply {
                     orientation = LinearLayout.HORIZONTAL
                     gravity = Gravity.CENTER
+                    layoutParams = LinearLayout.LayoutParams(
+                        LinearLayout.LayoutParams.MATCH_PARENT,
+                        LinearLayout.LayoutParams.WRAP_CONTENT,
+                    )
                     addView(
                         View(this@OverlayService).apply {
                             tag = "barra"
@@ -1220,8 +1257,8 @@ class OverlayService : Service() {
                                 cornerRadius = dp(2).toFloat()
                             }
                             layoutParams = LinearLayout.LayoutParams(
-                                dp(if (barraGrossa) 6 else 3),
-                                dp(18),
+                                dp(if (barraGrossa) 8 else 3),
+                                dp(if (barraGrossa) 24 else 18),
                             ).apply {
                                 marginEnd = dp(4)
                             }
@@ -1231,14 +1268,19 @@ class OverlayService : Service() {
                         TextView(this@OverlayService).apply {
                             tag = "valor"
                             setTextColor(OverlayTema.de(this@OverlayService).texto)
-                            typeface = android.graphics.Typeface.DEFAULT_BOLD
+                            typeface = fonteValorCompacta
                             gravity = Gravity.CENTER
                             maxLines = 1
                             includeFontPadding = false
                             ellipsize = null
+                            layoutParams = if (barraGrossa) {
+                                LinearLayout.LayoutParams(0, dp(28), 1f)
+                            } else {
+                                LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+                            }
                             setAutoSizeTextTypeUniformWithConfiguration(
-                                10,
-                                if (barraGrossa) 16 else 13,
+                                if (barraGrossa) 20 else 11,
+                                if (barraGrossa) 26 else 14,
                                 1,
                                 TypedValue.COMPLEX_UNIT_SP,
                             )
@@ -1258,10 +1300,10 @@ class OverlayService : Service() {
             listOf("—", "—", "—", "—")
         } else {
             listOf(
-                soNumero(snapshot.valorPorKm),
-                soNumero(snapshot.valorPorHora),
-                snapshot.nota,
-                snapshot.lucroPercentual,
+                DecimalInput.formatarDuasCasasExibicao(snapshot.valorPorKm),
+                DecimalInput.formatarDuasCasasExibicao(snapshot.valorPorHora),
+                DecimalInput.formatarDuasCasasExibicao(snapshot.nota),
+                DecimalInput.formatarUmaCasaExibicao(snapshot.lucroPercentual),
             )
         }
         val tema = OverlayTema.de(this)
@@ -1278,13 +1320,11 @@ class OverlayService : Service() {
             valorCompacta(metricas, index).apply {
                 text = texto
                 setTextColor(corValor)
-                typeface = android.graphics.Typeface.DEFAULT_BOLD
+                typeface = fonteValorCompacta
             }
-            (metricas.getChildAt(index) as LinearLayout).getChildAt(0).let { titulo ->
-                (titulo as TextView).apply {
-                    setTextColor(corTitulo)
-                    typeface = android.graphics.Typeface.DEFAULT_BOLD
-                }
+            metricas.getChildAt(index).findViewWithTag<TextView>("titulo")?.apply {
+                setTextColor(corTitulo)
+                typeface = android.graphics.Typeface.DEFAULT_BOLD
             }
         }
         val corKm = if (aguardando) tema.borda else Color.parseColor(corBorda(snapshot))
@@ -1507,32 +1547,9 @@ class OverlayService : Service() {
         params.flags = flagsJanela(focavel) or fora
     }
 
-    private fun agendarCompactaNaFrente() {
-        cancelarCompactaNaFrente()
-        atrasosReafirmarMs.forEach { atraso ->
-            camadaHandler.postDelayed({ trazerCompactaParaFrente() }, atraso)
-        }
-    }
+    private fun agendarCompactaNaFrente() = Unit
 
-    private fun cancelarCompactaNaFrente() {
-        camadaHandler.removeCallbacksAndMessages(null)
-    }
-
-    private fun trazerCompactaParaFrente() {
-        if (!OverlayBridge.snapshot.value.compactaVisivel) {
-            return
-        }
-        val view = compactaView ?: return
-        val params = compactaParams ?: return
-        view.visibility = View.VISIBLE
-        view.elevation = 48f
-        runCatching {
-            if (view.isAttachedToWindow) {
-                windowManager.removeViewImmediate(view)
-            }
-        }
-        runCatching { windowManager.addView(view, params) }
-    }
+    private fun cancelarCompactaNaFrente() = Unit
 
     private fun aplicarFlagsToqueFora(params: WindowManager.LayoutParams, ativo: Boolean) {
         params.flags = if (ativo) {
@@ -1657,7 +1674,7 @@ class OverlayService : Service() {
     private fun aplicarTamanhoCompacta(view: View, params: WindowManager.LayoutParams) {
         val insets = insetsSeguros()
         val larguraTela = windowManager.currentWindowMetrics.bounds.width() - insets.left - insets.right
-        val max = mm(42).coerceAtMost(larguraTela - dp(8))
+        val max = mm(46).coerceAtMost(larguraTela - dp(8))
         view.measure(
             View.MeasureSpec.makeMeasureSpec(max, View.MeasureSpec.EXACTLY),
             View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED),

@@ -97,4 +97,22 @@ class RideOfferPipelineTest {
         assertEquals(listOf("OFERTA", "IGNORADA_UI"), eventos)
         OfertaSessao.limpar()
     }
+
+    @Test
+    fun aceite_sem_oferta_ativa_nao_publica() {
+        OfertaSessao.limpar()
+        val eventos = mutableListOf<String>()
+        val pipeline = RideOfferPipeline(
+            processor = object : RideNotificationProcessor() {
+                override fun processar(notification: NotificationData) =
+                    RideNotificationEvent.CorridaAceita
+            },
+            diagnostico = RegistroDiagnostico { _, evento -> eventos.add(evento) },
+        )
+        pipeline.processar(
+            NotificationData("com.app99.driver", "99", "Estou no local"),
+        )
+        assertEquals(listOf("ACEITE_SEM_OFERTA"), eventos)
+        OfertaSessao.limpar()
+    }
 }

@@ -1,6 +1,7 @@
 package br.com.gestordriver.notification
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import br.com.gestordriver.core.CalculadoraCorrida
@@ -310,11 +311,11 @@ class RideNotificationProcessorTest {
                 text = "Dirija ate o passageiro",
             ),
         )
-        assertTrue(evento is RideNotificationEvent.CorridaAceita)
+        assertTrue(evento is RideNotificationEvent.NotificacaoNaoReconhecida)
     }
 
     @Test
-    fun oferta_com_texto_de_aceite_marca_aceite_imediato() {
+    fun oferta_com_texto_de_aceite_nao_grava_na_primeira_leitura() {
         val processor = RideNotificationProcessor()
         val evento = processor.processar(
             NotificationData(
@@ -324,7 +325,49 @@ class RideNotificationProcessorTest {
             ),
         )
         val recebida = evento as RideNotificationEvent.CorridaRecebida
-        assertTrue(recebida.aceiteImediato)
+        assertFalse(recebida.aceiteImediato)
+    }
+
+    @Test
+    fun valor_sem_km_nao_vira_oferta() {
+        val processor = RideNotificationProcessor()
+        val evento = processor.processar(
+            NotificationData(
+                packageName = "com.app99.driver",
+                title = "99",
+                text = "R$ 54,00",
+            ),
+        )
+        assertTrue(evento is RideNotificationEvent.NotificacaoNaoReconhecida)
+    }
+
+    @Test
+    fun taxa_de_parada_nao_vira_valor_da_corrida() {
+        val texto = """
+            R${'$'} 12,40
+            R${'$'}2,89/km
+            Taxa de parada de R${'$'}0,70 inclusa
+            R${'$'}2,12 Tarifa base
+            7 min (1,2 km)
+            11 min (3 km)
+        """.trimIndent()
+        assertEquals(12.40, NotificationExtractor.extrairValor(texto), 0.001)
+    }
+
+    @Test
+    fun notificacao_nao_grava_aceite_mesmo_com_oferta_na_sessao() {
+        val processor = RideNotificationProcessor(
+            ofertaEmAndamento = { true },
+            permiteAceite = false,
+        )
+        val evento = processor.processar(
+            NotificationData(
+                packageName = "com.app99.driver",
+                title = "99",
+                text = "Estou no local\nLigar para o passageiro",
+            ),
+        )
+        assertTrue(evento is RideNotificationEvent.NotificacaoNaoReconhecida)
     }
 
     @Test

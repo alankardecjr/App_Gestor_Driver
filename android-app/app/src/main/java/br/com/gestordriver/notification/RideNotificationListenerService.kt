@@ -14,6 +14,7 @@ class RideNotificationListenerService : NotificationListenerService() {
             configuracaoProvider = {
                 (application as GestorDriverApp).configuracaoStore.carregar()
             },
+            permiteAceite = false,
         )
     }
 
@@ -45,6 +46,9 @@ class RideNotificationListenerService : NotificationListenerService() {
     }
 
     private fun processarSeguro(sbn: StatusBarNotification) {
+        if (!SessaoMonitoramento.ligada(this)) {
+            return
+        }
         if (!PlatformDetector.ehSuportada(sbn.packageName.orEmpty())) {
             return
         }
@@ -75,9 +79,11 @@ class RideNotificationListenerService : NotificationListenerService() {
     }
 
     override fun onNotificationRemoved(sbn: StatusBarNotification?) {
+        if (!SessaoMonitoramento.ligada(this)) {
+            return
+        }
         val chave = sbn?.key ?: return
         if (OfertaSessao.deveExpirar(chave)) {
-            OfertaSessao.limparPorChave(chave)
             RideNotificationBus.publish(RideNotificationEvent.CorridaExpirada)
         }
     }

@@ -2,6 +2,8 @@ package br.com.gestordriver.ui
 
 import br.com.gestordriver.model.ModoApresentacao
 import br.com.gestordriver.model.PlanoAcesso
+import br.com.gestordriver.notification.RideNotificationBus
+import br.com.gestordriver.notification.RideNotificationEvent
 import br.com.gestordriver.overlay.OverlayAcao
 import br.com.gestordriver.overlay.OverlayBridge
 import kotlinx.coroutines.CoroutineScope
@@ -911,7 +913,7 @@ class AppViewModelTest {
     }
 
     @Test
-    fun home_mantem_selo_escondido_e_desliga_se_o_aviso_tambem_fechou() {
+    fun home_mantem_monitoramento_com_selo_e_aviso_fechados() {
         val viewModel = novoViewModel()
         viewModel.iniciarMonitoramento()
         viewModel.esconderSeloManterMonitor()
@@ -919,24 +921,41 @@ class AppViewModelTest {
         assertTrue(viewModel.state.monitorando)
         assertTrue(viewModel.state.seloEscondido)
         assertFalse(OverlayBridge.snapshot.value.seloVisivel)
-        assertFalse(viewModel.state.configuracoesVisivel)
 
         viewModel.fecharNotificacao()
-        assertFalse(viewModel.state.monitorando)
+        assertTrue(viewModel.state.monitorando)
+        assertFalse(viewModel.state.confirmacaoDesativarVisivel)
     }
 
     @Test
-    fun home_com_aviso_e_selo_fechados_desliga_monitoramento() {
+    fun remover_aba_dos_recentes_desliga_sem_confirmacao() {
         val viewModel = novoViewModel()
         viewModel.iniciarMonitoramento()
         viewModel.fecharNotificacao()
         viewModel.esconderSeloManterMonitor()
+        viewModel.exibirOpcoesNosRecentes()
         assertTrue(viewModel.state.monitorando)
 
-        viewModel.exibirOpcoesNosRecentes()
+        viewModel.encerrarSeAbaRemovidaDosRecentes()
         assertFalse(viewModel.state.monitorando)
+        assertFalse(viewModel.state.confirmacaoDesativarVisivel)
         assertTrue(viewModel.state.configuracoesVisivel)
         assertEquals(-1, viewModel.state.abaConfiguracao)
+    }
+
+    @Test
+    fun remover_aba_sem_selo_ou_sem_aviso_mantem_monitoramento() {
+        val soAviso = novoViewModel()
+        soAviso.iniciarMonitoramento()
+        soAviso.fecharNotificacao()
+        soAviso.encerrarSeAbaRemovidaDosRecentes()
+        assertTrue(soAviso.state.monitorando)
+
+        val soSelo = novoViewModel()
+        soSelo.iniciarMonitoramento()
+        soSelo.esconderSeloManterMonitor()
+        soSelo.encerrarSeAbaRemovidaDosRecentes()
+        assertTrue(soSelo.state.monitorando)
     }
 
     @Test
@@ -978,6 +997,53 @@ class AppViewModelTest {
         assertTrue(viewModel.state.dashboardVisivel)
         viewModel.avaliarInicio(permissoesOk = true, temConta = true)
         assertTrue(viewModel.state.dashboardVisivel)
+    }
+
+    @Test
+    fun sem_monitoramento_oferta_nao_abre_compacta() {
+        val viewModel = novoViewModel()
+        viewModel.iniciarMonitoramento()
+        viewModel.aplicarNovaCorrida(analiseFake())
+        assertTrue(OverlayBridge.snapshot.value.compactaVisivel)
+
+        viewModel.desativarMonitoramento()
+        assertFalse(viewModel.state.monitorando)
+        assertFalse(viewModel.state.ofertaAtiva)
+        assertFalse(OverlayBridge.snapshot.value.compactaVisivel)
+
+        RideNotificationBus.publish(
+            RideNotificationEvent.CorridaRecebida(analiseFake()),
+        )
+        assertFalse(viewModel.state.monitorando)
+        assertFalse(viewModel.state.ofertaAtiva)
+        assertFalse(OverlayBridge.snapshot.value.compactaVisivel)
+    }
+
+    @Test
+    fun oferta_aparece_com_selo_na_lixeira_aviso_fechado_e_app_aberto() {
+        val viewModel = novoViewModel()
+        viewModel.iniciarMonitoramento()
+        viewModel.fecharNotificacao()
+        viewModel.esconderSeloManterMonitor()
+        viewModel.abrirHistoricoNoMenu()
+        assertTrue(viewModel.state.monitorando)
+        assertTrue(viewModel.state.seloEscondido)
+        assertTrue(viewModel.state.notificacaoFechada)
+        assertFalse(viewModel.state.interfaceOculta)
+
+        viewModel.aplicarNovaCorrida(analiseFake())
+        assertTrue(viewModel.state.monitorando)
+        assertTrue(viewModel.state.ofertaAtiva)
+        assertTrue(OverlayBridge.snapshot.value.compactaVisivel)
+        assertFalse(OverlayBridge.snapshot.value.seloVisivel)
+        assertTrue(OverlayBridge.snapshot.value.valorTotal.any { it.isDigit() })
+        assertTrue(OverlayBridge.snapshot.value.kmTotal.any { it.isDigit() })
+        assertTrue(OverlayBridge.snapshot.value.valorPorHora.any { it.isDigit() })
+
+        viewModel.registrarAceiteCorrida()
+        assertFalse(viewModel.state.ofertaAtiva)
+        assertFalse(OverlayBridge.snapshot.value.compactaVisivel)
+        assertTrue(viewModel.state.seloEscondido)
     }
 
     @Test

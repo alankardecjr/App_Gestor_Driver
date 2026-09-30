@@ -32,7 +32,7 @@ object NotificationExtractor {
                 return@firstOrNull false
             }
             val apos = sufixoImediato(texto, candidato.range.last + 1)
-            !ehTaxaPorKm(apos) && !ehTarifaBase(apos)
+            !ehTaxaPorKm(apos) && !ehTarifaBase(apos) && !ehTaxaAcessoria(texto, candidato.range.first)
         } ?: throw ExtractionError("Valor da corrida nao encontrado.")
         return normalizarNumero(match.groupValues[1])
     }
@@ -255,5 +255,12 @@ object NotificationExtractor {
     private fun ehTarifaBase(apos: String): Boolean {
         val normal = apos.lowercase()
         return "tarifa" in normal || "dinâmica incl" in normal || "dinamica incl" in normal
+    }
+
+    private fun ehTaxaAcessoria(texto: String, inicio: Int): Boolean {
+        val linhaInicio = texto.lastIndexOf('\n', inicio - 1).let { if (it < 0) 0 else it + 1 }
+        val linhaFim = texto.indexOf('\n', inicio).let { if (it < 0) texto.length else it }
+        val linha = texto.substring(linhaInicio, linhaFim).lowercase()
+        return "taxa de parada" in linha || "tarifa base" in linha
     }
 }

@@ -104,6 +104,11 @@ class RideScreenReaderService : AccessibilityService() {
     }
 
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {
+        if (!SessaoMonitoramento.ligada(this)) {
+            handler.removeCallbacks(poll)
+            disableSelf()
+            return
+        }
         val pacote = event?.packageName?.toString().orEmpty()
         val classe = event?.className?.toString().orEmpty()
         val janelaMudou = event?.eventType == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED ||
@@ -145,6 +150,11 @@ class RideScreenReaderService : AccessibilityService() {
     }
 
     private fun agendarLeitura() {
+        if (!SessaoMonitoramento.ligada(this)) {
+            handler.removeCallbacks(poll)
+            disableSelf()
+            return
+        }
         if (OverlayBridge.leituraPausada()) {
             return
         }
@@ -159,7 +169,7 @@ class RideScreenReaderService : AccessibilityService() {
                 val captura = capturarNosNaMain()
                 if (captura != null) {
                     leituraExecutor.execute {
-                        decidirAposNos(captura.first, captura.second)
+                        decidirAposNos(captura)
                     }
                 }
             } finally {
@@ -168,9 +178,25 @@ class RideScreenReaderService : AccessibilityService() {
         }
     }
 
-    private fun capturarNosNaMain(): Pair<String, String>? {
-        val partes = linkedSetOf<String>()
-        var pacotePlataforma = ""
+    private data class CapturaTela(
+        val pacote: String,
+        val texto: String,
+        val podeOcr: Boolean,
+    )
+
+    private fun capturarNosNaMain(): CapturaTela? {
+        val pacoteFrente = runCatching {
+            val raiz = rootInActiveWindow ?: return@runCatching ""
+            try {
+                raiz.packageName?.toString().orEmpty()
+            } finally {
+                raiz.recycle()
+            }
+        }.getOrDefault("")
+        var pacoteAtivo = ""
+        var textoAtivo = ""
+        var pacoteFundo = ""
+        var textoFundo = ""
         runCatching {
             windows?.forEach { janela ->
                 if (janela.type != AccessibilityWindowInfo.TYPE_APPLICATION) {
@@ -182,24 +208,38 @@ class RideScreenReaderService : AccessibilityService() {
                     if (!PlatformDetector.ehSuportada(pacote)) {
                         return@forEach
                     }
-                    pacotePlataforma = pacote
+                    val partes = linkedSetOf<String>()
                     coletar(raiz, partes, 0)
+                    val texto = partes.joinToString("\n")
+                    val naFrente = pacote == pacoteFrente || janela.isActive || janela.isFocused
+                    if (naFrente) {
+                        pacoteAtivo = pacote
+                        textoAtivo = texto
+                    } else if (pacoteFundo.isBlank()) {
+                        pacoteFundo = pacote
+                        textoFundo = texto
+                    }
                 } finally {
                     raiz.recycle()
                 }
             }
         }
-        if (pacotePlataforma.isBlank()) {
-            return null
+        if (pacoteAtivo.isNotBlank()) {
+            return CapturaTela(pacoteAtivo, textoAtivo, podeOcr = true)
         }
-        return pacotePlataforma to partes.joinToString("\n")
+        if (pacoteFundo.isNotBlank() && textoFundo.isNotBlank()) {
+            return CapturaTela(pacoteFundo, textoFundo, podeOcr = false)
+        }
+        return null
     }
 
-    private fun decidirAposNos(pacote: String, textoNos: String) {
-        runCatching { decidirAposNosInterno(pacote, textoNos) }
+    private fun decidirAposNos(captura: CapturaTela) {
+        runCatching { decidirAposNosInterno(captura) }
     }
 
-    private fun decidirAposNosInterno(pacote: String, textoNos: String) {
+    private fun decidirAposNosInterno(captura: CapturaTela) {
+        val pacote = captura.pacote
+        val textoNos = captura.texto
         val temDados = OfertaTextoFiltro.temDadosParseaveis(textoNos) &&
             !OfertaTextoFiltro.ehPromocaoOuStatus(textoNos) &&
             !OfertaTextoFiltro.ehInterfaceGestor(textoNos)
@@ -221,7 +261,9 @@ class RideScreenReaderService : AccessibilityService() {
             aplicarTexto(pacote, textoNos, "NOS")
             return
         }
-        pedirOcr(pacote)
+        if (captura.podeOcr) {
+            pedirOcr(pacote)
+        }
     }
 
     private fun pedirOcr(pacote: String) {
@@ -440,7 +482,6 @@ class RideScreenReaderService : AccessibilityService() {
             leiturasSemOferta = 0
             return
         }
-        OfertaSessao.limpar(pacote)
         RideNotificationBus.publish(RideNotificationEvent.CorridaExpirada)
         haviaOfertaNaTela = false
         leiturasSemOferta = 0
@@ -479,7 +520,6 @@ class RideScreenReaderService : AccessibilityService() {
             }
             TransicaoTelaOferta.EXPIRAR -> {
                 registrarAmostra(pacote, texto, "TELA_EXPIRADA")
-                OfertaSessao.limpar(pacote)
                 RideNotificationBus.publish(RideNotificationEvent.CorridaExpirada)
                 haviaOfertaNaTela = false
                 leiturasSemOferta = 0
