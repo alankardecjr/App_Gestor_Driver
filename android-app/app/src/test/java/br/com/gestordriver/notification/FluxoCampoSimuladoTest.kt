@@ -6,6 +6,8 @@ import br.com.gestordriver.ui.AppViewModel
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
+import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -20,6 +22,13 @@ class FluxoCampoSimuladoTest {
     private val calculadora = CalculadoraCorrida(
         configuracaoUsuario = ConfiguracaoUsuario.padrao(),
     )
+    private val testScopes = mutableListOf<CoroutineScope>()
+
+    @After
+    fun cancelarEscoposDosViewModels() {
+        testScopes.forEach(CoroutineScope::cancel)
+        testScopes.clear()
+    }
 
     @Before
     fun limparSessao() {
@@ -139,9 +148,9 @@ class FluxoCampoSimuladoTest {
                 """.trimIndent(),
             ),
         ) as RideNotificationEvent.CorridaRecebida
-        val viewModel = AppViewModel(
-            coroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.Unconfined),
-        )
+        val scope = CoroutineScope(SupervisorJob() + Dispatchers.Unconfined)
+        testScopes += scope
+        val viewModel = AppViewModel(coroutineScope = scope)
         viewModel.aplicarNovaCorrida(oferta.analise)
         viewModel.expirarOfertaAtual()
         assertTrue(viewModel.state.historico.isEmpty())

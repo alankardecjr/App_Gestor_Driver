@@ -6,16 +6,30 @@ import br.com.gestordriver.model.TutorialConteudo
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
+import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class OnboardingViewModelTest {
-    private fun novo(concluido: Boolean): AppViewModel = AppViewModel(
-        onboardingStore = MemoriaOnboardingStore(inicial = concluido),
-        coroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.Unconfined),
-    )
+    private val testScopes = mutableListOf<CoroutineScope>()
+
+    @After
+    fun cancelarEscoposDosViewModels() {
+        testScopes.forEach(CoroutineScope::cancel)
+        testScopes.clear()
+    }
+
+    private fun novo(concluido: Boolean): AppViewModel {
+        val scope = CoroutineScope(SupervisorJob() + Dispatchers.Unconfined)
+        testScopes += scope
+        return AppViewModel(
+            onboardingStore = MemoriaOnboardingStore(inicial = concluido),
+            coroutineScope = scope,
+        )
+    }
 
     @Test
     fun primeiro_uso_sem_permissao_abre_passo_permissoes() {

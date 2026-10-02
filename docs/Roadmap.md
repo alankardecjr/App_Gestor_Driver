@@ -2,6 +2,14 @@
 
 Estado alinhado ao código em `android-app/` e às regras em [`REGRAS_NEGOCIO.md`](REGRAS_NEGOCIO.md).
 
+## VS 2.3.4
+
+- [x] Card do Histórico com Ganhos, Viagens, Distância e Tempo.
+- [x] Ganhos do Histórico somam o valor bruto das corridas, sem descontos.
+- [x] Resumo respeita a aba Todos, Uber, 99 ou inDrive.
+- [x] Desligamento sem confirmação quando selo está na lixeira, notificação fechada e app removido de Recentes.
+- [ ] Teste de rua no SM-A145M.
+
 **Produto:** **Free** (demo, 🔒) + **Pro** (paga, liberada). Branch ativa: `vs-2.0` / `2.0.0`. Beta `1.1.10` congelado em `main`.
 
 ## Feito — Beta 1.1.10 (`main`)

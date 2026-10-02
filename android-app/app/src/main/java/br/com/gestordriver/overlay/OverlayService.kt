@@ -8,6 +8,7 @@ import android.app.Service
 import android.content.Context
 import android.content.Intent
 import android.graphics.Color
+import android.graphics.Paint
 import android.graphics.PixelFormat
 import android.graphics.Typeface
 import android.graphics.drawable.GradientDrawable
@@ -1166,8 +1167,14 @@ class OverlayService : Service() {
         ).forEach { (titulo, barraGrossa) ->
             metricas.addView(criarColunaCompacta(titulo, barraGrossa))
         }
-        (metricas.getChildAt(2).layoutParams as LinearLayout.LayoutParams).marginStart = dp(8)
-        (metricas.getChildAt(3).layoutParams as LinearLayout.LayoutParams).marginStart = dp(10)
+        val espacoTotal = dp(8) + dp(10)
+        val espaco = espacoTotal / 3
+        val sobra = espacoTotal % 3
+        for (indice in 1..3) {
+            val extra = if (indice <= sobra) 1 else 0
+            (metricas.getChildAt(indice).layoutParams as LinearLayout.LayoutParams).marginStart =
+                espaco + extra
+        }
         layout.addView(metricas)
         val paradasLinha = LinearLayout(this).apply {
             tag = "linha_paradas"
@@ -1201,8 +1208,9 @@ class OverlayService : Service() {
 
     private fun criarColunaCompacta(titulo: String, barraGrossa: Boolean): LinearLayout {
         val peso = when {
-            titulo == "Lucro" -> 0.85f
-            barraGrossa -> 1.85f
+            titulo == "Lucro" -> 1.35f
+            titulo == "Nota" -> 1.05f
+            barraGrossa -> 1.55f
             else -> 0.7f
         }
         val folgaTitulo = dp(if (barraGrossa) 8 else 3) + dp(4)
@@ -1334,6 +1342,14 @@ class OverlayService : Service() {
         pintarMetrica(metricas, 1, corHora, corValor)
         pintarMetrica(metricas, 2, corNota, corValor)
         pintarMetrica(metricas, 3, corBarraLucro, corValor)
+        igualarPar(
+            metricas,
+            primeiro = 0,
+            segundo = 1,
+            maxSp = 26f,
+            minSp = 20f,
+        )
+        igualarNotaELucro(metricas)
 
         layout.findViewWithTag<TextView>("cmp_app")?.apply {
             text = snapshot.plataformaSigla.ifBlank { "" }
@@ -1653,6 +1669,46 @@ class OverlayService : Service() {
 
     private fun reabrirApp(origemCompacta: Boolean) {
         OverlayBridge.emitir(OverlayAcao.Reabrir(origemCompacta))
+    }
+
+    private fun igualarNotaELucro(metricas: LinearLayout) {
+        igualarPar(metricas, primeiro = 2, segundo = 3, maxSp = 14f, minSp = 9f)
+    }
+
+    private fun igualarPar(
+        metricas: LinearLayout,
+        primeiro: Int,
+        segundo: Int,
+        maxSp: Float,
+        minSp: Float,
+    ) {
+        val esquerda = valorCompacta(metricas, primeiro)
+        val direita = valorCompacta(metricas, segundo)
+        metricas.post {
+            val paint = android.text.TextPaint(Paint.ANTI_ALIAS_FLAG).apply {
+                typeface = fonteValorCompacta
+            }
+            fun cabe(view: TextView, sp: Float): Boolean {
+                val largura = view.width - view.compoundPaddingLeft - view.compoundPaddingRight
+                if (largura <= 0) {
+                    return false
+                }
+                paint.textSize = TypedValue.applyDimension(
+                    TypedValue.COMPLEX_UNIT_SP,
+                    sp,
+                    resources.displayMetrics,
+                )
+                return paint.measureText(view.text.toString()) <= largura
+            }
+            var sp = maxSp
+            while (sp > minSp && (!cabe(esquerda, sp) || !cabe(direita, sp))) {
+                sp -= 0.5f
+            }
+            esquerda.setAutoSizeTextTypeWithDefaults(TextView.AUTO_SIZE_TEXT_TYPE_NONE)
+            direita.setAutoSizeTextTypeWithDefaults(TextView.AUTO_SIZE_TEXT_TYPE_NONE)
+            esquerda.setTextSize(TypedValue.COMPLEX_UNIT_SP, sp)
+            direita.setTextSize(TypedValue.COMPLEX_UNIT_SP, sp)
+        }
     }
 
     private fun valorCompacta(metricas: LinearLayout, indice: Int): TextView {

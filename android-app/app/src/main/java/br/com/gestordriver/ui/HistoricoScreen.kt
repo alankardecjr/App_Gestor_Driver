@@ -339,7 +339,8 @@ private fun ResumoPeriodoHistorico(itens: List<HistoricoItemPresentation>) {
             .padding(horizontal = 4.dp, vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        MetricaResumo("Qt", formatarQuantidadeResumo(itens.size), "Corridas")
+        MetricaResumo("R$", formatarDinheiroResumo(itens.sumOf { it.valorTotal }), "Ganhos")
+        MetricaResumo("Qt", formatarQuantidadeResumo(itens.size), "Viagens")
         MetricaResumo("Km", formatarDecimalResumo(itens.sumOf { it.kmTotal }), "Distância")
         MetricaResumo("h", formatarHorasResumo(minutos), "Tempo")
     }
@@ -355,7 +356,7 @@ private fun RowScope.MetricaResumo(icone: String, valor: String, titulo: String)
         Text(
             text = titulo,
             color = paleta.texto,
-            fontSize = 13.sp,
+            fontSize = 12.sp,
             fontWeight = FontWeight.Medium,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
@@ -366,32 +367,33 @@ private fun RowScope.MetricaResumo(icone: String, valor: String, titulo: String)
         ) {
             Box(
                 modifier = Modifier
-                    .size(28.dp)
+                    .size(24.dp)
                     .background(paleta.pocoIcone, RoundedCornerShape(8.dp)),
                 contentAlignment = Alignment.Center,
             ) {
                 Text(
                     text = icone,
                     color = paleta.texto,
-                    fontSize = 11.sp,
+                    fontSize = 10.sp,
                     fontWeight = FontWeight.Bold,
                 )
             }
             Text(
                 text = valor,
                 color = paleta.texto,
-                fontSize = 18.sp,
+                fontSize = 14.sp,
                 fontWeight = FontWeight.Bold,
                 maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
+                overflow = TextOverflow.Clip,
                 textAlign = TextAlign.Start,
-                modifier = Modifier
-                    .padding(start = 6.dp)
-                    .width(56.dp),
+                modifier = Modifier.padding(start = 3.dp),
             )
         }
     }
 }
+
+private fun formatarDinheiroResumo(valor: Double): String =
+    "%.2f".format(Locale.US, valor).replace('.', ',')
 
 private fun formatarQuantidadeResumo(quantidade: Int): String =
     if (quantidade < 100) "%02d".format(quantidade) else quantidade.toString()
